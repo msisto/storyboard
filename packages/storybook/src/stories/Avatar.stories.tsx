@@ -1,52 +1,52 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 
-const meta = {
+type AvatarArgs = { src?: string; alt: string; fallback: string };
+
+const meta: Meta<AvatarArgs> = {
   title: 'UI/Avatar',
   component: Avatar,
   parameters: { layout: 'centered' },
-  argTypes: {
-    className: {
-      control: 'text',
-      description: 'Additional CSS classes for sizing',
-    },
-  },
-} satisfies Meta<typeof Avatar>;
+};
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<AvatarArgs>;
 
 export const Default: Story = {
-  render: () => (
+  args: { src: 'https://github.com/shadcn.png', alt: '@shadcn', fallback: 'CN' },
+  render: ({ src, alt, fallback }) => (
     <Avatar>
-      <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-      <AvatarFallback>CN</AvatarFallback>
+      <AvatarImage src={src} alt={alt} />
+      <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   ),
 };
 
 export const WithFallback: Story = {
-  render: () => (
+  args: { alt: 'User', fallback: 'JD' },
+  render: ({ alt, fallback }) => (
     <Avatar>
-      <AvatarImage src="/broken-image.jpg" alt="User" />
-      <AvatarFallback>JD</AvatarFallback>
+      <AvatarImage src="/broken-image.jpg" alt={alt} />
+      <AvatarFallback>{fallback}</AvatarFallback>
     </Avatar>
   ),
 };
 
 export const Large: Story = {
-  render: () => (
+  args: { src: 'https://github.com/shadcn.png', alt: '@shadcn', fallback: 'CN' },
+  render: ({ src, alt, fallback }) => (
     <Avatar className="h-16 w-16">
-      <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-      <AvatarFallback className="text-xl">CN</AvatarFallback>
+      <AvatarImage src={src} alt={alt} />
+      <AvatarFallback className="text-xl">{fallback}</AvatarFallback>
     </Avatar>
   ),
 };
 
 export const Small: Story = {
-  render: () => (
+  args: { fallback: 'SM', alt: '' },
+  render: ({ fallback }) => (
     <Avatar className="h-6 w-6">
-      <AvatarFallback className="text-xs">SM</AvatarFallback>
+      <AvatarFallback className="text-xs">{fallback}</AvatarFallback>
     </Avatar>
   ),
 };

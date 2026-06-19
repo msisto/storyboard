@@ -9,6 +9,7 @@ interface RegistryStore {
   status: 'idle' | 'loading' | 'ready' | 'error';
   error: string | null;
   loadRegistry: () => Promise<void>;
+  updateArgDefinitions: (storyId: string, defs: ArgDefinition[]) => void;
   getStory: (id: string) => StorybookStory | undefined;
   getArgDefs: (storyId: string) => ArgDefinition[];
 }
@@ -40,6 +41,11 @@ export const useRegistryStore = create<RegistryStore>((set, get) => ({
       });
     }
   },
+
+  updateArgDefinitions: (storyId, defs) =>
+    set((state) => ({
+      argDefinitions: { ...state.argDefinitions, [storyId]: defs },
+    })),
 
   getStory: (id) => get().stories.find((s) => s.id === id),
 

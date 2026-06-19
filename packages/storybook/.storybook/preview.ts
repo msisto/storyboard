@@ -1,27 +1,18 @@
 import React from 'react';
 import type { Decorator, Preview } from '@storybook/react';
+import { useArgs } from '@storybook/preview-api';
 import '../globals.css';
 
 // Measures the rendered story's natural size and posts it to the parent
 // window so Storyboard can auto-size the iframe container on first drop.
-// Only active when `instanceId` is present in the URL (i.e. when loaded
-// inside the Storyboard canvas — not when browsing Storybook directly).
 const SizeReporter: Decorator = (Story) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const instanceId = React.useMemo(
     () => new URLSearchParams(window.location.search).get('instanceId'),
     []
   );
-  // Once the natural size has been reported we switch the wrapper from
-  // inline-block (shrinks to content, lets us measure) to display:contents
-  // (layout-transparent) so flexible components can reflow to fill the
-  // iframe when the user resizes the container in Storyboard.
   const [measured, setMeasured] = React.useState(false);
 
-  // Strip Storybook's centering layout so the component renders from the
-  // top-left with no surrounding padding. Without this the body's flex
-  // centering + padding makes the available width smaller than the
-  // component, causing it to clip when the iframe is auto-sized.
   React.useLayoutEffect(() => {
     if (!instanceId) return;
     const style = document.createElement('style');
@@ -65,8 +56,50 @@ const SizeReporter: Decorator = (Story) => {
   );
 };
 
+// Reports the story's args/argTypes to the parent so the Storyboard inspector
+// can display them. Also listens for `storyboard:update-args` messages from
+// the parent and applies them via Storybook's useArgs hook — no channel
+// manipulation needed, works reliably across Storybook versions.
+const ArgsReporter: Decorator = (Story, context) => {
+  const instanceId = React.useMemo(
+    () => new URLSearchParams(window.location.search).get('instanceId'),
+    []
+  );
+  const [, updateArgs] = useArgs();
+
+  // Send current args + argTypes to parent whenever they change
+  React.useEffect(() => {
+    if (!instanceId) return;
+    window.parent.postMessage(
+      {
+        type: 'storyboard:story-args',
+        instanceId,
+        storyId: context.id,
+        args: context.args,
+        argTypes: context.argTypes,
+      },
+      '*'
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId, context.id, JSON.stringify(context.args)]);
+
+  // Apply arg updates sent from the parent (e.g. PropsInspector edits)
+  React.useEffect(() => {
+    if (!instanceId) return;
+    const handler = (e: MessageEvent) => {
+      if (!e.data || e.data.type !== 'storyboard:update-args') return;
+      if (e.data.instanceId !== instanceId) return;
+      updateArgs(e.data.args as Record<string, unknown>);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [instanceId, updateArgs]);
+
+  return React.createElement(Story as React.ComponentType, null);
+};
+
 const preview: Preview = {
-  decorators: [SizeReporter],
+  decorators: [SizeReporter, ArgsReporter],
   parameters: {
     controls: { matchers: { color: /(background|color)$/i, date: /Date$/ } },
     layout: 'centered',

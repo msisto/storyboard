@@ -30,7 +30,7 @@ interface DesignStore {
   deleteComponent: (frameId: string, componentId: string) => void;
   deleteSelectedComponents: () => void;
   selectComponent: (id: string | null, addToSelection?: boolean) => void;
-  reorderFrame: (fromIndex: number, toIndex: number) => void;
+  reorderFrame: (fromId: string, beforeId: string | null) => void;
   reorderComponent: (frameId: string, fromIndex: number, toIndex: number) => void;
   reorderFlowItem: (frameId: string, itemId: string, toIndex: number) => void;
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
@@ -316,12 +316,15 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       };
     }),
 
-  reorderFrame: (fromIndex, toIndex) =>
+  reorderFrame: (fromId, beforeId) =>
     set((state) => {
       if (!state.file) return state;
       const frames = [...state.file.frames];
-      const [moved] = frames.splice(fromIndex, 1);
-      frames.splice(toIndex, 0, moved);
+      const fromIdx = frames.findIndex((f) => f.id === fromId);
+      if (fromIdx === -1) return state;
+      const [moved] = frames.splice(fromIdx, 1);
+      const beforeIdx = beforeId ? frames.findIndex((f) => f.id === beforeId) : frames.length;
+      frames.splice(beforeIdx === -1 ? frames.length : beforeIdx, 0, moved);
       return {
         history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: { ...state.file, updatedAt: Date.now(), frames },

@@ -2,7 +2,7 @@
 
 An experience design canvas for Storybook libraries.
 
-<img width="1728" height="936" alt="Screenshot 2026-06-19 at 2 39 58 PM" src="https://github.com/user-attachments/assets/b4662dc6-349a-44d9-be73-0fe7a3ecf8d1" />
+<img width="1728" height="936" alt="Screenshot 2026-06-19 at 2 39 58 PM" src="https://github.com/user-attachments/assets/b4662dc6-349a-44d9-be73-0fe7a3ecf8d1" />
 
 
 
@@ -16,7 +16,8 @@ Each canvas frame is a "board" — a screen in a user flow. Boards are arranged 
 
 Concretely this means:
 
-- Component props changed in the inspector take effect in the real rendered component immediately
+- Component props changed in the inspector update the live component instantly, one character at a time — no reload
+- Each instance on the canvas can have independent content (two Cards with different titles, same story)
 - A component with a hover state actually hovers when you mouse over it in interact mode
 - The layout you see is the layout your production code would produce, not an approximation
 - Design files are JSON checked into the repo alongside the components they reference
@@ -41,7 +42,7 @@ packages/
 Each component instance on the canvas is an `<iframe>` pointing at Storybook's `iframe.html` endpoint:
 
 ```
-http://localhost:6006/iframe.html?id=ui-button--default&viewMode=story&args=variant:outline;children:Click+me&instanceId=abc123
+http://localhost:6006/iframe.html?id=ui-button--default&viewMode=story&instanceId=abc123
 ```
 
 Storybook already supports this URL format for story embeds. Storyboard adds two things on top:
@@ -52,11 +53,31 @@ Storybook already supports this URL format for story embeds. Storyboard adds two
 
 ### How story props work
 
-On load the tool fetches:
-- `/index.json` — full story list (id, title, name)
-- `/stories.json` — argTypes per story (control types, options, defaults)
+A second decorator, `ArgsReporter`, runs inside every story iframe. On each render it:
 
-These populate the component palette and drive the inspector controls. Argtype control types (`boolean`, `select`, `color`, `text`, `number`) map to appropriate input widgets. When you change a prop the new value is written into the instance's `args` map, the iframe URL is rebuilt, and the component re-renders.
+1. **Reports** the story's current `args` and `argTypes` to the parent window via `postMessage({ type: 'storyboard:story-args', instanceId, storyId, args, argTypes })`. The canvas uses this to populate the Inspect panel — no static JSON parsing required.
+2. **Listens** for `postMessage({ type: 'storyboard:update-args', instanceId, args })` from the parent. When received, it calls Storybook's `useArgs()` hook to update the story's args and trigger an immediate re-render.
+
+This means prop changes in the inspector are instant and character-by-character. The iframe never reloads. Each canvas instance stores its own `args` map independently, so two instances of the same story can have different content.
+
+For this to work, your stories must accept the text content you want to change as `args`:
+
+```tsx
+// ✅ Works — title is editable from the canvas
+export const Default: Story = {
+  args: { title: 'Card Title', description: 'Card description.' },
+  render: ({ title, description }) => (
+    <Card><CardTitle>{title}</CardTitle>...</Card>
+  ),
+};
+
+// ✗ Hardcoded — no way to change from the canvas
+export const Default: Story = {
+  render: () => <Card><CardTitle>Card Title</CardTitle>...</Card>,
+};
+```
+
+The component registry auto-refreshes every 10 seconds so story changes are picked up without reloading the app. The ↻ button in the toolbar forces an immediate refresh.
 
 ### Design file storage
 
@@ -79,17 +100,25 @@ Child sizing modes:
 - **fill** — expands to consume remaining space in the flow direction
 - **hug** — sizes to natural content; for text layers, measured via `ResizeObserver`
 
+All spacing values (gap, padding) are constrained to the Tailwind default spacing scale and displayed as token + pixel value (e.g. `4 — 16px`).
+
 Frame self-sizing: `widthMode: 'hug'` or `heightMode: 'hug'` makes the frame wrap its content rather than clip it.
 
 Components and text layers share a single ordered list (`flowOrder` on the frame) so they can be drag-reordered together within a flow.
 
-### Real-time collaboration
+### Viewport
 
-The server maintains a WebSocket room per file ID. When any connected client modifies the design, it broadcasts the full file state to the room (debounced 500ms, with echo suppression keyed on `updatedAt`). Cursor positions are broadcast at ~30fps. The connection reconnects automatically with exponential backoff. Peer cursors appear as colored dots with names on the canvas.
+The canvas supports pinch-to-zoom centered on the cursor position. On load the viewport fits all frames with padding. Clicking a frame in the timeline centers and fits that frame. The toolbar shows the current zoom and has Fit / 1:1 buttons.
 
 ### Timeline
 
-The horizontal strip at the bottom shows all frames in sequence order as wireframe thumbnail cards. Each thumbnail is a CSS-scaled `div` rendering component outlines and text stubs — no iframes, no network requests. Frames can be drag-reordered on the timeline. Clicking a card selects the frame and centers the canvas viewport on it. "+ Add Board" creates a new frame to the right of the last one and pans to it.
+The horizontal strip at the bottom shows frames in sequence order as wireframe thumbnail cards. Frames can be drag-reordered. Clicking a card selects the frame and fits the viewport to it.
+
+Frames can be **hidden from the timeline** (Inspect panel → Timeline → Hidden) while staying on the canvas — useful for keeping utility or reference boards that aren't part of the demo flow. Hidden frames show a hover × button in the timeline to restore them, and can be toggled back from the inspector.
+
+### Real-time collaboration
+
+The server maintains a WebSocket room per file ID. When any connected client modifies the design, it broadcasts the full file state to the room (debounced 500ms, with echo suppression keyed on `updatedAt`). Cursor positions are broadcast at ~30fps. The connection reconnects automatically with exponential backoff. Peer cursors appear as colored dots with names on the canvas.
 
 ---
 
@@ -124,14 +153,16 @@ Open `http://localhost:1618`. The first screen is the file picker. Create a new 
 
 ## Connecting your own Storybook
 
-### Step 1 — Add the SizeReporter decorator
+### Step 1 — Add the decorators
 
-Copy the following into your `.storybook/preview.ts` and add `SizeReporter` to the `decorators` array. This is the only code change required in your project.
+Copy the following into your `.storybook/preview.ts` and add both decorators. These are the only code changes required in your project.
 
 ```typescript
 import React from 'react';
 import type { Decorator } from '@storybook/react';
+import { useArgs } from '@storybook/preview-api';
 
+// Auto-sizes the iframe container when a component is first dropped on the canvas.
 const SizeReporter: Decorator = (Story) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const instanceId = React.useMemo(
@@ -140,19 +171,12 @@ const SizeReporter: Decorator = (Story) => {
   );
   const [measured, setMeasured] = React.useState(false);
 
-  // Remove Storybook's centering layout so the component renders flush
-  // from the top-left corner with no padding.
   React.useLayoutEffect(() => {
     if (!instanceId) return;
     const style = document.createElement('style');
     style.textContent =
-      'body,#storybook-root{' +
-      'display:block!important;' +
-      'padding:0!important;' +
-      'margin:0!important;' +
-      'min-height:unset!important;' +
-      'align-items:unset!important;' +
-      'justify-content:unset!important;' +
+      'body,#storybook-root{display:block!important;padding:0!important;margin:0!important;' +
+      'min-height:unset!important;align-items:unset!important;justify-content:unset!important;' +
       'flex-direction:unset!important}';
     document.head.appendChild(style);
     return () => style.remove();
@@ -183,44 +207,90 @@ const SizeReporter: Decorator = (Story) => {
   );
 };
 
-// Merge with your existing preview export:
+// Reports args/argTypes to the canvas inspector and applies live arg updates.
+const ArgsReporter: Decorator = (Story, context) => {
+  const instanceId = React.useMemo(
+    () => new URLSearchParams(window.location.search).get('instanceId'),
+    []
+  );
+  const [, updateArgs] = useArgs();
+
+  React.useEffect(() => {
+    if (!instanceId) return;
+    window.parent.postMessage(
+      { type: 'storyboard:story-args', instanceId, storyId: context.id,
+        args: context.args, argTypes: context.argTypes },
+      '*'
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId, context.id, JSON.stringify(context.args)]);
+
+  React.useEffect(() => {
+    if (!instanceId) return;
+    const handler = (e: MessageEvent) => {
+      if (!e.data || e.data.type !== 'storyboard:update-args') return;
+      if (e.data.instanceId !== instanceId) return;
+      updateArgs(e.data.args as Record<string, unknown>);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [instanceId, updateArgs]);
+
+  return React.createElement(Story as React.ComponentType, null);
+};
+
 export default {
-  decorators: [SizeReporter],
-  parameters: { /* ... */ },
+  decorators: [SizeReporter, ArgsReporter],
+  parameters: { /* ... your existing parameters */ },
 };
 ```
 
-The decorator is gated on `instanceId` being present in the URL, which only happens when Storyboard loads the story. It has no effect when browsing Storybook normally.
+Both decorators are gated on `instanceId` being present in the URL, which only happens when Storyboard loads the story. They have no effect when browsing Storybook normally.
 
-### Step 2 — Point the tool at your Storybook URL
+### Step 2 — Use args for editable content
 
-The canvas hardcodes `http://localhost:6006`. If your Storybook runs elsewhere, update:
+For content to be editable from the canvas, it must come from `args`:
 
-- `packages/app/src/registry/loader.ts` — `STORYBOOK_URL` constant at the top
-- `packages/app/src/registry/buildIframeUrl.ts` — `base` variable in `buildIframeUrl`
-- `packages/app/vite.config.ts` — the proxy target for `/storybook`
+```tsx
+type CardArgs = { title: string; description: string; action: string };
 
-### Step 3 — Run with your own Storybook
+const meta: Meta<CardArgs> = { title: 'UI/Card', component: Card };
+export default meta;
+
+export const Default: StoryObj<CardArgs> = {
+  args: { title: 'Card Title', description: 'Card description.', action: 'Submit' },
+  render: ({ title, description, action }) => (
+    <Card>
+      <CardTitle>{title}</CardTitle>
+      <CardDescription>{description}</CardDescription>
+      <Button>{action}</Button>
+    </Card>
+  ),
+};
+```
+
+### Step 3 — Point the tool at your Storybook URL
+
+The canvas defaults to `http://localhost:6006`. To use a different URL, set it in your environment:
+
+```bash
+# packages/app/.env
+VITE_STORYBOOK_URL=http://localhost:7007
+```
+
+### Step 4 — Run with your own Storybook
 
 If your Storybook already runs separately, skip `packages/storybook` entirely:
 
 ```bash
 # Terminal 1 — your project's Storybook
 cd /path/to/your/project
-npm run storybook   # or whatever starts it on :6006
+npm run storybook
 
-# Terminal 2 — canvas UI
+# Terminal 2 — canvas UI + server
 cd /path/to/storyboard
-npm run dev -w packages/app
-
-# Terminal 3 — server
-cd /path/to/storyboard
-npm run dev -w packages/server
+npm run dev -w packages/app & npm run dev -w packages/server
 ```
-
-### Verifying the connection
-
-Open `http://localhost:1618` and create or open a file. The Components tab on the left should populate with your stories. If you see "Storybook not reachable", the tool can't reach `localhost:6006/index.json`. The error screen shows the exact error and auto-retries every 5 seconds.
 
 ---
 
@@ -231,22 +301,20 @@ Open `http://localhost:1618` and create or open a file. The Components tab on th
 | Action | Shortcut |
 |--------|----------|
 | Select tool | V |
-| Frame tool | F |
 | Comment tool | C |
-| Pan tool | H |
 | Pan canvas | Space + drag, or middle mouse drag |
-| Zoom | Cmd/Ctrl + scroll |
+| Zoom to cursor | Trackpad pinch, or Cmd/Ctrl + scroll |
 | Toggle auto-layout | Shift+A (with frame selected) |
 | Delete selected | Delete |
 | Undo | Cmd/Ctrl+Z |
 
 ### Adding components to a frame
 
-Drag a story from the Components panel onto a frame. The component renders as a live iframe and auto-sizes. Dropping onto empty canvas creates a frame automatically.
+Drag a story from the Components panel onto a frame. The component renders as a live iframe and auto-sizes to its natural dimensions. Dropping onto empty canvas creates a frame automatically.
 
-### Editing props
+### Editing component content
 
-Select a component to see its props in the Inspect panel. Controls are generated from `argTypes`. Changing a value takes effect immediately.
+Select a component to see its props in the Inspect panel under **PROPS**. Each arg defined in the story appears as an input control. Changes take effect instantly in the iframe — no reload, one character at a time. Different instances of the same story can have independent content.
 
 ### Interacting with components
 
@@ -258,11 +326,19 @@ Open the Text tab to browse the Tailwind type scale. Click a row to add a text l
 
 ### Auto-layout
 
-Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel to set direction, gap, padding, alignment, and sizing modes. Drag children within the frame to reorder. Press Shift+A again to disable; components keep their computed positions.
+Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel to set direction, gap, padding, alignment, and sizing modes. All spacing values snap to the Tailwind scale. Drag children within the frame to reorder. Press Shift+A again to disable; components keep their computed positions.
+
+### Alignment and distribution
+
+Select two or more items to see alignment controls in the Inspect panel. Align edges or centers, distribute with equal spacing, or tidy up into a grid.
+
+### Timeline management
+
+Frames shown in the timeline represent your demo flow. To remove a frame from the timeline without deleting it (e.g. a utility or reference board), select it and toggle **Timeline → Hidden** in the inspector. Hidden frames stay on the canvas but don't appear in the timeline strip.
 
 ### JSX export
 
-Menu (≡) → Export JSX generates a React component for any frame with components placed via absolute positioning. Use it as handoff scaffolding.
+Menu (≡) → Export JSX generates a React component for any frame. Use it as handoff scaffolding.
 
 ---
 
@@ -284,6 +360,7 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
       "x": 100, "y": 100,
       "width": 375, "height": 812,
       "backgroundColor": "#ffffff",
+      "inTimeline": true,
       "autoLayout": {
         "direction": "vertical",
         "gap": 16,
@@ -333,18 +410,18 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
 ```
 packages/app/src/
   App.tsx                    root: keyboard shortcuts, drag-drop wiring, layout
-  types.ts                   all shared TypeScript interfaces
+  types.ts                   all shared TypeScript interfaces + Tailwind spacing scale
 
   canvas/
     Canvas.tsx               pan/zoom/rubber-band, renders FrameNodes
     FrameNode.tsx            frame resize, auto-layout reorder drag, text tool overlay
-    ComponentNode.tsx        iframe wrapper, interact mode, resize handles
+    ComponentNode.tsx        iframe wrapper, interact mode, resize handles, arg sync
     TextLayerNode.tsx        inline text editing, hug-size via ResizeObserver
     ResizeHandles.tsx        8-direction resize handles used by frames + components
     autoLayout.ts            pure layout engine, unified FlowItem abstraction
 
   components/
-    Toolbar.tsx              tool switcher, zoom controls, file menu
+    Toolbar.tsx              tool switcher, zoom controls, file menu, registry refresh
     LayersPanel.tsx          frame/component/text layer tree, visibility toggles
     ComponentPalette.tsx     searchable story list from Storybook index
     TextPalette.tsx          Tailwind type scale browser, draggable rows
@@ -361,10 +438,10 @@ packages/app/src/
     api.ts                   REST client for /api/files
 
   registry/
-    loader.ts                fetches /index.json and /stories.json from Storybook
-    buildIframeUrl.ts        constructs iframe.html URLs with args
+    loader.ts                fetches /index.json from Storybook
+    buildIframeUrl.ts        constructs iframe.html URLs with instanceId
     argTypes.ts              maps Storybook argTypes to ArgDefinition[]
-    useRegistryStore.ts      store for available stories and arg defs
+    useRegistryStore.ts      store for available stories and arg defs (auto-refreshes every 10s)
 
   comments/
     useCommentSync.ts        WebSocket, real-time canvas sync, peer cursors
@@ -377,9 +454,9 @@ packages/server/src/
   index.ts                   Express REST API (/api/files CRUD) + WebSocket room server
 
 packages/storybook/
-  src/stories/               example stories using Radix UI + Tailwind
+  src/stories/               example stories using Radix UI + Tailwind (all using args)
   .storybook/
-    preview.ts               SizeReporter decorator — copy this to your own Storybook
+    preview.ts               SizeReporter + ArgsReporter decorators — copy to your Storybook
     main.ts                  Storybook config (stories glob, addons)
 
 designs/
@@ -392,3 +469,4 @@ designs/
 
 - **No component library abstraction** — each frame has its own independent component list. There's no concept of reusable symbols or shared instances across frames.
 - **JSX export doesn't handle nested auto-layout** — the exporter generates correct flexbox JSX for top-level auto-layout frames but does not recurse into nested frames.
+- **Hardcoded story renders** — stories that use `render: () => (...)` with no `args` won't show editable props. Migrate content to `args` to make it editable.

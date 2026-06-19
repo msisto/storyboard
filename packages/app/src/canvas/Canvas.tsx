@@ -43,7 +43,10 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
     (e: WheelEvent) => {
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
-        zoom(-e.deltaY, e.clientX, e.clientY);
+        const rect = rootRef.current?.getBoundingClientRect();
+        const originX = e.clientX - (rect?.left ?? 0);
+        const originY = e.clientY - (rect?.top ?? 0);
+        zoom(-e.deltaY, originX, originY);
       } else {
         pan(-e.deltaX, -e.deltaY);
       }

@@ -213,12 +213,14 @@ export function LayersPanel() {
                       </span>
                     )}
                     <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: component.visible ? '#374151' : '#d1d5db' }}>
-                      👁
+                      title={component.visible ? 'Hide' : 'Show'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? '#374151' : '#d1d5db' }}>
+                      {component.visible ? <EyeIcon /> : <EyeOffIcon />}
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: component.locked ? '#374151' : '#d1d5db' }}>
-                      {component.locked ? '🔒' : '🔓'}
+                      title={component.locked ? 'Unlock' : 'Lock'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? '#374151' : '#d1d5db' }}>
+                      {component.locked ? <LockIcon /> : <UnlockIcon />}
                     </button>
                   </div>
                 );
@@ -275,8 +277,9 @@ export function LayersPanel() {
                     )}
                     <span style={{ fontSize: 9, color: '#9ca3af', background: '#f3f4f6', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
                     <button onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: tl.visible ? '#374151' : '#d1d5db' }}>
-                      👁
+                      title={tl.visible ? 'Hide' : 'Show'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? '#374151' : '#d1d5db' }}>
+                      {tl.visible ? <EyeIcon /> : <EyeOffIcon />}
                     </button>
                   </div>
                 );
@@ -285,5 +288,43 @@ export function LayersPanel() {
         );
       })}
     </div>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <ellipse cx="6" cy="6" rx="5" ry="3.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <ellipse cx="6" cy="6" rx="5" ry="3.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      <path d="M4 5.5V3.5a2 2 0 014 0v2" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      <circle cx="6" cy="8" r="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function UnlockIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <rect x="2.5" y="5.5" width="7" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" fill="none" />
+      <path d="M4 5.5V3.5a2 2 0 014 0" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+      <circle cx="6" cy="8" r="0.8" fill="currentColor" />
+    </svg>
   );
 }

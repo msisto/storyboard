@@ -10,6 +10,7 @@ interface CanvasStore {
   pan: (dx: number, dy: number) => void;
   zoom: (delta: number, originX: number, originY: number) => void;
   zoomTo: (level: number) => void;
+  fitViewport: (x: number, y: number, zoom: number) => void;
   resetViewport: () => void;
   setViewportXY: (x: number, y: number) => void;
   enterInteractMode: (componentId: string) => void;
@@ -49,6 +50,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({
       viewport: { ...state.viewport, zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level)) },
     })),
+
+  fitViewport: (x, y, zoom) =>
+    set({ viewport: { x, y, zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom)) } }),
 
   resetViewport: () => set({ viewport: { x: 0, y: 0, zoom: 1 } }),
 

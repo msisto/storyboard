@@ -124,16 +124,15 @@ function ExportModal({ onClose }: ExportModalProps) {
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo } = useCanvasStore();
   const { file, newFile, loadFile, selectedFrameId } = useDesignStore();
+  const { status, loadRegistry } = useRegistryStore();
   const [showExport, setShowExport] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const zoomPercent = Math.round(viewport.zoom * 100);
 
-  const tools: { id: Tool; label: string; key: string }[] = [
-    { id: 'select',  label: '↖',  key: 'V' },
-    { id: 'frame',   label: '⬜', key: 'F' },
-    { id: 'comment', label: '✦',  key: 'C' },
-    { id: 'pan',     label: '✋', key: 'H' },
+  const tools: { id: Tool; icon: React.ReactNode; label: string; key: string }[] = [
+    { id: 'select',  icon: <SelectIcon />,  label: 'Select',  key: 'V' },
+    { id: 'comment', icon: <CommentIcon />, label: 'Comment', key: 'C' },
   ];
 
   const handleSave = async () => {
@@ -178,9 +177,9 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowMenu((v) => !v)}
-            style={{ padding: '4px 8px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', fontSize: 14 }}
+            style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}
           >
-            ≡
+            <MenuIcon />
           </button>
           {showMenu && (
             <div
@@ -236,21 +235,20 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           <button
             key={tool.id}
             onClick={() => setTool(tool.id)}
-            title={`${tool.id} (${tool.key})`}
+            title={`${tool.label} (${tool.key})`}
             style={{
-              padding: '4px 10px',
+              padding: '5px 9px',
               border: activeTool === tool.id ? '1px solid #0066FF' : '1px solid #e5e7eb',
               borderRadius: 4,
               cursor: 'pointer',
               background: activeTool === tool.id ? '#eff6ff' : 'white',
-              fontSize: 13,
               display: 'flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
             }}
           >
-            {tool.label}
-            <span style={{ fontSize: 10, color: '#9ca3af' }}>{tool.key}</span>
+            {tool.icon}
+            <span style={{ fontSize: 10, color: activeTool === tool.id ? '#0066FF' : '#9ca3af' }}>{tool.key}</span>
           </button>
         ))}
 
@@ -308,27 +306,38 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
 
         {/* Save / Open / Export */}
-        <button
-          onClick={handleSave}
-          title="Save (⌘S)"
-          style={{ padding: '3px 8px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
-        >
-          💾
+        <button onClick={handleSave} title="Save (⌘S)"
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}>
+          <SaveIcon />
         </button>
-        <button
-          onClick={handleOpen}
-          title="Open (⌘O)"
-          style={{ padding: '3px 8px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
-        >
-          📂
+        <button onClick={handleOpen} title="Open (⌘O)"
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}>
+          <OpenIcon />
         </button>
+        <button onClick={() => setShowExport(true)} title="Export JSX" disabled={!file?.frames.length}
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
+          <ExportIcon />
+          <span style={{ fontSize: 11, color: '#374151' }}>JSX</span>
+        </button>
+
+        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+
+        {/* Refresh components */}
         <button
-          onClick={() => setShowExport(true)}
-          title="Export JSX"
-          style={{ padding: '3px 8px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
-          disabled={!file?.frames.length}
+          onClick={loadRegistry}
+          title="Refresh component library"
+          style={{
+            padding: '5px 7px',
+            border: '1px solid #e5e7eb',
+            borderRadius: 4,
+            cursor: 'pointer',
+            background: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            opacity: status === 'loading' ? 0.5 : 1,
+          }}
         >
-          ↗ JSX
+          <RefreshIcon spinning={status === 'loading'} />
         </button>
 
         <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
@@ -358,5 +367,81 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         />
       )}
     </>
+  );
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function MenuIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1" y="2.5" width="12" height="1.5" rx="0.75" fill="#374151" />
+      <rect x="1" y="6.25" width="12" height="1.5" rx="0.75" fill="#374151" />
+      <rect x="1" y="10" width="12" height="1.5" rx="0.75" fill="#374151" />
+    </svg>
+  );
+}
+
+function SelectIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M5 3L5 18.5L9.5 14L12.5 21L14.5 20.2L11.5 13.2L18 13.2L5 3Z"
+        fill="#374151"
+        stroke="white"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CommentIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 2.5C2 1.67 2.67 1 3.5 1H10.5C11.33 1 12 1.67 12 2.5V8.5C12 9.33 11.33 10 10.5 10H5L2 13V2.5Z" stroke="#374151" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="#374151" strokeWidth="1.3" fill="none" />
+      <rect x="4" y="1.5" width="6" height="4" rx="0.5" fill="#374151" />
+      <rect x="3" y="7.5" width="8" height="4" rx="0.5" stroke="#374151" strokeWidth="1.2" fill="none" />
+      <rect x="5.5" y="2" width="1.5" height="2.5" rx="0.5" fill="white" />
+    </svg>
+  );
+}
+
+function OpenIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M1.5 4.5C1.5 3.67 2.17 3 3 3H5.5L7 5H11C11.83 5 12.5 5.67 12.5 6.5V10.5C12.5 11.33 11.83 12 11 12H3C2.17 12 1.5 11.33 1.5 10.5V4.5Z" stroke="#374151" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RefreshIcon({ spinning }: { spinning: boolean }) {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 14 14" fill="none"
+      style={spinning ? { animation: 'spin 0.8s linear infinite' } : undefined}
+    >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <path d="M12 7A5 5 0 1 1 9.5 2.5" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <path d="M9.5 1V3.5H12" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 1.5V9" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M4.5 4L7 1.5L9.5 4" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 9.5V11.5C2 12.05 2.45 12.5 3 12.5H11C11.55 12.5 12 12.05 12 11.5V9.5" stroke="#374151" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
   );
 }

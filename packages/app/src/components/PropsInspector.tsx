@@ -9,7 +9,7 @@ import {
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
 import type { ArgDefinition, AutoLayoutSettings, Frame, SizingMode } from '../types';
-import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
+import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 
 const DEVICE_PRESETS = [
   { label: 'iPhone', w: 390, h: 844 },
@@ -300,6 +300,126 @@ function ArgControl({
   );
 }
 
+function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {label && <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>{label}</span>}
+      <select
+        value={value}
+        onFocus={pushH}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{
+          width: '100%',
+          padding: '3px 6px',
+          fontSize: 12,
+          border: '1px solid #e5e7eb',
+          borderRadius: 4,
+          outline: 'none',
+          background: 'white',
+          cursor: 'pointer',
+          appearance: 'auto',
+        }}
+      >
+        {TAILWIND_SPACING.map((s) => (
+          <option key={s.px} value={s.px}>
+            {s.token} — {s.px}px
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function PropsSection({
+  argDefs,
+  args,
+  onChange,
+}: {
+  argDefs: ArgDefinition[];
+  args: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}) {
+  const [newKey, setNewKey] = useState('');
+
+  // Keys covered by argDefs
+  const defKeys = new Set(argDefs.map((d) => d.name));
+
+  // Args already on the instance that have no argDef (user-added or set externally)
+  const extraKeys = Object.keys(args).filter((k) => !defKeys.has(k));
+
+  const hasContent = argDefs.length > 0 || extraKeys.length > 0;
+
+  return (
+    <Section title="Props">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {argDefs.map((def) => (
+          <ArgControl
+            key={def.name}
+            def={def}
+            value={args[def.name]}
+            onChange={(v) => onChange(def.name, v)}
+          />
+        ))}
+
+        {extraKeys.map((key) => (
+          <ArgControl
+            key={key}
+            def={{ name: key, type: typeof args[key] === 'boolean' ? 'boolean' : typeof args[key] === 'number' ? 'number' : 'text' }}
+            value={args[key]}
+            onChange={(v) => onChange(key, v)}
+          />
+        ))}
+
+        {!hasContent && (
+          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
+            No args defined in this story. Add a prop name below, or define <code style={{ fontFamily: 'monospace', background: '#f3f4f6', padding: '0 3px', borderRadius: 2 }}>args</code> in your Storybook story to auto-populate.
+          </span>
+        )}
+
+        {/* Add a new prop manually */}
+        <div style={{ display: 'flex', gap: 4, marginTop: hasContent ? 4 : 0 }}>
+          <input
+            type="text"
+            placeholder="prop name"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && newKey.trim()) {
+                onChange(newKey.trim(), '');
+                setNewKey('');
+              }
+            }}
+            style={{
+              flex: 1,
+              padding: '3px 6px',
+              fontSize: 11,
+              border: '1px solid #e5e7eb',
+              borderRadius: 4,
+              outline: 'none',
+            }}
+          />
+          <button
+            onClick={() => {
+              if (newKey.trim()) { onChange(newKey.trim(), ''); setNewKey(''); }
+            }}
+            style={{
+              padding: '3px 8px',
+              fontSize: 11,
+              border: '1px solid #e5e7eb',
+              borderRadius: 4,
+              cursor: 'pointer',
+              background: 'white',
+              color: '#374151',
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function PropsInspector() {
   const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions } =
     useDesignStore();
@@ -369,15 +489,12 @@ export function PropsInspector() {
             <button title="Distribute vertically" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeV(frameItems)); }}><DistributeVIcon /></button>
             <div style={{ width: 6 }} />
             <button title="Tidy up" style={btnStyle()} onClick={() => applyFrames(tidyUp(frameItems, tidyGap))}><TidyUpIcon /></button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
-              <input
-                type="number"
+            <div style={{ width: 64 }}>
+              <SpacingInput
+                label=""
                 value={tidyGap}
-                min={0}
-                onChange={(e) => setTidyGap(Math.max(0, Number(e.target.value)))}
-                style={{ width: 44, padding: '3px 5px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', textAlign: 'right' }}
+                onChange={(g) => { setTidyGap(g); applyFrames(tidyUp(frameItems, g)); }}
               />
-              <span style={{ fontSize: 10, color: '#9ca3af' }}>gap</span>
             </div>
           </div>
         </div>
@@ -613,24 +730,15 @@ export function PropsInspector() {
           </Section>
         )}
 
-        {argDefs.length > 0 && (
-          <Section title="Props">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {argDefs.map((def) => (
-                <ArgControl
-                  key={def.name}
-                  def={def}
-                  value={selectedComponentData.args[def.name]}
-                  onChange={(v) =>
-                    updateComponent(selectedFrameData.id, selectedComponentData.id, {
-                      args: { ...selectedComponentData.args, [def.name]: v },
-                    })
-                  }
-                />
-              ))}
-            </div>
-          </Section>
-        )}
+        <PropsSection
+          argDefs={argDefs}
+          args={selectedComponentData.args}
+          onChange={(key, v) =>
+            updateComponent(selectedFrameData.id, selectedComponentData.id, {
+              args: { ...selectedComponentData.args, [key]: v },
+            })
+          }
+        />
       </div>
     );
   }
@@ -687,6 +795,24 @@ export function PropsInspector() {
                   boxSizing: 'border-box',
                 }}
               />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Timeline</span>
+              <button
+                onClick={() => updateFrame(selectedFrameData.id, { inTimeline: selectedFrameData.inTimeline === false })}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 11,
+                  borderRadius: 4,
+                  border: '1px solid #e5e7eb',
+                  background: selectedFrameData.inTimeline !== false ? '#ecfdf5' : '#f9fafb',
+                  color: selectedFrameData.inTimeline !== false ? '#059669' : '#6b7280',
+                  cursor: 'pointer',
+                }}
+              >
+                {selectedFrameData.inTimeline !== false ? 'Shown' : 'Hidden'}
+              </button>
             </div>
 
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -824,10 +950,10 @@ export function PropsInspector() {
                 )}
 
                 {/* Gap */}
-                <NumberInput
+                <SpacingInput
                   label="Gap"
                   value={al.gap}
-                  onChange={(v) => patchAL({ gap: Math.max(0, v) })}
+                  onChange={(v) => patchAL({ gap: v })}
                 />
 
                 {/* Padding */}
@@ -836,10 +962,10 @@ export function PropsInspector() {
                     Padding
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    <NumberInput label="Top"    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: Math.max(0, v) })} />
-                    <NumberInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: Math.max(0, v) })} />
-                    <NumberInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: Math.max(0, v) })} />
-                    <NumberInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: Math.max(0, v) })} />
+                    <SpacingInput label="Top"    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: v })} />
+                    <SpacingInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: v })} />
+                    <SpacingInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
+                    <SpacingInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: v })} />
                   </div>
                 </div>
 
@@ -978,15 +1104,12 @@ export function PropsInspector() {
                 <button title="Tidy up" style={btnStyle()} onClick={() => apply(tidyUp(items, tidyGap))}>
                   <TidyUpIcon />
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
-                  <input
-                    type="number"
+                <div style={{ width: 64 }}>
+                  <SpacingInput
+                    label=""
                     value={tidyGap}
-                    min={0}
-                    onChange={(e) => setTidyGap(Math.max(0, Number(e.target.value)))}
-                    style={{ width: 44, padding: '3px 5px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', textAlign: 'right' }}
+                    onChange={(g) => { setTidyGap(g); apply(tidyUp(items, g)); }}
                   />
-                  <span style={{ fontSize: 10, color: '#9ca3af' }}>gap</span>
                 </div>
               </div>
             </div>

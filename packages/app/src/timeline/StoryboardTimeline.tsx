@@ -7,7 +7,8 @@ interface StoryboardTimelineProps {
   selectedFrameIds: string[];
   onSelectFrame: (frame: Frame) => void;
   onToggleFrame: (frame: Frame) => void;
-  onReorderFrame: (fromIndex: number, toIndex: number) => void;
+  onReorderFrame: (fromId: string, beforeId: string | null) => void;
+  onRemoveFromTimeline: (frameId: string) => void;
   onAddFrame: () => void;
 }
 
@@ -82,9 +83,11 @@ export function StoryboardTimeline({
   onSelectFrame,
   onToggleFrame,
   onReorderFrame,
+  onRemoveFromTimeline,
   onAddFrame,
 }: StoryboardTimelineProps) {
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
   insertionIndexRef.current = insertionIndex;
@@ -118,10 +121,13 @@ export function StoryboardTimeline({
         const idx = insertionIndexRef.current;
         const id = draggingIdRef.current;
         if (id !== null && idx !== null) {
-          const fromIdx = frames.findIndex((f) => f.id === id);
-          if (fromIdx !== -1 && fromIdx !== idx) {
-            onReorderFrame(fromIdx, idx);
-          }
+          const others = frames.filter((f) => f.id !== id);
+          const beforeId = idx < others.length ? others[idx].id : null;
+          const currentIdx = frames.findIndex((f) => f.id === id);
+          const wouldChange = beforeId
+            ? frames[currentIdx + 1]?.id !== beforeId
+            : currentIdx !== frames.length - 1;
+          if (wouldChange) onReorderFrame(id, beforeId);
         }
         draggingIdRef.current = null;
         setInsertionIndex(null);
@@ -231,6 +237,8 @@ export function StoryboardTimeline({
                   if (e.button !== 0) return;
                   handleCardMouseDown(frame.id, e.clientX);
                 }}
+                onMouseEnter={() => setHoveredId(frame.id)}
+                onMouseLeave={() => setHoveredId(null)}
               >
                 {/* Sequence number badge */}
                 <div
@@ -246,6 +254,34 @@ export function StoryboardTimeline({
                 >
                   {i + 1}
                 </div>
+
+                {/* Remove from timeline button */}
+                {hoveredId === frame.id && (
+                  <button
+                    title="Remove from timeline"
+                    onClick={(e) => { e.stopPropagation(); onRemoveFromTimeline(frame.id); }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: '#6b7280',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                    }}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1 1L7 7M7 1L1 7" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                )}
 
                 <FrameThumbnail frame={frame} />
 

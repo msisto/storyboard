@@ -36,8 +36,11 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
     let lastW = -1, lastH = -1;
     const obs = new ResizeObserver(() => {
       if (!containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      const w = Math.ceil(width), h = Math.ceil(height);
+      const rect = containerRef.current.getBoundingClientRect();
+      // getBoundingClientRect returns screen-space px; divide by zoom to get world-space px
+      const zoom = viewportRef.current.zoom;
+      const w = Math.ceil(rect.width / zoom);
+      const h = Math.ceil(rect.height / zoom);
       if (w !== lastW || h !== lastH) {
         lastW = w; lastH = h;
         const upd: Partial<TextLayer> = {};

@@ -52,6 +52,43 @@ export interface ComponentInstance {
   absolute?: boolean;
 }
 
+// ── Tailwind spacing scale ────────────────────────────────────────────────────
+// Each entry: token name → pixel value (1 unit = 4px in Tailwind's default scale)
+export const TAILWIND_SPACING: { token: string; px: number }[] = [
+  { token: '0',    px: 0   },
+  { token: '0.5',  px: 2   },
+  { token: '1',    px: 4   },
+  { token: '1.5',  px: 6   },
+  { token: '2',    px: 8   },
+  { token: '2.5',  px: 10  },
+  { token: '3',    px: 12  },
+  { token: '3.5',  px: 14  },
+  { token: '4',    px: 16  },
+  { token: '5',    px: 20  },
+  { token: '6',    px: 24  },
+  { token: '7',    px: 28  },
+  { token: '8',    px: 32  },
+  { token: '9',    px: 36  },
+  { token: '10',   px: 40  },
+  { token: '11',   px: 44  },
+  { token: '12',   px: 48  },
+  { token: '14',   px: 56  },
+  { token: '16',   px: 64  },
+  { token: '20',   px: 80  },
+  { token: '24',   px: 96  },
+  { token: '28',   px: 112 },
+  { token: '32',   px: 128 },
+];
+
+export function snapToSpacing(px: number): number {
+  const vals = TAILWIND_SPACING.map((s) => s.px);
+  return vals.reduce((best, v) => Math.abs(v - px) < Math.abs(best - px) ? v : best, vals[0]);
+}
+
+export function spacingToken(px: number): string {
+  return TAILWIND_SPACING.find((s) => s.px === px)?.token ?? String(px);
+}
+
 // ── Text layers ───────────────────────────────────────────────────────────────
 
 export const TAILWIND_FONT_SIZES = [
@@ -119,6 +156,7 @@ export interface Frame {
   textLayers?: TextLayer[];
   autoLayout?: AutoLayoutSettings;
   flowOrder?: string[];
+  inTimeline?: boolean;
 }
 
 export interface CommentReply {

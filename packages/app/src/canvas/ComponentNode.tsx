@@ -5,6 +5,9 @@ import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { buildIframeUrl } from '../registry/buildIframeUrl';
 import { ResizeHandles } from './ResizeHandles';
+import { useRegistryStore } from '../registry/useRegistryStore';
+import { parseArgTypes } from '../registry/argTypes';
+import type { RawArgType } from '../registry/loader';
 
 interface ComponentNodeProps {
   instance: ComponentInstance;
@@ -28,6 +31,7 @@ export function ComponentNode({
   const { selectComponent, updateComponent, deleteComponent, pushHistory } = useDesignStore();
   const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool } =
     useCanvasStore();
+  const { updateArgDefinitions } = useRegistryStore();
 
   const isInteracting = interactingComponentId === instance.id;
   const instanceRef = useRef(instance);
@@ -46,22 +50,64 @@ export function ComponentNode({
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type !== 'storyboard:story-size') return;
-      if (e.data?.instanceId !== instance.id) return;
-      if (hasMeasured.current) return;
+      if (!e.data || typeof e.data !== 'object') return;
 
-      const w = Math.round(e.data.width as number);
-      const h = Math.round(e.data.height as number);
-      if (w > 0 && h > 0) {
-        hasMeasured.current = true;
-        updateComponent(frameId, instance.id, { width: w, height: h });
+      if (e.data.type === 'storyboard:story-size' && e.data.instanceId === instance.id) {
+        if (hasMeasured.current) return;
+        const w = Math.round(e.data.width as number);
+        const h = Math.round(e.data.height as number);
+        if (w > 0 && h > 0) {
+          hasMeasured.current = true;
+          updateComponent(frameId, instance.id, { width: w, height: h });
+        }
+      }
+
+      if (e.data.type === 'storyboard:story-args' && e.data.instanceId === instance.id) {
+        const rawArgTypes = e.data.argTypes as Record<string, RawArgType> | undefined;
+        const defaultArgs = e.data.args as Record<string, unknown> | undefined;
+        if (rawArgTypes && Object.keys(rawArgTypes).length > 0) {
+          updateArgDefinitions(instance.storybookId, parseArgTypes(rawArgTypes));
+        } else if (defaultArgs && Object.keys(defaultArgs).length > 0) {
+          // Infer types from default arg values when argTypes is empty
+          const inferred: Record<string, RawArgType> = {};
+          for (const [k, v] of Object.entries(defaultArgs)) {
+            const t = typeof v;
+            inferred[k] = { control: t === 'boolean' ? 'boolean' : t === 'number' ? 'number' : 'text', defaultValue: v };
+          }
+          updateArgDefinitions(instance.storybookId, parseArgTypes(inferred));
+        }
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [instance.id, frameId, updateComponent]);
+  }, [instance.id, instance.storybookId, frameId, updateComponent, updateArgDefinitions]);
 
-  const iframeUrl = buildIframeUrl(instance.storybookId, instance.args, instance.id);
+  // ── Arg updates via postMessage ──────────────────────────────────────────────
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const pushArgs = useCallback((args: Record<string, unknown>) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: 'storyboard:update-args', instanceId: instance.id, args },
+      '*'
+    );
+  }, [instance.id]);
+
+  // Push args to the iframe whenever they change
+  const prevArgsRef = useRef<Record<string, unknown>>(instance.args);
+  useEffect(() => {
+    if (prevArgsRef.current === instance.args) return;
+    prevArgsRef.current = instance.args;
+    pushArgs(instance.args);
+  }, [instance.args, pushArgs]);
+
+  // Stable src — snapshot args at mount/story-change, don't update on arg edits
+  const [iframeUrl, setIframeUrl] = React.useState(
+    () => buildIframeUrl(instance.storybookId, instance.args, instance.id)
+  );
+  useEffect(() => {
+    setIframeUrl(buildIframeUrl(instance.storybookId, instance.args, instance.id));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instance.storybookId, instance.id]);
 
   // Effective rendering geometry: computed by layout engine or stored values
   const effectiveX = computedGeometry?.x ?? instance.x;
@@ -228,6 +274,7 @@ export function ComponentNode({
 
       {/* Live Storybook iframe */}
       <iframe
+        ref={iframeRef}
         src={iframeUrl}
         style={{
           position: 'absolute',

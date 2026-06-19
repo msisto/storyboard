@@ -158,7 +158,7 @@ function CommentModal({
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, toggleFrameSelection, reorderFrame } = useDesignStore();
-  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, setViewportXY } = useCanvasStore();
+  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
     setAuthorName(name);
@@ -212,10 +212,11 @@ export default function App() {
     [loadFile, loadRegistry]
   );
 
-  // Auto-retry registry every 5s on error
+  // Retry every 5s on error; poll every 10s when ready so story arg changes are picked up
   useEffect(() => {
-    if (status !== 'error') return;
-    const t = setInterval(loadRegistry, 5000);
+    if (status !== 'error' && status !== 'ready') return;
+    const interval = status === 'error' ? 5000 : 10000;
+    const t = setInterval(loadRegistry, interval);
     return () => clearInterval(t);
   }, [status, loadRegistry]);
 
@@ -426,19 +427,53 @@ export default function App() {
     [addComponent]
   );
 
+  const fitFrame = useCallback((frame: Frame) => {
+    if (!canvasRef.current) return;
+    const { width, height } = canvasRef.current.getBoundingClientRect();
+    const PAD = 56;
+    const newZoom = Math.max(0.1, Math.min(4, Math.min(
+      (width - PAD * 2) / frame.width,
+      (height - PAD * 2) / frame.height,
+    )));
+    useCanvasStore.getState().fitViewport(
+      width / 2 - (frame.x + frame.width / 2) * newZoom,
+      height / 2 - (frame.y + frame.height / 2) * newZoom,
+      newZoom,
+    );
+  }, []);
+
   const handleSelectFrame = useCallback(
     (frame: Frame) => {
       selectFrame(frame.id);
-      if (!canvasRef.current) return;
-      const { width, height } = canvasRef.current.getBoundingClientRect();
-      const vp = useCanvasStore.getState().viewport;
-      setViewportXY(
-        width / 2 - (frame.x + frame.width / 2) * vp.zoom,
-        height / 2 - (frame.y + frame.height / 2) * vp.zoom,
-      );
+      fitFrame(frame);
     },
-    [selectFrame, setViewportXY]
+    [selectFrame, fitFrame]
   );
+
+  // Fit all frames on initial load
+  useEffect(() => {
+    if (view !== 'canvas') return;
+    requestAnimationFrame(() => {
+      const frames = useDesignStore.getState().file?.frames ?? [];
+      if (frames.length === 0 || !canvasRef.current) return;
+      if (frames.length === 1) { fitFrame(frames[0]); return; }
+      const { width, height } = canvasRef.current.getBoundingClientRect();
+      const minX = Math.min(...frames.map((f) => f.x));
+      const minY = Math.min(...frames.map((f) => f.y));
+      const maxX = Math.max(...frames.map((f) => f.x + f.width));
+      const maxY = Math.max(...frames.map((f) => f.y + f.height));
+      const PAD = 72;
+      const newZoom = Math.max(0.1, Math.min(4, Math.min(
+        (width - PAD * 2) / (maxX - minX),
+        (height - PAD * 2) / (maxY - minY),
+      )));
+      useCanvasStore.getState().fitViewport(
+        width / 2 - (minX + (maxX - minX) / 2) * newZoom,
+        height / 2 - (minY + (maxY - minY) / 2) * newZoom,
+        newZoom,
+      );
+    });
+  }, [view]);
 
   const handleAddFrame = useCallback(() => {
     const frames = useDesignStore.getState().file?.frames ?? [];
@@ -555,12 +590,16 @@ export default function App() {
       </div>
 
       <StoryboardTimeline
-        frames={file?.frames ?? []}
+        frames={file?.frames.filter((f) => f.inTimeline !== false) ?? []}
         selectedFrameId={selectedFrameId}
         selectedFrameIds={selectedFrameIds}
         onSelectFrame={handleSelectFrame}
         onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
         onReorderFrame={reorderFrame}
+        onRemoveFromTimeline={(id) => {
+          const { updateFrame } = useDesignStore.getState();
+          updateFrame(id, { inTimeline: false });
+        }}
         onAddFrame={handleAddFrame}
       />
 
