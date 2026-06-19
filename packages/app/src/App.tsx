@@ -157,7 +157,7 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, reorderFrame } = useDesignStore();
+  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, toggleFrameSelection, reorderFrame } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, setViewportXY } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
@@ -557,7 +557,9 @@ export default function App() {
       <StoryboardTimeline
         frames={file?.frames ?? []}
         selectedFrameId={selectedFrameId}
+        selectedFrameIds={selectedFrameIds}
         onSelectFrame={handleSelectFrame}
+        onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
         onReorderFrame={reorderFrame}
         onAddFrame={handleAddFrame}
       />

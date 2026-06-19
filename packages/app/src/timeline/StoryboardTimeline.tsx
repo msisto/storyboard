@@ -4,7 +4,9 @@ import type { Frame } from '../types';
 interface StoryboardTimelineProps {
   frames: Frame[];
   selectedFrameId: string | null;
+  selectedFrameIds: string[];
   onSelectFrame: (frame: Frame) => void;
+  onToggleFrame: (frame: Frame) => void;
   onReorderFrame: (fromIndex: number, toIndex: number) => void;
   onAddFrame: () => void;
 }
@@ -76,7 +78,9 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
 export function StoryboardTimeline({
   frames,
   selectedFrameId,
+  selectedFrameIds,
   onSelectFrame,
+  onToggleFrame,
   onReorderFrame,
   onAddFrame,
 }: StoryboardTimelineProps) {
@@ -182,6 +186,7 @@ export function StoryboardTimeline({
       >
         {frames.map((frame, i) => {
           const isSelected = frame.id === selectedFrameId;
+          const isMultiSelected = selectedFrameIds.length > 1 && selectedFrameIds.includes(frame.id);
           const isDragging = draggingIdRef.current === frame.id;
           const showInsertBefore = insertionIndex === i;
           const showInsertAfter = insertionIndex === frames.length && i === frames.length - 1;
@@ -213,15 +218,15 @@ export function StoryboardTimeline({
                   gap: 4,
                   padding: '6px 6px',
                   borderRadius: 6,
-                  border: isSelected ? '2px solid #0066FF' : '1px solid transparent',
-                  background: isSelected ? '#eff6ff' : 'transparent',
+                  border: isSelected ? '2px solid #0066FF' : isMultiSelected ? '2px solid #60a5fa' : '1px solid transparent',
+                  background: isSelected ? '#eff6ff' : isMultiSelected ? '#f0f7ff' : 'transparent',
                   cursor: isDragging ? 'grabbing' : 'pointer',
                   opacity: isDragging ? 0.5 : 1,
                   userSelect: 'none',
                   position: 'relative',
                   boxSizing: 'border-box',
                 }}
-                onClick={() => onSelectFrame(frame)}
+                onClick={(e) => e.shiftKey ? onToggleFrame(frame) : onSelectFrame(frame)}
                 onMouseDown={(e) => {
                   if (e.button !== 0) return;
                   handleCardMouseDown(frame.id, e.clientX);

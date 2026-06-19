@@ -136,15 +136,12 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         return;
       }
       if (activeTool === 'select') {
-        if (e.shiftKey) {
-          toggleFrameSelection(frame.id);
-        } else {
-          selectFrame(frame.id);
-          selectComponent(null);
-        }
+        if (e.shiftKey) return; // handled by onMouseDown — don't double-toggle
+        selectFrame(frame.id);
+        selectComponent(null);
       }
     },
-    [activeTool, frame.id, viewport.zoom, selectFrame, toggleFrameSelection, selectComponent, addTextLayer, setTool, enterTextEditMode]
+    [activeTool, frame.id, viewport.zoom, selectFrame, selectComponent, addTextLayer, setTool, enterTextEditMode]
   );
 
   const handleFrameMouseDown = useCallback(
