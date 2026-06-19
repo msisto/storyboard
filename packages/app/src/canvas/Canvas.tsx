@@ -191,6 +191,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         width: '100%',
         height: '100%',
         overflow: 'hidden',
+        overscrollBehavior: 'none',
         background: CHECKERBOARD,
         cursor,
       }}
