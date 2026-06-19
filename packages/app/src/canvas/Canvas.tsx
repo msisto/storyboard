@@ -16,7 +16,7 @@ interface CanvasProps {
 
 export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
   const { viewport, activeTool, pan, zoom, setTool } = useCanvasStore();
-  const { file, addFrame, selectFrame, selectComponent, selectedFrameId } = useDesignStore();
+  const { file, addFrame, selectFrame, selectComponent, selectedFrameId, selectedFrameIds } = useDesignStore();
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Middle-mouse / space pan
@@ -211,6 +211,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
             key={frame.id}
             frame={frame}
             isSelected={frame.id === selectedFrameId}
+            isMultiSelected={selectedFrameIds.length > 1 && selectedFrameIds.includes(frame.id)}
           />
         ))}
       </div>

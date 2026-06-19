@@ -301,7 +301,7 @@ function ArgControl({
 }
 
 export function PropsInspector() {
-  const { file, selectedFrameId, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions } =
+  const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions } =
     useDesignStore();
   const { getArgDefs } = useRegistryStore();
 
@@ -318,6 +318,58 @@ export function PropsInspector() {
     return (
       <div style={{ padding: 16, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
         Select a frame or component
+      </div>
+    );
+  }
+
+  // Multi-frame alignment panel
+  if (selectedFrameIds.length > 1 && selectedComponentIds.length === 0) {
+    const frameItems: ItemGeometry[] = selectedFrameIds
+      .map((id) => file?.frames.find((f) => f.id === id))
+      .filter((f): f is NonNullable<typeof f> => !!f)
+      .map((f) => ({ id: f.id, x: f.x, y: f.y, width: f.width, height: f.height }));
+
+    const canDistribute = frameItems.length >= 3;
+
+    const applyFrames = (updates: Array<{ id: string; x?: number; y?: number }>) => {
+      const meaningful = updates.filter((u) => u.x !== undefined || u.y !== undefined);
+      if (meaningful.length > 0) batchUpdateFramePositions(meaningful);
+    };
+
+    const btnStyle = (disabled = false): React.CSSProperties => ({
+      width: 28, height: 28, padding: 0,
+      border: '1px solid #e5e7eb', borderRadius: 4,
+      background: 'white', cursor: disabled ? 'default' : 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: disabled ? 0.35 : 1,
+    });
+
+    return (
+      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>
+          {selectedFrameIds.length} frames selected
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>ALIGN</div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <button title="Align left" style={btnStyle()} onClick={() => applyFrames(alignLeft(frameItems))}><AlignLeftIcon /></button>
+            <button title="Align center horizontal" style={btnStyle()} onClick={() => applyFrames(alignCenterH(frameItems))}><AlignCenterHIcon /></button>
+            <button title="Align right" style={btnStyle()} onClick={() => applyFrames(alignRight(frameItems))}><AlignRightIcon /></button>
+            <div style={{ width: 6 }} />
+            <button title="Align top" style={btnStyle()} onClick={() => applyFrames(alignTop(frameItems))}><AlignTopIcon /></button>
+            <button title="Align center vertical" style={btnStyle()} onClick={() => applyFrames(alignCenterV(frameItems))}><AlignCenterVIcon /></button>
+            <button title="Align bottom" style={btnStyle()} onClick={() => applyFrames(alignBottom(frameItems))}><AlignBottomIcon /></button>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>DISTRIBUTE</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button title="Distribute horizontally" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeH(frameItems)); }}><DistributeHIcon /></button>
+            <button title="Distribute vertically" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeV(frameItems)); }}><DistributeVIcon /></button>
+            <div style={{ width: 6 }} />
+            <button title="Tidy up" style={btnStyle()} onClick={() => applyFrames(tidyUp(frameItems))}><TidyUpIcon /></button>
+          </div>
+        </div>
       </div>
     );
   }

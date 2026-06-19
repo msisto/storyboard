@@ -29,12 +29,13 @@ function getCombinedFlow(frame: Frame, excludeId?: string) {
 interface FrameNodeProps {
   frame: Frame;
   isSelected: boolean;
+  isMultiSelected?: boolean;
 }
 
 const MIN_SIZE = 50;
 
-export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
+export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps) {
+  const { selectFrame, toggleFrameSelection, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
@@ -135,11 +136,15 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         return;
       }
       if (activeTool === 'select') {
-        selectFrame(frame.id);
-        selectComponent(null);
+        if (e.shiftKey) {
+          toggleFrameSelection(frame.id);
+        } else {
+          selectFrame(frame.id);
+          selectComponent(null);
+        }
       }
     },
-    [activeTool, frame.id, viewport.zoom, selectFrame, selectComponent, addTextLayer, setTool, enterTextEditMode]
+    [activeTool, frame.id, viewport.zoom, selectFrame, toggleFrameSelection, selectComponent, addTextLayer, setTool, enterTextEditMode]
   );
 
   const handleFrameMouseDown = useCallback(
@@ -150,6 +155,11 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       // defensively against edge cases (e.g. clicking during scroll or resize).
       if ((e.target as HTMLElement).closest('[data-component-node]')) return;
       e.stopPropagation();
+
+      if (e.shiftKey) {
+        toggleFrameSelection(frame.id);
+        return;
+      }
 
       selectFrame(frame.id);
       selectComponent(null);
@@ -183,7 +193,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, frame.id, selectFrame, selectComponent, updateFrame, pushHistory]
+    [activeTool, frame.id, selectFrame, toggleFrameSelection, selectComponent, updateFrame, pushHistory]
   );
 
   const getGeometry = useCallback(
@@ -298,6 +308,8 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         backgroundColor: frame.backgroundColor,
         outline: (isSelected && selectedComponentIds.length === 0)
           ? '2px solid #0066FF'
+          : isMultiSelected
+          ? '2px solid #60a5fa'
           : '1px solid #D1D5DB',
         boxSizing: 'border-box',
         cursor: activeTool === 'text' ? 'text' : undefined,

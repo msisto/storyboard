@@ -12,6 +12,7 @@ interface DesignStore {
   file: DesignFile | null;
   history: DesignFile[];
   selectedFrameId: string | null;
+  selectedFrameIds: string[];              // multi-frame selection (shift-click)
   selectedComponentId: string | null;     // primary (last clicked) — kept for single-select consumers
   selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
@@ -22,6 +23,8 @@ interface DesignStore {
   updateFrame: (id: string, patch: Partial<Frame>) => void;
   deleteFrame: (id: string) => void;
   selectFrame: (id: string | null) => void;
+  toggleFrameSelection: (id: string) => void;
+  batchUpdateFramePositions: (updates: Array<{ id: string; x?: number; y?: number }>) => void;
   addComponent: (frameId: string, instance: Omit<ComponentInstance, 'id'>) => string;
   updateComponent: (frameId: string, componentId: string, patch: Partial<ComponentInstance>) => void;
   deleteComponent: (frameId: string, componentId: string) => void;
@@ -43,6 +46,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   file: null,
   history: [],
   selectedFrameId: null,
+  selectedFrameIds: [],
   selectedComponentId: null,
   selectedComponentIds: [],
 
@@ -59,6 +63,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       },
       history: [],
       selectedFrameId: null,
+      selectedFrameIds: [],
       selectedComponentId: null,
       selectedComponentIds: [],
     }),
@@ -68,6 +73,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       file: { ...file, id: file.id ?? crypto.randomUUID() } as DesignFile,
       history: [],
       selectedFrameId: null,
+      selectedFrameIds: [],
       selectedComponentId: null,
       selectedComponentIds: [],
     }),
@@ -143,11 +149,49 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           frames: state.file.frames.filter((f) => f.id !== id),
         },
         selectedFrameId: state.selectedFrameId === id ? null : state.selectedFrameId,
+        selectedFrameIds: state.selectedFrameIds.filter((fid) => fid !== id),
         selectedComponentId: null,
       };
     }),
 
-  selectFrame: (id) => set({ selectedFrameId: id, selectedComponentId: null, selectedComponentIds: [] }),
+  selectFrame: (id) => set({ selectedFrameId: id, selectedFrameIds: [], selectedComponentId: null, selectedComponentIds: [] }),
+
+  toggleFrameSelection: (id) =>
+    set((state) => {
+      const current = state.selectedFrameIds.length > 0
+        ? state.selectedFrameIds
+        : state.selectedFrameId ? [state.selectedFrameId] : [];
+      const already = current.includes(id);
+      const next = already ? current.filter((f) => f !== id) : [...current, id];
+      return {
+        selectedFrameIds: next,
+        selectedFrameId: next[next.length - 1] ?? null,
+        selectedComponentId: null,
+        selectedComponentIds: [],
+      };
+    }),
+
+  batchUpdateFramePositions: (updates) =>
+    set((state) => {
+      if (!state.file) return state;
+      const updateMap = new Map(updates.map((u) => [u.id, u]));
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) => {
+            const u = updateMap.get(f.id);
+            if (!u) return f;
+            return {
+              ...f,
+              ...(u.x !== undefined ? { x: u.x } : {}),
+              ...(u.y !== undefined ? { y: u.y } : {}),
+            };
+          }),
+        },
+      };
+    }),
 
   addComponent: (frameId, instance) => {
     const id = uid();
