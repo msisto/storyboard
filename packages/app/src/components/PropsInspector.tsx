@@ -560,7 +560,15 @@ export function PropsInspector() {
       });
       if (!res.ok) throw new Error('Server error');
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      // Poll loadRegistry until the new story appears in the index (HMR delay)
+      const { loadRegistry } = useRegistryStore.getState();
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        await loadRegistry();
+        attempts++;
+        if (attempts >= 8) clearInterval(poll);
+      }, 2000);
+      setTimeout(() => setSaveStatus('idle'), 5000);
     } catch {
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 3000);
@@ -1122,7 +1130,7 @@ export function PropsInspector() {
                 cursor: saveStatus === 'saving' ? 'default' : 'pointer',
               }}
             >
-              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved — reload Storybook' : saveStatus === 'error' ? 'Error — is the server running?' : 'Save as Story…'}
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved — appears in sidebar shortly' : saveStatus === 'error' ? 'Error — is the server running?' : 'Save as Story…'}
             </button>
           </div>
         </Section>
