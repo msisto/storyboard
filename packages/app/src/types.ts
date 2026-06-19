@@ -18,6 +18,22 @@ export interface ArgDefinition {
   description?: string;
 }
 
+export type SizingMode = 'fixed' | 'fill' | 'hug';
+
+export interface AutoLayoutSettings {
+  direction: 'horizontal' | 'vertical';
+  wrap: boolean;
+  gap: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  primaryAlign: 'start' | 'center' | 'end' | 'space-between';
+  counterAlign: 'start' | 'center' | 'end';
+  widthMode: 'fixed' | 'hug';
+  heightMode: 'fixed' | 'hug';
+}
+
 export interface ComponentInstance {
   id: string;
   storybookId: string;
@@ -31,6 +47,9 @@ export interface ComponentInstance {
   locked: boolean;
   visible: boolean;
   label: string;
+  widthMode?: SizingMode;
+  heightMode?: SizingMode;
+  absolute?: boolean;
 }
 
 export interface Frame {
@@ -42,6 +61,7 @@ export interface Frame {
   height: number;
   backgroundColor: string;
   components: ComponentInstance[];
+  autoLayout?: AutoLayoutSettings;
 }
 
 export interface CommentReply {

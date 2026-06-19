@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import type { ComponentInstance } from '../types';
+import type { ChildGeometry } from './autoLayout';
 import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { buildIframeUrl } from '../registry/buildIframeUrl';
@@ -9,11 +10,21 @@ interface ComponentNodeProps {
   instance: ComponentInstance;
   frameId: string;
   isSelected: boolean;
+  computedGeometry?: ChildGeometry;
+  inAutoLayout?: boolean;
+  onReorderDragStart?: (id: string) => void;
 }
 
 const MIN_SIZE = 40;
 
-export function ComponentNode({ instance, frameId, isSelected }: ComponentNodeProps) {
+export function ComponentNode({
+  instance,
+  frameId,
+  isSelected,
+  computedGeometry,
+  inAutoLayout,
+  onReorderDragStart,
+}: ComponentNodeProps) {
   const { selectComponent, updateComponent, deleteComponent } = useDesignStore();
   const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool } =
     useCanvasStore();
@@ -23,8 +34,11 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
   instanceRef.current = instance;
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Keep computedGeometry in a ref so getGeometry stays stable
+  const computedGeometryRef = useRef(computedGeometry);
+  computedGeometryRef.current = computedGeometry;
+
   // Auto-size once when the iframe first reports its natural dimensions.
-  // Uses a ref so it fires only once per component instance lifetime.
   const hasMeasured = useRef(false);
   useEffect(() => {
     hasMeasured.current = false;
@@ -49,6 +63,23 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
 
   const iframeUrl = buildIframeUrl(instance.storybookId, instance.args, instance.id);
 
+  // Effective rendering geometry: computed by layout engine or stored values
+  const effectiveX = computedGeometry?.x ?? instance.x;
+  const effectiveY = computedGeometry?.y ?? instance.y;
+  const effectiveWidth = computedGeometry?.width ?? instance.width;
+  const effectiveHeight = computedGeometry?.height ?? instance.height;
+
+  // Stable getGeometry reads from refs — no stale closure issues
+  const getGeometry = useCallback(() => {
+    const geo = computedGeometryRef.current;
+    return {
+      x: geo?.x ?? instanceRef.current.x,
+      y: geo?.y ?? instanceRef.current.y,
+      width: geo?.width ?? instanceRef.current.width,
+      height: geo?.height ?? instanceRef.current.height,
+    };
+  }, []);
+
   const handleOverlayMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
@@ -58,6 +89,13 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
       selectComponent(instance.id);
       containerRef.current?.focus();
 
+      // In auto layout flow: hand off drag to FrameNode for reorder
+      if (inAutoLayout && !instance.absolute) {
+        onReorderDragStart?.(instance.id);
+        return;
+      }
+
+      // Free-position drag (existing behaviour)
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
@@ -73,7 +111,6 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
         let newX = origX + dx;
         let newY = origY + dy;
 
-        // Shift = 8px grid snap
         if (mv.shiftKey) {
           newX = Math.round(newX / 8) * 8;
           newY = Math.round(newY / 8) * 8;
@@ -90,7 +127,8 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, instance.id, frameId, selectComponent, updateComponent, viewport.zoom]
+    [activeTool, instance.id, instance.absolute, frameId, inAutoLayout,
+     selectComponent, updateComponent, onReorderDragStart, viewport.zoom]
   );
 
   const handleDoubleClick = useCallback(
@@ -102,7 +140,6 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
     [instance.id, instance.locked, enterInteractMode]
   );
 
-  // Exit interact mode on Escape or click outside
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (isInteracting && e.target === e.currentTarget) {
@@ -112,24 +149,20 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
     [isInteracting, exitInteractMode]
   );
 
-  const getGeometry = useCallback(
-    () => ({
-      x: instanceRef.current.x,
-      y: instanceRef.current.y,
-      width: instanceRef.current.width,
-      height: instanceRef.current.height,
-    }),
-    []
-  );
-
   const handleResize = useCallback(
     (x: number, y: number, width: number, height: number) => {
-      updateComponent(frameId, instance.id, { x, y, width, height });
+      const w = Math.max(MIN_SIZE, width);
+      const h = Math.max(MIN_SIZE, height);
+      if (inAutoLayout && !instance.absolute) {
+        // Layout engine computes x/y — only store the explicit size
+        updateComponent(frameId, instance.id, { width: w, height: h });
+      } else {
+        updateComponent(frameId, instance.id, { x, y, width: w, height: h });
+      }
     },
-    [frameId, instance.id, updateComponent]
+    [frameId, instance.id, instance.absolute, inAutoLayout, updateComponent]
   );
 
-  // Delete on keyboard
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && isSelected && !isInteracting) {
@@ -142,16 +175,24 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
     [isSelected, isInteracting, instance.id, frameId, deleteComponent, exitInteractMode]
   );
 
+  const overlayCursor = inAutoLayout && !instance.absolute
+    ? 'grab'
+    : instance.locked
+    ? 'not-allowed'
+    : activeTool === 'select'
+    ? 'move'
+    : 'default';
+
   if (!instance.visible) return null;
 
   return (
     <div
       style={{
         position: 'absolute',
-        left: instance.x,
-        top: instance.y,
-        width: instance.width,
-        height: instance.height,
+        left: effectiveX,
+        top: effectiveY,
+        width: effectiveWidth,
+        height: effectiveHeight,
         opacity: instance.locked ? 0.6 : 1,
         outline: isSelected && !isInteracting ? '2px solid #0066FF' : 'none',
         outlineOffset: -2,
@@ -169,7 +210,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
             position: 'absolute',
             inset: 0,
             zIndex: 2,
-            cursor: instance.locked ? 'not-allowed' : activeTool === 'select' ? 'move' : 'default',
+            cursor: overlayCursor,
           }}
           onMouseDown={handleOverlayMouseDown}
           onDoubleClick={handleDoubleClick}

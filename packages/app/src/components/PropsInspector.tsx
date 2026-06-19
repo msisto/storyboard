@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
-import type { ArgDefinition } from '../types';
+import { computeAutoLayout } from '../canvas/autoLayout';
+import type { ArgDefinition, AutoLayoutSettings, SizingMode } from '../types';
+
+const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
+  direction: 'horizontal',
+  wrap: false,
+  gap: 16,
+  paddingTop: 16,
+  paddingRight: 16,
+  paddingBottom: 16,
+  paddingLeft: 16,
+  primaryAlign: 'start',
+  counterAlign: 'start',
+  widthMode: 'fixed',
+  heightMode: 'fixed',
+};
 
 function NumberInput({
   label,
   value,
   onChange,
+  readOnly,
 }: {
   label: string;
   value: number;
-  onChange: (v: number) => void;
+  onChange?: (v: number) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -18,7 +35,8 @@ function NumberInput({
       <input
         type="number"
         value={Math.round(value)}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={readOnly ? undefined : (e) => onChange?.(Number(e.target.value))}
+        disabled={readOnly}
         style={{
           width: '100%',
           padding: '3px 6px',
@@ -27,6 +45,8 @@ function NumberInput({
           borderRadius: 4,
           outline: 'none',
           boxSizing: 'border-box',
+          background: readOnly ? '#f9fafb' : 'white',
+          color: readOnly ? '#9ca3af' : 'inherit',
         }}
       />
     </div>
@@ -278,23 +298,33 @@ export function PropsInspector() {
 
   if (selectedComponentData && selectedFrameData) {
     const argDefs = getArgDefs(selectedComponentData.storybookId);
+    const inFlow = !!(selectedFrameData.autoLayout && !selectedComponentData.absolute);
+
+    // Computed positions from layout engine (for read-only display when in flow)
+    const computedLayout = selectedFrameData.autoLayout
+      ? computeAutoLayout(selectedFrameData)
+      : null;
+    const computedGeo = computedLayout?.components[selectedComponentData.id];
+
     return (
       <div style={{ overflowY: 'auto', height: '100%' }}>
         <Section title="Layout">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <NumberInput
               label="X"
-              value={selectedComponentData.x}
-              onChange={(v) =>
+              value={inFlow ? (computedGeo?.x ?? selectedComponentData.x) : selectedComponentData.x}
+              onChange={inFlow ? undefined : (v) =>
                 updateComponent(selectedFrameData.id, selectedComponentData.id, { x: v })
               }
+              readOnly={inFlow}
             />
             <NumberInput
               label="Y"
-              value={selectedComponentData.y}
-              onChange={(v) =>
+              value={inFlow ? (computedGeo?.y ?? selectedComponentData.y) : selectedComponentData.y}
+              onChange={inFlow ? undefined : (v) =>
                 updateComponent(selectedFrameData.id, selectedComponentData.id, { y: v })
               }
+              readOnly={inFlow}
             />
             <NumberInput
               label="W"
@@ -312,6 +342,54 @@ export function PropsInspector() {
             />
           </div>
         </Section>
+
+        {selectedFrameData.autoLayout && (
+          <Section title="Auto Layout">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <SizingSelect
+                label="W Mode"
+                value={selectedComponentData.widthMode ?? 'fixed'}
+                options={['fixed', 'fill', 'hug']}
+                onChange={(v) =>
+                  updateComponent(selectedFrameData.id, selectedComponentData.id, {
+                    widthMode: v as SizingMode,
+                  })
+                }
+              />
+              <SizingSelect
+                label="H Mode"
+                value={selectedComponentData.heightMode ?? 'fixed'}
+                options={['fixed', 'fill', 'hug']}
+                onChange={(v) =>
+                  updateComponent(selectedFrameData.id, selectedComponentData.id, {
+                    heightMode: v as SizingMode,
+                  })
+                }
+              />
+            </div>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12,
+                cursor: 'pointer',
+                marginTop: 8,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selectedComponentData.absolute ?? false}
+                onChange={(e) =>
+                  updateComponent(selectedFrameData.id, selectedComponentData.id, {
+                    absolute: e.target.checked,
+                  })
+                }
+              />
+              Ignore auto layout
+            </label>
+          </Section>
+        )}
 
         {argDefs.length > 0 && (
           <Section title="Props">
@@ -336,6 +414,27 @@ export function PropsInspector() {
   }
 
   if (selectedFrameData) {
+    const al = selectedFrameData.autoLayout;
+
+    const patchAL = (partial: Partial<AutoLayoutSettings>) =>
+      updateFrame(selectedFrameData.id, {
+        autoLayout: { ...selectedFrameData.autoLayout!, ...partial },
+      });
+
+    const enableAutoLayout = () =>
+      updateFrame(selectedFrameData.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT } });
+
+    const disableAutoLayout = () => {
+      const layout = computeAutoLayout(selectedFrameData);
+      selectedFrameData.components
+        .filter((c) => !c.absolute)
+        .forEach((c) => {
+          const geo = layout.components[c.id];
+          if (geo) updateComponent(selectedFrameData.id, c.id, { x: geo.x, y: geo.y });
+        });
+      updateFrame(selectedFrameData.id, { autoLayout: undefined });
+    };
+
     return (
       <div style={{ overflowY: 'auto', height: '100%' }}>
         <Section title="Frame">
@@ -365,11 +464,13 @@ export function PropsInspector() {
                 label="W"
                 value={selectedFrameData.width}
                 onChange={(v) => updateFrame(selectedFrameData.id, { width: Math.max(50, v) })}
+                readOnly={al?.widthMode === 'hug'}
               />
               <NumberInput
                 label="H"
                 value={selectedFrameData.height}
                 onChange={(v) => updateFrame(selectedFrameData.id, { height: Math.max(50, v) })}
+                readOnly={al?.heightMode === 'hug'}
               />
             </div>
 
@@ -405,12 +506,121 @@ export function PropsInspector() {
             </div>
           </div>
         </Section>
+
+        <Section title="Auto Layout">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              onClick={al ? disableAutoLayout : enableAutoLayout}
+              style={{
+                width: '100%',
+                padding: '5px 0',
+                fontSize: 12,
+                borderRadius: 4,
+                border: '1px solid #e5e7eb',
+                background: al ? '#0066FF' : 'white',
+                color: al ? 'white' : '#374151',
+                cursor: 'pointer',
+              }}
+            >
+              {al ? 'Remove Auto Layout' : 'Add Auto Layout  ⇧A'}
+            </button>
+
+            {al && (
+              <>
+                {/* Direction */}
+                <div>
+                  <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+                    Direction
+                  </label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {(['horizontal', 'vertical'] as const).map((dir) => (
+                      <button
+                        key={dir}
+                        onClick={() => patchAL({ direction: dir })}
+                        style={{
+                          flex: 1,
+                          padding: '4px 0',
+                          fontSize: 12,
+                          borderRadius: 4,
+                          border: '1px solid #e5e7eb',
+                          background: al.direction === dir ? '#0066FF' : 'white',
+                          color: al.direction === dir ? 'white' : '#374151',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {dir === 'horizontal' ? '→ Horiz' : '↓ Vert'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Wrap (horizontal only) */}
+                {al.direction === 'horizontal' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={al.wrap}
+                      onChange={(e) => patchAL({ wrap: e.target.checked })}
+                    />
+                    Wrap
+                  </label>
+                )}
+
+                {/* Gap */}
+                <NumberInput
+                  label="Gap"
+                  value={al.gap}
+                  onChange={(v) => patchAL({ gap: Math.max(0, v) })}
+                />
+
+                {/* Padding */}
+                <div>
+                  <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+                    Padding
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <NumberInput label="Top"    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: Math.max(0, v) })} />
+                    <NumberInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: Math.max(0, v) })} />
+                    <NumberInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: Math.max(0, v) })} />
+                    <NumberInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: Math.max(0, v) })} />
+                  </div>
+                </div>
+
+                {/* Alignment grid */}
+                <AlignmentGrid
+                  primaryAlign={al.primaryAlign}
+                  counterAlign={al.counterAlign}
+                  direction={al.direction}
+                  onChange={(primaryAlign, counterAlign) => patchAL({ primaryAlign, counterAlign })}
+                />
+
+                {/* Frame sizing */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <SizingSelect
+                    label="W Mode"
+                    value={al.widthMode}
+                    options={['fixed', 'hug']}
+                    onChange={(v) => patchAL({ widthMode: v as 'fixed' | 'hug' })}
+                  />
+                  <SizingSelect
+                    label="H Mode"
+                    value={al.heightMode}
+                    options={['fixed', 'hug']}
+                    onChange={(v) => patchAL({ heightMode: v as 'fixed' | 'hug' })}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Section>
       </div>
     );
   }
 
   return null;
 }
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -428,6 +638,113 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </div>
       <div style={{ padding: '0 12px 12px' }}>{children}</div>
+    </div>
+  );
+}
+
+function SizingSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2, textTransform: 'uppercase' }}>
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: '100%',
+          padding: '3px 6px',
+          fontSize: 12,
+          border: '1px solid #e5e7eb',
+          borderRadius: 4,
+          outline: 'none',
+          background: 'white',
+          boxSizing: 'border-box',
+        }}
+      >
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o.charAt(0).toUpperCase() + o.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// 3×3 + space-between alignment grid
+// For horizontal: columns = primaryAlign (start/center/end/space-between), rows = counterAlign (start/center/end)
+// For vertical: axes are swapped
+function AlignmentGrid({
+  primaryAlign,
+  counterAlign,
+  direction,
+  onChange,
+}: {
+  primaryAlign: AutoLayoutSettings['primaryAlign'];
+  counterAlign: AutoLayoutSettings['counterAlign'];
+  direction: AutoLayoutSettings['direction'];
+  onChange: (
+    primaryAlign: AutoLayoutSettings['primaryAlign'],
+    counterAlign: AutoLayoutSettings['counterAlign']
+  ) => void;
+}) {
+  const primaries: AutoLayoutSettings['primaryAlign'][] = ['start', 'center', 'end', 'space-between'];
+  const counters: AutoLayoutSettings['counterAlign'][] = ['start', 'center', 'end'];
+
+  // Visual labels
+  const primaryLabels = direction === 'horizontal'
+    ? { start: '⇤', center: '⇔', end: '⇥', 'space-between': '⇿' }
+    : { start: '⇡', center: '⇕', end: '⇣', 'space-between': '⇿' };
+  const counterLabels = direction === 'horizontal'
+    ? { start: '↑', center: '↕', end: '↓' }
+    : { start: '←', center: '↔', end: '→' };
+
+  return (
+    <div>
+      <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+        Alignment
+      </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {counters.map((ca) => (
+          <div key={ca} style={{ display: 'flex', gap: 3 }}>
+            {primaries.map((pa) => {
+              const active = primaryAlign === pa && counterAlign === ca;
+              return (
+                <button
+                  key={pa}
+                  onClick={() => onChange(pa, ca)}
+                  title={`${pa} / ${ca}`}
+                  style={{
+                    flex: 1,
+                    padding: '4px 0',
+                    fontSize: 11,
+                    borderRadius: 3,
+                    border: '1px solid #e5e7eb',
+                    background: active ? '#0066FF' : '#f9fafb',
+                    color: active ? 'white' : '#374151',
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                  }}
+                >
+                  {primaryLabels[pa]}
+                  {counterLabels[ca]}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

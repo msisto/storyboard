@@ -1,10 +1,13 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { Frame } from '../types';
 import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { ComponentNode } from './ComponentNode';
 import { ResizeHandles } from './ResizeHandles';
 import { CommentPin } from '../comments/CommentPin';
+import { computeAutoLayout } from './autoLayout';
+
+type Direction = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 interface FrameNodeProps {
   frame: Frame;
@@ -14,7 +17,8 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentId, selectComponent } = useDesignStore();
+  const { selectFrame, updateFrame, selectedComponentId, selectComponent, reorderComponent } =
+    useDesignStore();
   const { activeTool, viewport } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
 
@@ -22,6 +26,87 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+
+  // Keep frame + layout in refs so drag closures always see the latest values
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
+
+  const layout = useMemo(() => computeAutoLayout(frame), [frame]);
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+
+  // Reorder drag state
+  const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
+  const insertionIndexRef = useRef<number | null>(null);
+  insertionIndexRef.current = insertionIndex;
+
+  const innerDivRef = useRef<HTMLDivElement>(null);
+
+  const handleReorderDragStart = useCallback(
+    (compId: string) => {
+      draggingIdRef.current = compId;
+      selectComponent(compId);
+
+      const onMove = (mv: MouseEvent) => {
+        const f = frameRef.current;
+        const al = f.autoLayout;
+        if (!al || !innerDivRef.current) return;
+        const rect = innerDivRef.current.getBoundingClientRect();
+        const zoom = viewportRef.current.zoom;
+        const cursor =
+          al.direction === 'horizontal'
+            ? (mv.clientX - rect.left) / zoom
+            : (mv.clientY - rect.top) / zoom;
+
+        const flowComps = f.components.filter(
+          (c) => !c.absolute && c.visible && c.id !== compId
+        );
+        let idx = flowComps.length;
+        for (let i = 0; i < flowComps.length; i++) {
+          const geo = layoutRef.current.components[flowComps[i].id];
+          if (!geo) continue;
+          const mid =
+            al.direction === 'horizontal'
+              ? geo.x + geo.width / 2
+              : geo.y + geo.height / 2;
+          if (cursor < mid) {
+            idx = i;
+            break;
+          }
+        }
+        setInsertionIndex(idx);
+        insertionIndexRef.current = idx;
+      };
+
+      const onUp = () => {
+        const idx = insertionIndexRef.current;
+        const id = draggingIdRef.current;
+        if (id !== null && idx !== null) {
+          const f = frameRef.current;
+          const all = f.components;
+          const fromIdx = all.findIndex((c) => c.id === id);
+          const flowComps = all.filter((c) => !c.absolute && c.visible && c.id !== id);
+          const targetComp = flowComps[idx];
+          const toIdx = targetComp
+            ? all.findIndex((c) => c.id === targetComp.id)
+            : all.length;
+          if (fromIdx !== -1 && fromIdx !== toIdx) {
+            reorderComponent(f.id, fromIdx, toIdx);
+          }
+        }
+        draggingIdRef.current = null;
+        setInsertionIndex(null);
+        insertionIndexRef.current = null;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [selectComponent, reorderComponent]
+  );
 
   const handleFrameClick = useCallback(
     (e: React.MouseEvent) => {
@@ -83,7 +168,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
 
   const handleResize = useCallback(
     (x: number, y: number, width: number, height: number) => {
-      updateFrame(frame.id, { x, y, width, height });
+      updateFrame(frame.id, { x, y, width: Math.max(MIN_SIZE, width), height: Math.max(MIN_SIZE, height) });
     },
     [frame.id, updateFrame]
   );
@@ -95,7 +180,6 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const x = (e.clientX - rect.left) / viewport.zoom;
       const y = (e.clientY - rect.top) / viewport.zoom;
-      // Will be handled by the comment placement logic in App
       const event = new CustomEvent('storyboard:place-comment', {
         detail: { frameId: frame.id, x, y },
         bubbles: true,
@@ -105,14 +189,82 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
     [activeTool, frame.id, viewport.zoom]
   );
 
+  // Compute which resize handle directions to hide for hug-mode frames
+  const hiddenDirs: Direction[] = [];
+  if (frame.autoLayout?.widthMode === 'hug') {
+    hiddenDirs.push('e', 'w', 'ne', 'nw', 'se', 'sw');
+  }
+  if (frame.autoLayout?.heightMode === 'hug') {
+    // avoid duplicates
+    for (const d of ['n', 's', 'ne', 'nw', 'se', 'sw'] as Direction[]) {
+      if (!hiddenDirs.includes(d)) hiddenDirs.push(d);
+    }
+  }
+
+  // Insertion indicator position
+  const insertionLine = (() => {
+    if (!frame.autoLayout || insertionIndex === null) return null;
+    const al = frame.autoLayout;
+    const flowComps = frame.components.filter((c) => !c.absolute && c.visible);
+    const prev = flowComps[insertionIndex - 1];
+    const next = flowComps[insertionIndex];
+    const lyt = layout;
+
+    if (al.direction === 'horizontal') {
+      const prevRight = prev
+        ? (lyt.components[prev.id]?.x ?? 0) + (lyt.components[prev.id]?.width ?? 0)
+        : al.paddingLeft;
+      const nextLeft = next
+        ? (lyt.components[next.id]?.x ?? lyt.frameWidth - al.paddingRight)
+        : lyt.frameWidth - al.paddingRight;
+      const pos = (prevRight + nextLeft) / 2;
+      return (
+        <div
+          style={{
+            position: 'absolute',
+            left: pos - 1,
+            top: 0,
+            width: 2,
+            height: '100%',
+            background: '#0066FF',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        />
+      );
+    } else {
+      const prevBot = prev
+        ? (lyt.components[prev.id]?.y ?? 0) + (lyt.components[prev.id]?.height ?? 0)
+        : al.paddingTop;
+      const nextTop = next
+        ? (lyt.components[next.id]?.y ?? lyt.frameHeight - al.paddingBottom)
+        : lyt.frameHeight - al.paddingBottom;
+      const pos = (prevBot + nextTop) / 2;
+      return (
+        <div
+          style={{
+            position: 'absolute',
+            top: pos - 1,
+            left: 0,
+            height: 2,
+            width: '100%',
+            background: '#0066FF',
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}
+        />
+      );
+    }
+  })();
+
   return (
     <div
       style={{
         position: 'absolute',
         left: frame.x,
         top: frame.y,
-        width: frame.width,
-        height: frame.height,
+        width: layout.frameWidth,
+        height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
         outline: isSelected ? '2px solid #0066FF' : '1px solid #D1D5DB',
         boxSizing: 'border-box',
@@ -138,6 +290,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
 
       {/* Components + comment click target */}
       <div
+        ref={innerDivRef}
         style={{
           position: 'relative',
           width: '100%',
@@ -152,8 +305,13 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             instance={component}
             frameId={frame.id}
             isSelected={component.id === selectedComponentId}
+            computedGeometry={layout.components[component.id]}
+            inAutoLayout={!!frame.autoLayout && !component.absolute}
+            onReorderDragStart={handleReorderDragStart}
           />
         ))}
+
+        {insertionLine}
 
         {comments.map((comment) => (
           <CommentPin key={comment.id} comment={comment} />
@@ -166,6 +324,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
           getGeometry={getGeometry}
           onResize={handleResize}
           zoom={viewport.zoom}
+          hiddenDirections={hiddenDirs.length > 0 ? hiddenDirs : undefined}
         />
       )}
     </div>

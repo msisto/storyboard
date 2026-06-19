@@ -10,6 +10,7 @@ interface ResizeHandlesProps {
   getGeometry: () => ResizeGeometry;
   onResize: (x: number, y: number, width: number, height: number) => void;
   zoom: number;
+  hiddenDirections?: Direction[];
 }
 
 const MIN_SIZE = 40;
@@ -33,7 +34,7 @@ const POSITIONS: Record<Direction, React.CSSProperties> = {
 
 const DIRECTIONS: Direction[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
-export function ResizeHandles({ getGeometry, onResize, zoom }: ResizeHandlesProps) {
+export function ResizeHandles({ getGeometry, onResize, zoom, hiddenDirections }: ResizeHandlesProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, dir: Direction) => {
       e.stopPropagation();
@@ -72,7 +73,7 @@ export function ResizeHandles({ getGeometry, onResize, zoom }: ResizeHandlesProp
 
   return (
     <>
-      {DIRECTIONS.map((dir) => (
+      {DIRECTIONS.filter((d) => !hiddenDirections?.includes(d)).map((dir) => (
         <div
           key={dir}
           style={{

@@ -12,7 +12,22 @@ import { useCanvasStore } from './store/useCanvasStore';
 import { useCommentSync } from './comments/useCommentSync';
 import { useAutoSave } from './store/useAutoSave';
 import { api } from './store/api';
-import type { StorybookStory } from './types';
+import { computeAutoLayout } from './canvas/autoLayout';
+import type { AutoLayoutSettings, StorybookStory } from './types';
+
+const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
+  direction: 'horizontal',
+  wrap: false,
+  gap: 16,
+  paddingTop: 16,
+  paddingRight: 16,
+  paddingBottom: 16,
+  paddingLeft: 16,
+  primaryAlign: 'start',
+  counterAlign: 'start',
+  widthMode: 'fixed',
+  heightMode: 'fixed',
+};
 
 type AppView = 'loading' | 'picker' | 'canvas';
 
@@ -210,6 +225,25 @@ export default function App() {
         if (e.key === 'c' || e.key === 'C') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
         if (e.key === 'Escape') exitInteractMode();
+
+        // Shift+A: toggle auto layout on selected frame
+        if (e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+          e.preventDefault();
+          const state = useDesignStore.getState();
+          const frame = state.file?.frames.find((f) => f.id === state.selectedFrameId);
+          if (frame) {
+            if (frame.autoLayout) {
+              const layout = computeAutoLayout(frame);
+              frame.components.filter((c) => !c.absolute).forEach((c) => {
+                const geo = layout.components[c.id];
+                if (geo) state.updateComponent(frame.id, c.id, { x: geo.x, y: geo.y });
+              });
+              state.updateFrame(frame.id, { autoLayout: undefined });
+            } else {
+              state.updateFrame(frame.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT } });
+            }
+          }
+        }
       }
 
       // Zoom
