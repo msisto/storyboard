@@ -28,6 +28,7 @@ interface DesignStore {
   deleteSelectedComponents: () => void;
   selectComponent: (id: string | null, addToSelection?: boolean) => void;
   reorderComponent: (frameId: string, fromIndex: number, toIndex: number) => void;
+  reorderFlowItem: (frameId: string, itemId: string, toIndex: number) => void;
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
   resolveComment: (id: string) => void;
   addReply: (commentId: string, reply: Omit<CommentReply, 'id' | 'timestamp'>) => void;
@@ -155,11 +156,17 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? { ...f, components: [...f.components, { ...instance, id }] }
-              : f
-          ),
+          frames: state.file.frames.map((f) => {
+            if (f.id !== frameId) return f;
+            const newFlowOrder = f.autoLayout
+              ? [...(f.flowOrder ?? [...f.components.map(c => c.id), ...(f.textLayers ?? []).map(t => t.id)]), id]
+              : f.flowOrder ? [...f.flowOrder, id] : undefined;
+            return {
+              ...f,
+              components: [...f.components, { ...instance, id }],
+              ...(newFlowOrder !== undefined ? { flowOrder: newFlowOrder } : {}),
+            };
+          }),
         },
         selectedComponentId: id,
       };
@@ -199,7 +206,11 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           updatedAt: Date.now(),
           frames: state.file.frames.map((f) =>
             f.id === frameId
-              ? { ...f, components: f.components.filter((c) => c.id !== componentId) }
+              ? {
+                  ...f,
+                  components: f.components.filter((c) => c.id !== componentId),
+                  ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== componentId) } : {}),
+                }
               : f
           ),
         },
@@ -221,6 +232,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
             ...f,
             components: f.components.filter((c) => !ids.has(c.id)),
             textLayers: (f.textLayers ?? []).filter((t) => !ids.has(t.id)),
+            ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => !ids.has(id)) } : {}),
           })),
         },
         selectedComponentId: null,
@@ -350,17 +362,25 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         color: '#111827',
         visible: true,
         locked: false,
+        widthMode: 'hug',
+        heightMode: 'hug',
       };
       return {
         history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? { ...f, textLayers: [...(f.textLayers ?? []), newLayer] }
-              : f
-          ),
+          frames: state.file.frames.map((f) => {
+            if (f.id !== frameId) return f;
+            const newFlowOrder = f.autoLayout
+              ? [...(f.flowOrder ?? [...f.components.map(c => c.id), ...(f.textLayers ?? []).map(t => t.id)]), id]
+              : f.flowOrder ? [...f.flowOrder, id] : undefined;
+            return {
+              ...f,
+              textLayers: [...(f.textLayers ?? []), newLayer],
+              ...(newFlowOrder !== undefined ? { flowOrder: newFlowOrder } : {}),
+            };
+          }),
         },
         selectedComponentId: id,
         selectedComponentIds: [id],
@@ -402,12 +422,42 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           updatedAt: Date.now(),
           frames: state.file.frames.map((f) =>
             f.id === frameId
-              ? { ...f, textLayers: (f.textLayers ?? []).filter((t) => t.id !== layerId) }
+              ? {
+                  ...f,
+                  textLayers: (f.textLayers ?? []).filter((t) => t.id !== layerId),
+                  ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== layerId) } : {}),
+                }
               : f
           ),
         },
         selectedComponentId: newIds[newIds.length - 1] ?? null,
         selectedComponentIds: newIds,
+      };
+    }),
+
+  reorderFlowItem: (frameId, itemId, toIndex) =>
+    set((state) => {
+      if (!state.file) return state;
+      const frame = state.file.frames.find((f) => f.id === frameId);
+      if (!frame) return state;
+      const current = frame.flowOrder ?? [
+        ...frame.components.map((c) => c.id),
+        ...(frame.textLayers ?? []).map((t) => t.id),
+      ];
+      const from = current.indexOf(itemId);
+      if (from === -1) return state;
+      const next = [...current];
+      next.splice(from, 1);
+      next.splice(toIndex, 0, itemId);
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) =>
+            f.id === frameId ? { ...f, flowOrder: next } : f
+          ),
+        },
       };
     }),
 

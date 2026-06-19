@@ -118,6 +118,7 @@ export interface Frame {
   components: ComponentInstance[];
   textLayers?: TextLayer[];
   autoLayout?: AutoLayoutSettings;
+  flowOrder?: string[];
 }
 
 export interface CommentReply {

@@ -403,6 +403,40 @@ export function PropsInspector() {
             <NumberInput label="Y" value={tl.y} onChange={(v) => patch({ y: v })} />
           </div>
         </Section>
+
+        {selectedFrameData.autoLayout && (
+          <Section title="Auto Layout">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <SizingSelect
+                label="W Mode"
+                value={tl.widthMode ?? 'hug'}
+                options={['fixed', 'fill', 'hug']}
+                onChange={(v) => patchWithHistory({ widthMode: v as SizingMode })}
+              />
+              <SizingSelect
+                label="H Mode"
+                value={tl.heightMode ?? 'hug'}
+                options={['fixed', 'fill', 'hug']}
+                onChange={(v) => patchWithHistory({ heightMode: v as SizingMode })}
+              />
+              {(tl.widthMode ?? 'hug') === 'fixed' && (
+                <NumberInput label="W" value={tl.width ?? 200} onChange={(v) => patch({ width: Math.max(10, v) })} />
+              )}
+              {(tl.heightMode ?? 'hug') === 'fixed' && (
+                <NumberInput label="H" value={tl.height ?? 24} onChange={(v) => patch({ height: Math.max(10, v) })} />
+              )}
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', marginTop: 8 }}>
+              <input
+                type="checkbox"
+                checked={tl.absolute ?? false}
+                onFocus={pushH}
+                onChange={(e) => patchWithHistory({ absolute: e.target.checked })}
+              />
+              Ignore auto layout
+            </label>
+          </Section>
+        )}
       </div>
     );
   }
@@ -535,7 +569,11 @@ export function PropsInspector() {
 
     const enableAutoLayout = () => {
       pushH();
-      updateFrame(selectedFrameData.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT } });
+      const flowOrder = [
+        ...selectedFrameData.components.map((c) => c.id),
+        ...(selectedFrameData.textLayers ?? []).map((t) => t.id),
+      ];
+      updateFrame(selectedFrameData.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT }, flowOrder });
     };
 
     const disableAutoLayout = () => {

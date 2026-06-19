@@ -28,6 +28,28 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
   const effectiveY = computedGeometry?.y ?? layer.y;
   const effectiveWidth = computedGeometry?.width ?? layer.width;
 
+  const isHugWidth = layer.widthMode === 'hug';
+  const isHugHeight = layer.heightMode === 'hug';
+
+  useEffect(() => {
+    if (!containerRef.current || (!isHugWidth && !isHugHeight)) return;
+    let lastW = -1, lastH = -1;
+    const obs = new ResizeObserver(() => {
+      if (!containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      const w = Math.ceil(width), h = Math.ceil(height);
+      if (w !== lastW || h !== lastH) {
+        lastW = w; lastH = h;
+        const upd: Partial<TextLayer> = {};
+        if (isHugWidth && w > 0) upd.width = w;
+        if (isHugHeight && h > 0) upd.height = h;
+        if (Object.keys(upd).length > 0) updateTextLayer(frameId, layer.id, upd);
+      }
+    });
+    obs.observe(containerRef.current);
+    return () => obs.disconnect();
+  }, [frameId, layer.id, isHugWidth, isHugHeight, updateTextLayer]);
+
   const sizeEntry = TAILWIND_FONT_SIZES.find((s) => s.key === layer.fontSize)!;
   const weightEntry = TAILWIND_FONT_WEIGHTS.find((w) => w.key === layer.fontWeight)!;
 
@@ -142,7 +164,7 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
         position: 'absolute',
         left: effectiveX,
         top: effectiveY,
-        width: effectiveWidth,
+        width: isHugWidth ? undefined : effectiveWidth,
         outline: isSelected && !isEditing ? '2px solid #0066FF' : 'none',
         outlineOffset: 2,
         cursor: isEditing ? 'text' : inAutoLayout && !layer.absolute ? 'grab' : activeTool === 'select' ? 'move' : 'default',
@@ -184,8 +206,8 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
             lineHeight: `${sizeEntry.lineHeight}px`,
             fontWeight: weightEntry.value,
             color: layer.color,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
+            whiteSpace: isHugWidth ? 'nowrap' : 'pre-wrap',
+            wordBreak: isHugWidth ? 'normal' : 'break-word',
             pointerEvents: 'none',
           }}
         >

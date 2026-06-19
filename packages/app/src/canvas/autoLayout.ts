@@ -64,11 +64,19 @@ export function computeAutoLayout(frame: Frame): ComputedLayout {
 
   const al = frame.autoLayout;
 
-  // Build combined flow: components first, then text layers
+  // Build combined flow sorted by flowOrder when present
   const allItems: FlowItem[] = [
     ...frame.components.map((c) => toFlowItem(c)),
     ...(frame.textLayers ?? []).map((t) => toFlowItem(t)),
   ];
+  if (frame.flowOrder) {
+    const order = frame.flowOrder;
+    allItems.sort((a, b) => {
+      const ai = order.indexOf(a.id);
+      const bi = order.indexOf(b.id);
+      return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+    });
+  }
 
   if (al.direction === 'horizontal') {
     return computeHorizontal(frame, al, allItems);

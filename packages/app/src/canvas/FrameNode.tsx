@@ -10,6 +10,22 @@ import { TextLayerNode } from './TextLayerNode';
 
 type Direction = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
+function getCombinedFlow(frame: Frame, excludeId?: string) {
+  const all = [
+    ...frame.components.filter((c) => !c.absolute && c.visible),
+    ...(frame.textLayers ?? []).filter((t) => !t.absolute && t.visible),
+  ];
+  if (frame.flowOrder) {
+    const order = frame.flowOrder;
+    all.sort((a, b) => {
+      const ai = order.indexOf(a.id);
+      const bi = order.indexOf(b.id);
+      return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+    });
+  }
+  return excludeId ? all.filter((item) => item.id !== excludeId) : all;
+}
+
 interface FrameNodeProps {
   frame: Frame;
   isSelected: boolean;
@@ -18,7 +34,7 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderComponent, addTextLayer, pushHistory } =
+  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
@@ -52,7 +68,6 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       selectComponent(compId);
 
       const onMove = (mv: MouseEvent) => {
-        // Ignore tiny jitter during a click — only activate drag after real movement
         if (
           Math.hypot(mv.clientX - startClientX, mv.clientY - startClientY) <
           REORDER_DRAG_THRESHOLD
@@ -69,12 +84,10 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             ? (mv.clientX - rect.left) / zoom
             : (mv.clientY - rect.top) / zoom;
 
-        const flowComps = f.components.filter(
-          (c) => !c.absolute && c.visible && c.id !== compId
-        );
-        let idx = flowComps.length;
-        for (let i = 0; i < flowComps.length; i++) {
-          const geo = layoutRef.current.components[flowComps[i].id];
+        const flow = getCombinedFlow(f, compId);
+        let idx = flow.length;
+        for (let i = 0; i < flow.length; i++) {
+          const geo = layoutRef.current.components[flow[i].id];
           if (!geo) continue;
           const mid =
             al.direction === 'horizontal'
@@ -93,21 +106,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         const idx = insertionIndexRef.current;
         const id = draggingIdRef.current;
         if (id !== null && idx !== null) {
-          const f = frameRef.current;
-          const isComponent = f.components.some((c) => c.id === id);
-          if (isComponent) {
-            const all = f.components;
-            const fromIdx = all.findIndex((c) => c.id === id);
-            const flowComps = all.filter((c) => !c.absolute && c.visible && c.id !== id);
-            const targetComp = flowComps[idx];
-            const toIdx = targetComp
-              ? all.findIndex((c) => c.id === targetComp.id)
-              : all.length;
-            if (fromIdx !== -1 && fromIdx !== toIdx) {
-              reorderComponent(f.id, fromIdx, toIdx);
-            }
-          }
-          // Text layer reorder (within text layers) not yet supported — drop is a no-op
+          reorderFlowItem(frameRef.current.id, id, idx);
         }
         draggingIdRef.current = null;
         setInsertionIndex(null);
@@ -119,7 +118,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [selectComponent, reorderComponent]
+    [selectComponent, reorderFlowItem]
   );
 
   const handleFrameClick = useCallback(
@@ -236,9 +235,9 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
   const insertionLine = (() => {
     if (!frame.autoLayout || insertionIndex === null) return null;
     const al = frame.autoLayout;
-    const flowComps = frame.components.filter((c) => !c.absolute && c.visible);
-    const prev = flowComps[insertionIndex - 1];
-    const next = flowComps[insertionIndex];
+    const flowItems = getCombinedFlow(frame);
+    const prev = flowItems[insertionIndex - 1];
+    const next = flowItems[insertionIndex];
     const lyt = layout;
 
     if (al.direction === 'horizontal') {
