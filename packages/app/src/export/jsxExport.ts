@@ -76,7 +76,7 @@ function propsString(instance: ComponentInstance): string {
     .map(([k, v]) => {
       if (typeof v === 'boolean') return v ? k : `${k}={false}`;
       if (typeof v === 'number') return `${k}={${v}}`;
-      if (typeof v === 'string') return `${k}="${v}"`;
+      if (typeof v === 'string') return `${k}={${JSON.stringify(v)}}`;
       return `${k}={${JSON.stringify(v)}}`;
     })
     .join(' ');
