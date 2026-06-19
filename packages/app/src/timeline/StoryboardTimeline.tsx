@@ -52,7 +52,7 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
               width: c.width,
               height: c.height,
               background: 'var(--sb-border-strong)',
-              border: '0.5px solid #9CA3AF',
+              border: '0.5px solid var(--sb-text-4)',
               borderRadius: 1,
             }}
           />
@@ -66,7 +66,7 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
               top: t.y,
               width: t.width ?? 60,
               height: 3,
-              background: '#9CA3AF',
+              background: 'var(--sb-text-4)',
               borderRadius: 2,
             }}
           />
@@ -147,8 +147,8 @@ export function StoryboardTimeline({
       style={{
         height: 90,
         flexShrink: 0,
-        borderTop: '1px solid #e5e7eb',
-        background: '#fafafa',
+        borderTop: '1px solid var(--sb-border)',
+        background: 'var(--sb-bg-secondary)',
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
@@ -165,7 +165,7 @@ export function StoryboardTimeline({
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           textAlign: 'center',
-          borderRight: '1px solid #e5e7eb',
+          borderRight: '1px solid var(--sb-border)',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -224,8 +224,8 @@ export function StoryboardTimeline({
                   gap: 4,
                   padding: '6px 6px',
                   borderRadius: 6,
-                  border: isSelected ? '2px solid #0066FF' : isMultiSelected ? '2px solid #60a5fa' : '1px solid transparent',
-                  background: isSelected ? 'var(--sb-accent-bg)' : isMultiSelected ? '#f0f7ff' : 'transparent',
+                  border: isSelected ? '2px solid var(--sb-accent)' : isMultiSelected ? '2px solid var(--sb-accent-muted)' : '1px solid transparent',
+                  background: isSelected ? 'var(--sb-accent-bg)' : isMultiSelected ? 'var(--sb-accent-bg)' : 'transparent',
                   cursor: isDragging ? 'grabbing' : 'pointer',
                   opacity: isDragging ? 0.5 : 1,
                   userSelect: 'none',
@@ -326,7 +326,7 @@ export function StoryboardTimeline({
             marginLeft: 8,
             width: 68,
             height: 64,
-            border: '1.5px dashed #d1d5db',
+            border: '1.5px dashed var(--sb-border-strong)',
             borderRadius: 6,
             background: 'transparent',
             cursor: 'pointer',
