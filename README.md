@@ -1,4 +1,5 @@
 # Storyboard
 An experience design interface for Storybook libraries
 
-<img width="1725" height="935" alt="Screenshot 2026-06-19 at 1 47 13 PM" src="https://github.com/user-attachments/assets/82603599-d46e-4218-9086-fc9eb9d07adf" />
+<img width="1728" height="936" alt="Screenshot 2026-06-19 at 2 39 58 PM" src="https://github.com/user-attachments/assets/b4662dc6-349a-44d9-be73-0fe7a3ecf8d1" />
+
