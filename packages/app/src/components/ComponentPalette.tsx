@@ -119,12 +119,25 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  const localStories = useMemo(
+    () => stories.filter((s) => s.title.startsWith('Local/')),
+    [stories]
+  );
+
   const filtered = useMemo(() => {
-    if (!search) return stories;
-    return stories.filter(
+    const nonLocal = stories.filter((s) => !s.title.startsWith('Local/'));
+    if (!search) return nonLocal;
+    return nonLocal.filter(
       (s) => fuzzyMatch(s.title, search) || fuzzyMatch(s.name, search)
     );
   }, [stories, search]);
+
+  const filteredLocal = useMemo(() => {
+    if (!search) return localStories;
+    return localStories.filter(
+      (s) => fuzzyMatch(s.title, search) || fuzzyMatch(s.name, search)
+    );
+  }, [localStories, search]);
 
   const grouped = useMemo(() => groupStories(filtered), [filtered]);
 
@@ -179,6 +192,66 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {/* ── Local stories ─────────────────────────────────────────── */}
+        {filteredLocal.length > 0 && (
+          <div>
+            <div
+              style={{
+                padding: '5px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--sb-accent)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                userSelect: 'none',
+              }}
+            >
+              <span>Local</span>
+              <span style={{
+                fontSize: 9,
+                padding: '1px 4px',
+                borderRadius: 3,
+                background: 'var(--sb-accent-bg)',
+                color: 'var(--sb-accent)',
+                fontWeight: 500,
+              }}>
+                {filteredLocal.length}
+              </span>
+            </div>
+            {filteredLocal.map((story) => (
+              <div
+                key={story.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, story)}
+                onMouseDown={(e) => e.stopPropagation()}
+                style={{
+                  padding: '3px 8px 3px 16px',
+                  fontSize: 12,
+                  color: 'var(--sb-text-2)',
+                  cursor: 'grab',
+                  borderRadius: 3,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                }}
+              >
+                <span style={{ fontSize: 9, color: 'var(--sb-accent)', flexShrink: 0 }}>◆</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {story.title.replace(/^Local\//, '')}
+                </span>
+              </div>
+            ))}
+            <div style={{ height: 1, background: 'var(--sb-border)', margin: '4px 0' }} />
+          </div>
+        )}
+
+        {/* ── Storybook library ─────────────────────────────────────── */}
         {Object.entries(grouped).map(([group, components]) => {
           const groupKey = `g:${group}`;
           const isGroupCollapsed = collapsed.has(groupKey);

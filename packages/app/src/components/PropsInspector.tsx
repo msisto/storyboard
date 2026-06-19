@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
+import { buildFrameJsx } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
@@ -484,8 +485,29 @@ function PropsSection({
 export function PropsInspector() {
   const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions } =
     useDesignStore();
-  const { getArgDefs } = useRegistryStore();
+  const { getArgDefs, stories } = useRegistryStore();
   const [tidyGap, setTidyGap] = useState(16);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const handleSaveAsStory = useCallback(async (frame: Frame) => {
+    const name = window.prompt('Story name:', frame.label || 'MyComponent');
+    if (!name?.trim()) return;
+    setSaveStatus('saving');
+    try {
+      const jsx = buildFrameJsx(frame, stories);
+      const res = await fetch('http://localhost:3333/api/local-stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), jsx }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  }, [stories]);
 
   const selectedFrame = file?.frames.find((f) => f.id === selectedFrameId);
   const selectedFrameData = selectedFrame;
@@ -1032,6 +1054,30 @@ export function PropsInspector() {
                 </div>
               </>
             )}
+          </div>
+        </Section>
+
+        <Section title="Local Story">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--sb-text-3)', lineHeight: 1.4 }}>
+              Save this frame as a real Storybook story in the monorepo. It will appear in the Local section of the Components sidebar after Storybook reloads.
+            </p>
+            <button
+              onClick={() => handleSaveAsStory(selectedFrameData)}
+              disabled={saveStatus === 'saving'}
+              style={{
+                width: '100%',
+                padding: '5px 0',
+                fontSize: 12,
+                borderRadius: 4,
+                border: '1px solid var(--sb-border)',
+                background: saveStatus === 'saved' ? '#ecfdf5' : saveStatus === 'error' ? '#fef2f2' : 'var(--sb-bg)',
+                color: saveStatus === 'saved' ? '#059669' : saveStatus === 'error' ? '#dc2626' : 'var(--sb-text-2)',
+                cursor: saveStatus === 'saving' ? 'default' : 'pointer',
+              }}
+            >
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved — reload Storybook' : saveStatus === 'error' ? 'Error — is the server running?' : 'Save as Story…'}
+            </button>
           </div>
         </Section>
       </div>

@@ -91,10 +91,10 @@ function textSpan(t: TextLayer, absolute: boolean): string {
   return `    <span style={{ ${posStyle}fontSize: '${fs}', fontWeight: ${fw}, color: '${t.color ?? '#111827'}' }}>${t.content}</span>`;
 }
 
-export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): string {
-  const imports = new Set<string>();
-  const fnName = frame.label.replace(/[^a-zA-Z0-9]/g, '') || 'Frame';
-
+// Returns the JSX body string for a frame — the wrapper div + children,
+// without imports or a wrapping function. Used both by the export modal and
+// the "Save as Story" flow that writes real story files to the Storybook package.
+export function buildFrameJsx(frame: Frame, stories: StorybookStory[] = []): string {
   if (frame.autoLayout) {
     const al = frame.autoLayout;
 
@@ -118,29 +118,17 @@ export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): strin
         }
         const instance = item as ComponentInstance;
         const story = stories.find((s) => s.id === instance.storybookId);
-        if (!story) return `    {/* Missing: ${instance.storybookId} */}`;
+        if (!story) return `    {/* ${instance.label || instance.storybookId} */}`;
         const componentName = story.title.split('/').pop()!;
-        imports.add(componentName);
         const props = propsString(instance);
         return `    <${componentName}${props ? ` ${props}` : ''} />`;
       })
       .join('\n');
 
     const className = buildAutoLayoutClassName(al);
-
-    const importBlock = [...imports]
-      .map((name) => `import { ${name} } from '@/components/ui/${name.toLowerCase()}';`)
-      .join('\n');
-
-    return `${importBlock}
-
-export function ${fnName}() {
-  return (
-    <div className="${className}" style={{ width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
+    return `  <div className="${className}" style={{ width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
 ${children}
-    </div>
-  );
-}`;
+  </div>`;
   }
 
   // Absolute layout path
@@ -149,12 +137,10 @@ ${children}
       .filter((c) => c.visible)
       .map((instance) => {
         const story = stories.find((s) => s.id === instance.storybookId);
-        if (!story) return `    {/* Missing: ${instance.storybookId} */}`;
-        const componentName = story.title.split('/').pop()!;
-        imports.add(componentName);
-        const props = propsString(instance);
+        const componentName = story ? story.title.split('/').pop()! : null;
+        const props = componentName ? propsString(instance) : '';
         return `    <div style={{ position: 'absolute', left: ${instance.x}, top: ${instance.y}, width: ${instance.width}, height: ${instance.height} }}>
-      <${componentName}${props ? ` ${props}` : ''} />
+      ${componentName ? `<${componentName}${props ? ` ${props}` : ''} />` : `{/* ${instance.label || instance.storybookId} */}`}
     </div>`;
       }),
     ...(frame.textLayers ?? [])
@@ -162,6 +148,22 @@ ${children}
       .map((t) => textSpan(t, true)),
   ].join('\n');
 
+  return `  <div style={{ position: 'relative', width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
+${children}
+  </div>`;
+}
+
+export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): string {
+  const imports = new Set<string>();
+  const fnName = frame.label.replace(/[^a-zA-Z0-9]/g, '') || 'Frame';
+
+  // Collect imports from visible components
+  frame.components.filter((c) => c.visible).forEach((instance) => {
+    const story = stories.find((s) => s.id === instance.storybookId);
+    if (story) imports.add(story.title.split('/').pop()!);
+  });
+
+  const body = buildFrameJsx(frame, stories);
   const importBlock = [...imports]
     .map((name) => `import { ${name} } from '@/components/ui/${name.toLowerCase()}';`)
     .join('\n');
@@ -170,9 +172,7 @@ ${children}
 
 export function ${fnName}() {
   return (
-    <div style={{ position: 'relative', width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
-${children}
-    </div>
+${body}
   );
 }`;
 }
