@@ -194,7 +194,7 @@ export function buildLocalStoryFile(frame: Frame, name: string, stories: Storybo
   });
 
   const importLines = [...componentImports]
-    .map((n) => `import { ${n} } from '@/components/ui/${n.toLowerCase()}';`)
+    .map((n) => `import { ${n} } from '../../components/ui/${n.toLowerCase()}';`)
     .join('\n');
 
   const body = buildFrameJsx(frame, stories);
