@@ -45,25 +45,25 @@ function StorybookErrorScreen({ error, onRetry }: { error: string; onRetry: () =
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f9fafb',
+        background: 'var(--sb-bg-secondary)',
         gap: 16,
         zIndex: 9998,
       }}
     >
       <div style={{ fontSize: 48 }}>⚠️</div>
       <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Storybook not reachable</h2>
-      <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>
+      <p style={{ fontSize: 14, color: 'var(--sb-text-3)', margin: 0 }}>
         Make sure Storybook is running at{' '}
-        <code style={{ background: '#e5e7eb', padding: '2px 6px', borderRadius: 3 }}>
+        <code style={{ background: 'var(--sb-border)', padding: '2px 6px', borderRadius: 3 }}>
           localhost:6006
         </code>
       </p>
-      <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>{error}</p>
+      <p style={{ fontSize: 12, color: 'var(--sb-text-4)', margin: 0 }}>{error}</p>
       <button
         onClick={onRetry}
         style={{
           padding: '8px 20px',
-          background: '#0066FF',
+          background: 'var(--sb-accent)',
           color: 'white',
           border: 'none',
           borderRadius: 6,
@@ -107,7 +107,7 @@ function CommentModal({
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--sb-bg)',
           borderRadius: 8,
           padding: 16,
           width: 300,
@@ -123,7 +123,7 @@ function CommentModal({
           placeholder="Your name"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
-          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none' }}
         />
         <textarea
           autoFocus
@@ -131,7 +131,7 @@ function CommentModal({
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={3}
-          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none', resize: 'none', fontFamily: 'inherit' }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               if (text.trim() && author.trim()) onSubmit(text, author);
@@ -139,13 +139,13 @@ function CommentModal({
           }}
         />
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button onClick={onCancel} style={{ padding: '5px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}>
+          <button onClick={onCancel} style={{ padding: '5px 12px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}>
             Cancel
           </button>
           <button
             onClick={() => { if (text.trim() && author.trim()) onSubmit(text, author); }}
             disabled={!text.trim() || !author.trim()}
-            style={{ padding: '5px 12px', fontSize: 12, background: '#0066FF', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+            style={{ padding: '5px 12px', fontSize: 12, background: 'var(--sb-accent)', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}
           >
             Submit
           </button>
@@ -509,8 +509,8 @@ export default function App() {
 
   if (view === 'loading') {
     return (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-        <p style={{ color: '#6b7280', fontSize: 14 }}>Loading…</p>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--sb-bg-secondary)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+        <p style={{ color: 'var(--sb-text-3)', fontSize: 14 }}>Loading…</p>
       </div>
     );
   }
@@ -535,12 +535,12 @@ export default function App() {
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            background: 'white',
+            background: 'var(--sb-bg)',
             overflow: 'hidden',
           }}
         >
           {/* Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)' }}>
             {(['layers', 'components', 'text'] as LeftTab[]).map((tab) => (
               <button
                 key={tab}
@@ -552,9 +552,9 @@ export default function App() {
                   fontWeight: leftTab === tab ? 600 : 400,
                   background: 'none',
                   border: 'none',
-                  borderBottom: leftTab === tab ? '2px solid #0066FF' : '2px solid transparent',
+                  borderBottom: leftTab === tab ? '2px solid var(--sb-accent)' : '2px solid transparent',
                   cursor: 'pointer',
-                  color: leftTab === tab ? '#0066FF' : '#6b7280',
+                  color: leftTab === tab ? 'var(--sb-accent)' : 'var(--sb-text-3)',
                   textTransform: 'capitalize',
                 }}
               >
@@ -575,11 +575,11 @@ export default function App() {
             width: 4,
             flexShrink: 0,
             cursor: 'col-resize',
-            background: '#e5e7eb',
+            background: 'var(--sb-border)',
             transition: 'background 0.15s',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#0066FF')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#e5e7eb')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sb-accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sb-border)')}
         />
 
         {/* Canvas */}
@@ -597,8 +597,8 @@ export default function App() {
           style={{
             width: 240,
             flexShrink: 0,
-            borderLeft: '1px solid #e5e7eb',
-            background: 'white',
+            borderLeft: '1px solid var(--sb-border)',
+            background: 'var(--sb-bg)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -609,8 +609,8 @@ export default function App() {
               padding: '8px 12px',
               fontSize: 11,
               fontWeight: 600,
-              color: '#6b7280',
-              borderBottom: '1px solid #e5e7eb',
+              color: 'var(--sb-text-3)',
+              borderBottom: '1px solid var(--sb-border)',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
             }}

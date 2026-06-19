@@ -45,7 +45,7 @@ export function FilePicker({ onFileOpened }: FilePickerProps) {
   if (loading) {
     return (
       <div style={centeredStyle}>
-        <p style={{ color: '#6b7280', fontSize: 14 }}>Loading…</p>
+        <p style={{ color: 'var(--sb-text-3)', fontSize: 14 }}>Loading…</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export function FilePicker({ onFileOpened }: FilePickerProps) {
         )}
 
         {files.length === 0 ? (
-          <div style={{ textAlign: 'center', paddingTop: 60, color: '#9ca3af', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--sb-text-4)', fontSize: 14 }}>
             <p style={{ margin: 0 }}>No files yet.</p>
             <p style={{ margin: '6px 0 0', fontSize: 13 }}>Click "New File" to get started.</p>
           </div>
@@ -83,13 +83,13 @@ export function FilePicker({ onFileOpened }: FilePickerProps) {
               >
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>{f.name}</div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>
+                  <div style={{ fontSize: 11, color: 'var(--sb-text-4)', marginTop: 3 }}>
                     Last modified {new Date(f.updatedAt).toLocaleString()}
                   </div>
                 </div>
                 <button
                   onClick={(e) => handleDelete(f.id, e)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: 16, padding: '4px 6px', borderRadius: 4, lineHeight: 1 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-border-strong)', fontSize: 16, padding: '4px 6px', borderRadius: 4, lineHeight: 1 }}
                   title="Delete file"
                 >
                   ✕
@@ -109,7 +109,7 @@ const centeredStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: '#f9fafb',
+  background: 'var(--sb-bg-secondary)',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
@@ -117,7 +117,7 @@ const primaryBtn: React.CSSProperties = {
   padding: '7px 16px',
   fontSize: 13,
   fontWeight: 500,
-  background: '#0066FF',
+  background: 'var(--sb-accent)',
   color: 'white',
   border: 'none',
   borderRadius: 6,
@@ -129,7 +129,7 @@ const fileRow: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '12px 16px',
-  background: 'white',
+  background: 'var(--sb-bg)',
   borderRadius: 8,
   border: '1px solid #e5e7eb',
   cursor: 'pointer',

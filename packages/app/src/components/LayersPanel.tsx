@@ -77,7 +77,7 @@ export function LayersPanel() {
 
   if (!file) {
     return (
-      <div style={{ padding: 16, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
+      <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
         No file open
       </div>
     );
@@ -97,7 +97,7 @@ export function LayersPanel() {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '4px 8px',
-                background: isSelectedFrame ? '#eff6ff' : 'transparent',
+                background: isSelectedFrame ? 'var(--sb-accent-bg)' : 'transparent',
                 cursor: 'pointer',
                 gap: 4,
               }}
@@ -113,7 +113,7 @@ export function LayersPanel() {
                   e.stopPropagation();
                   toggleFrame(frame.id);
                 }}
-                style={{ fontSize: 9, color: '#6b7280', width: 10, flexShrink: 0 }}
+                style={{ fontSize: 9, color: 'var(--sb-text-3)', width: 10, flexShrink: 0 }}
               >
                 {isCollapsed ? '▶' : '▼'}
               </span>
@@ -161,8 +161,8 @@ export function LayersPanel() {
               <span
                 style={{
                   fontSize: 9,
-                  color: '#9ca3af',
-                  background: '#f3f4f6',
+                  color: 'var(--sb-text-4)',
+                  background: 'var(--sb-bg-tertiary)',
                   padding: '1px 4px',
                   borderRadius: 2,
                 }}
@@ -182,7 +182,7 @@ export function LayersPanel() {
                       display: 'flex',
                       alignItems: 'center',
                       padding: '3px 8px 3px 24px',
-                      background: isSelectedComp ? '#eff6ff' : 'transparent',
+                      background: isSelectedComp ? 'var(--sb-accent-bg)' : 'transparent',
                       cursor: 'pointer',
                       gap: 4,
                     }}
@@ -206,7 +206,7 @@ export function LayersPanel() {
                       />
                     ) : (
                       <span
-                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}
+                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
                         onDoubleClick={(e) => { e.stopPropagation(); startEdit(component.id, component.label); }}
                       >
                         {component.label}
@@ -214,12 +214,12 @@ export function LayersPanel() {
                     )}
                     <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
                       title={component.visible ? 'Hide' : 'Show'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? '#374151' : '#d1d5db' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
                       {component.visible ? <EyeIcon /> : <EyeOffIcon />}
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
                       title={component.locked ? 'Unlock' : 'Lock'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? '#374151' : '#d1d5db' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
                       {component.locked ? <LockIcon /> : <UnlockIcon />}
                     </button>
                   </div>
@@ -237,7 +237,7 @@ export function LayersPanel() {
                       display: 'flex',
                       alignItems: 'center',
                       padding: '3px 8px 3px 24px',
-                      background: isSelectedTL ? '#eff6ff' : 'transparent',
+                      background: isSelectedTL ? 'var(--sb-accent-bg)' : 'transparent',
                       cursor: 'pointer',
                       gap: 4,
                     }}
@@ -269,16 +269,16 @@ export function LayersPanel() {
                       />
                     ) : (
                       <span
-                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}
+                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
                         onDoubleClick={(e) => { e.stopPropagation(); startEdit(tl.id, tl.label); }}
                       >
                         {tl.label}
                       </span>
                     )}
-                    <span style={{ fontSize: 9, color: '#9ca3af', background: '#f3f4f6', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
+                    <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
                     <button onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
                       title={tl.visible ? 'Hide' : 'Show'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? '#374151' : '#d1d5db' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
                       {tl.visible ? <EyeIcon /> : <EyeOffIcon />}
                     </button>
                   </div>

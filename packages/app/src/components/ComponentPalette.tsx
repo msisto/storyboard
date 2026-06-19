@@ -49,7 +49,7 @@ function ThumbnailPopover({ story }: ThumbnailPopoverProps) {
         width: 130,
         height: 70,
         background: '#fff',
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--sb-border)',
         borderRadius: 6,
         overflow: 'hidden',
         zIndex: 1000,
@@ -93,7 +93,7 @@ function StoryItem({ story, onDragStart }: StoryItemProps) {
         style={{
           padding: '3px 8px 3px 24px',
           fontSize: 12,
-          color: '#374151',
+          color: 'var(--sb-text-2)',
           cursor: 'grab',
           borderRadius: 3,
           whiteSpace: 'nowrap',
@@ -144,7 +144,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
 
   if (status === 'loading') {
     return (
-      <div style={{ padding: 16, fontSize: 12, color: '#6b7280' }}>
+      <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-3)' }}>
         Loading components...
       </div>
     );
@@ -160,7 +160,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--sb-border)' }}>
         <input
           type="text"
           placeholder="Search components..."
@@ -170,7 +170,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
             width: '100%',
             padding: '4px 8px',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             outline: 'none',
             boxSizing: 'border-box',
@@ -190,7 +190,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                   padding: '5px 8px',
                   fontSize: 11,
                   fontWeight: 600,
-                  color: '#6b7280',
+                  color: 'var(--sb-text-3)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   cursor: 'pointer',
@@ -217,7 +217,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                           padding: '4px 8px 4px 16px',
                           fontSize: 12,
                           fontWeight: 500,
-                          color: '#374151',
+                          color: 'var(--sb-text-2)',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',

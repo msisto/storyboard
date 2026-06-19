@@ -6,7 +6,7 @@ import { PeerCursors } from './PeerCursors';
 import type { PeerCursor } from '../comments/useCommentSync';
 
 const CHECKERBOARD = `
-  repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%) 0 0 / 20px 20px
+  repeating-conic-gradient(var(--sb-canvas-a) 0% 25%, var(--sb-canvas-b) 0% 50%) 0 0 / 20px 20px
 `;
 
 interface CanvasProps {

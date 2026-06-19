@@ -26,7 +26,7 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
         overflow: 'hidden',
         position: 'relative',
         borderRadius: 3,
-        background: '#f3f4f6',
+        background: 'var(--sb-bg-tertiary)',
         flexShrink: 0,
       }}
     >
@@ -51,7 +51,7 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
               top: c.y,
               width: c.width,
               height: c.height,
-              background: '#D1D5DB',
+              background: 'var(--sb-border-strong)',
               border: '0.5px solid #9CA3AF',
               borderRadius: 1,
             }}
@@ -161,7 +161,7 @@ export function StoryboardTimeline({
           flexShrink: 0,
           fontSize: 10,
           fontWeight: 600,
-          color: '#9ca3af',
+          color: 'var(--sb-text-4)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           textAlign: 'center',
@@ -205,7 +205,7 @@ export function StoryboardTimeline({
                   style={{
                     width: 2,
                     height: 64,
-                    background: '#0066FF',
+                    background: 'var(--sb-accent)',
                     borderRadius: 1,
                     flexShrink: 0,
                     marginRight: 2,
@@ -225,7 +225,7 @@ export function StoryboardTimeline({
                   padding: '6px 6px',
                   borderRadius: 6,
                   border: isSelected ? '2px solid #0066FF' : isMultiSelected ? '2px solid #60a5fa' : '1px solid transparent',
-                  background: isSelected ? '#eff6ff' : isMultiSelected ? '#f0f7ff' : 'transparent',
+                  background: isSelected ? 'var(--sb-accent-bg)' : isMultiSelected ? '#f0f7ff' : 'transparent',
                   cursor: isDragging ? 'grabbing' : 'pointer',
                   opacity: isDragging ? 0.5 : 1,
                   userSelect: 'none',
@@ -248,7 +248,7 @@ export function StoryboardTimeline({
                     left: 4,
                     fontSize: 9,
                     fontWeight: 700,
-                    color: isSelected ? '#0066FF' : '#9ca3af',
+                    color: isSelected ? 'var(--sb-accent)' : 'var(--sb-text-4)',
                     lineHeight: 1,
                   }}
                 >
@@ -268,7 +268,7 @@ export function StoryboardTimeline({
                       width: 14,
                       height: 14,
                       borderRadius: '50%',
-                      background: '#6b7280',
+                      background: 'var(--sb-text-3)',
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
@@ -288,7 +288,7 @@ export function StoryboardTimeline({
                 <div
                   style={{
                     fontSize: 10,
-                    color: isSelected ? '#0066FF' : '#374151',
+                    color: isSelected ? 'var(--sb-accent)' : 'var(--sb-text-2)',
                     fontWeight: isSelected ? 600 : 400,
                     maxWidth: 72,
                     overflow: 'hidden',
@@ -307,7 +307,7 @@ export function StoryboardTimeline({
                   style={{
                     width: 2,
                     height: 64,
-                    background: '#0066FF',
+                    background: 'var(--sb-accent)',
                     borderRadius: 1,
                     flexShrink: 0,
                     marginLeft: 2,
@@ -335,17 +335,17 @@ export function StoryboardTimeline({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 4,
-            color: '#9ca3af',
+            color: 'var(--sb-text-4)',
             fontSize: 10,
             fontWeight: 500,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = '#0066FF';
-            (e.currentTarget as HTMLButtonElement).style.color = '#0066FF';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--sb-accent)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--sb-accent)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = '#d1d5db';
-            (e.currentTarget as HTMLButtonElement).style.color = '#9ca3af';
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--sb-border-strong)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'var(--sb-text-4)';
           }}
         >
           <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>

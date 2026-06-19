@@ -50,7 +50,7 @@ function ExportModal({ onClose }: ExportModalProps) {
     >
       <div
         style={{
-          background: 'white',
+          background: 'var(--sb-bg)',
           borderRadius: 8,
           padding: 20,
           width: 560,
@@ -90,7 +90,7 @@ function ExportModal({ onClose }: ExportModalProps) {
             padding: 10,
             resize: 'vertical',
             outline: 'none',
-            background: '#f9fafb',
+            background: 'var(--sb-bg-secondary)',
           }}
         />
 
@@ -100,7 +100,7 @@ function ExportModal({ onClose }: ExportModalProps) {
             style={{
               padding: '6px 16px',
               fontSize: 13,
-              background: copied ? '#10b981' : '#0066FF',
+              background: copied ? '#10b981' : 'var(--sb-accent)',
               color: 'white',
               border: 'none',
               borderRadius: 4,
@@ -111,7 +111,7 @@ function ExportModal({ onClose }: ExportModalProps) {
           </button>
           <button
             onClick={onClose}
-            style={{ padding: '6px 16px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
+            style={{ padding: '6px 16px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
           >
             Close
           </button>
@@ -168,7 +168,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           padding: '0 12px',
           gap: 8,
           borderBottom: '1px solid #e5e7eb',
-          background: 'white',
+          background: 'var(--sb-bg)',
           flexShrink: 0,
           zIndex: 10,
         }}
@@ -177,7 +177,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowMenu((v) => !v)}
-            style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}
+            style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}
           >
             <MenuIcon />
           </button>
@@ -188,7 +188,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
                 top: '100%',
                 left: 0,
                 marginTop: 4,
-                background: 'white',
+                background: 'var(--sb-bg)',
                 border: '1px solid #e5e7eb',
                 borderRadius: 6,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -224,11 +224,11 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           )}
         </div>
 
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginRight: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--sb-text-2)', marginRight: 4 }}>
           Storyboard
         </span>
 
-        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
 
         {/* Tools */}
         {tools.map((tool) => (
@@ -241,14 +241,14 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
               border: activeTool === tool.id ? '1px solid #0066FF' : '1px solid #e5e7eb',
               borderRadius: 4,
               cursor: 'pointer',
-              background: activeTool === tool.id ? '#eff6ff' : 'white',
+              background: activeTool === tool.id ? 'var(--sb-accent-bg)' : 'var(--sb-bg)',
               display: 'flex',
               alignItems: 'center',
               gap: 5,
             }}
           >
             {tool.icon}
-            <span style={{ fontSize: 10, color: activeTool === tool.id ? '#0066FF' : '#9ca3af' }}>{tool.key}</span>
+            <span style={{ fontSize: 10, color: activeTool === tool.id ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>{tool.key}</span>
           </button>
         ))}
 
@@ -267,12 +267,12 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             border: '1px solid #e5e7eb',
             borderRadius: 4,
             outline: 'none',
-            color: '#374151',
+            color: 'var(--sb-text-2)',
           }}
         />
 
         {/* Zoom controls */}
-        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
         <input
           type="number"
           value={zoomPercent}
@@ -289,38 +289,38 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             outline: 'none',
           }}
         />
-        <span style={{ fontSize: 12, color: '#6b7280' }}>%</span>
+        <span style={{ fontSize: 12, color: 'var(--sb-text-3)' }}>%</span>
         <button
           onClick={fitAll}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
         >
           Fit
         </button>
         <button
           onClick={() => zoomTo(1)}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
         >
           1:1
         </button>
 
-        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
 
         {/* Save / Open / Export */}
         <button onClick={handleSave} title="Save (⌘S)"
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}>
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
           <SaveIcon />
         </button>
         <button onClick={handleOpen} title="Open (⌘O)"
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center' }}>
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
           <OpenIcon />
         </button>
         <button onClick={() => setShowExport(true)} title="Export JSX" disabled={!file?.frames.length}
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'white', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
+          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
           <ExportIcon />
-          <span style={{ fontSize: 11, color: '#374151' }}>JSX</span>
+          <span style={{ fontSize: 11, color: 'var(--sb-text-2)' }}>JSX</span>
         </button>
 
-        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
 
         {/* Refresh components */}
         <button
@@ -331,7 +331,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             border: '1px solid #e5e7eb',
             borderRadius: 4,
             cursor: 'pointer',
-            background: 'white',
+            background: 'var(--sb-bg)',
             display: 'flex',
             alignItems: 'center',
             opacity: status === 'loading' ? 0.5 : 1,
@@ -340,7 +340,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           <RefreshIcon spinning={status === 'loading'} />
         </button>
 
-        <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
 
         {/* Online indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
@@ -353,7 +353,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
               display: 'inline-block',
             }}
           />
-          <span style={{ color: '#6b7280' }}>
+          <span style={{ color: 'var(--sb-text-3)' }}>
             {connected ? `${peerCount} online` : 'Disconnected'}
           </span>
         </div>

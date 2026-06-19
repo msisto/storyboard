@@ -267,7 +267,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
             top: 0,
             width: 2,
             height: '100%',
-            background: '#0066FF',
+            background: 'var(--sb-accent)',
             pointerEvents: 'none',
             zIndex: 10,
           }}
@@ -289,7 +289,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
             left: 0,
             height: 2,
             width: '100%',
-            background: '#0066FF',
+            background: 'var(--sb-accent)',
             pointerEvents: 'none',
             zIndex: 10,
           }}
@@ -308,7 +308,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
         outline: (isSelected && selectedComponentIds.length === 0)
-          ? '2px solid #0066FF'
+          ? '2px solid var(--sb-accent)'
           : isMultiSelected
           ? '2px solid #60a5fa'
           : '1px solid #D1D5DB',
@@ -325,7 +325,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
           top: -24,
           left: 0,
           fontSize: 12,
-          color: '#6B7280',
+          color: 'var(--sb-text-3)',
           whiteSpace: 'nowrap',
           pointerEvents: 'none',
           userSelect: 'none',

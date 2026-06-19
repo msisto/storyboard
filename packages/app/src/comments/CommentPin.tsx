@@ -52,7 +52,7 @@ export function CommentPin({ comment }: CommentPinProps) {
             top: 28,
             left: 0,
             width: 260,
-            background: 'white',
+            background: 'var(--sb-bg)',
             border: '1px solid #e5e7eb',
             borderRadius: 8,
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -64,29 +64,29 @@ export function CommentPin({ comment }: CommentPinProps) {
           {/* Original comment */}
           <div style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sb-text-2)' }}>
                 {comment.author}
               </span>
-              <span style={{ fontSize: 10, color: '#9ca3af' }}>
+              <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>
                 {new Date(comment.timestamp).toLocaleTimeString()}
               </span>
             </div>
-            <p style={{ fontSize: 13, color: '#374151', margin: 0 }}>{comment.text}</p>
+            <p style={{ fontSize: 13, color: 'var(--sb-text-2)', margin: 0 }}>{comment.text}</p>
           </div>
 
           {/* Replies */}
           {comment.replies.map((reply) => (
             <div
               key={reply.id}
-              style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', background: '#f9fafb' }}
+              style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', background: 'var(--sb-bg-secondary)' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>{reply.author}</span>
-                <span style={{ fontSize: 10, color: '#9ca3af' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-3)' }}>{reply.author}</span>
+                <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>
                   {new Date(reply.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <p style={{ fontSize: 12, color: '#374151', margin: 0 }}>{reply.text}</p>
+              <p style={{ fontSize: 12, color: 'var(--sb-text-2)', margin: 0 }}>{reply.text}</p>
             </div>
           ))}
 
@@ -132,8 +132,8 @@ export function CommentPin({ comment }: CommentPinProps) {
                   flex: 1,
                   fontSize: 11,
                   padding: '4px 8px',
-                  background: '#0066FF',
-                  color: 'white',
+                  background: 'var(--sb-accent)',
+                  color: 'var(--sb-bg)',
                   border: 'none',
                   borderRadius: 4,
                   cursor: 'pointer',
@@ -150,7 +150,7 @@ export function CommentPin({ comment }: CommentPinProps) {
                   style={{
                     fontSize: 11,
                     padding: '4px 8px',
-                    background: '#f3f4f6',
+                    background: 'var(--sb-bg-tertiary)',
                     border: '1px solid #e5e7eb',
                     borderRadius: 4,
                     cursor: 'pointer',
@@ -164,7 +164,7 @@ export function CommentPin({ comment }: CommentPinProps) {
                 style={{
                   fontSize: 11,
                   padding: '4px 8px',
-                  background: '#f3f4f6',
+                  background: 'var(--sb-bg-tertiary)',
                   border: '1px solid #e5e7eb',
                   borderRadius: 4,
                   cursor: 'pointer',

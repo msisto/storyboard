@@ -47,7 +47,7 @@ function NumberInput({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>{label}</label>
+      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>{label}</label>
       <input
         type="number"
         value={Math.round(value)}
@@ -58,12 +58,12 @@ function NumberInput({
           width: '100%',
           padding: '3px 6px',
           fontSize: 12,
-          border: '1px solid #e5e7eb',
+          border: '1px solid var(--sb-border)',
           borderRadius: 4,
           outline: 'none',
           boxSizing: 'border-box',
-          background: readOnly ? '#f9fafb' : 'white',
-          color: readOnly ? '#9ca3af' : 'inherit',
+          background: readOnly ? 'var(--sb-bg-secondary)' : 'var(--sb-bg)',
+          color: readOnly ? 'var(--sb-text-4)' : 'inherit',
         }}
       />
     </div>
@@ -101,7 +101,7 @@ function ArgControl({
   if (def.type === 'number') {
     return (
       <div>
-        <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+        <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
           {def.name}
         </label>
         <input
@@ -112,7 +112,7 @@ function ArgControl({
             width: '100%',
             padding: '3px 6px',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             outline: 'none',
             boxSizing: 'border-box',
@@ -125,7 +125,7 @@ function ArgControl({
   if (def.type === 'select') {
     return (
       <div>
-        <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+        <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
           {def.name}
         </label>
         <select
@@ -136,11 +136,11 @@ function ArgControl({
             width: '100%',
             padding: '3px 6px',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             outline: 'none',
             boxSizing: 'border-box',
-            background: 'white',
+            background: 'var(--sb-bg)',
           }}
         >
           {def.options?.map((opt) => (
@@ -156,7 +156,7 @@ function ArgControl({
   if (def.type === 'color') {
     return (
       <div>
-        <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+        <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
           {def.name}
         </label>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -165,7 +165,7 @@ function ArgControl({
             value={strVal || '#000000'}
             onFocus={pushH}
             onChange={(e) => onChange(e.target.value)}
-            style={{ width: 28, height: 28, padding: 0, border: '1px solid #e5e7eb', borderRadius: 4 }}
+            style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--sb-border)', borderRadius: 4 }}
           />
           <input
             type="text"
@@ -176,7 +176,7 @@ function ArgControl({
               flex: 1,
               padding: '3px 6px',
               fontSize: 12,
-              border: '1px solid #e5e7eb',
+              border: '1px solid var(--sb-border)',
               borderRadius: 4,
               outline: 'none',
             }}
@@ -189,7 +189,7 @@ function ArgControl({
   if (def.type === 'object') {
     return (
       <div>
-        <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+        <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
           {def.name}
         </label>
         <button
@@ -200,10 +200,10 @@ function ArgControl({
           style={{
             padding: '4px 8px',
             fontSize: 11,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             cursor: 'pointer',
-            background: 'white',
+            background: 'var(--sb-bg)',
           }}
         >
           Edit JSON
@@ -222,7 +222,7 @@ function ArgControl({
           >
             <div
               style={{
-                background: 'white',
+                background: 'var(--sb-bg)',
                 borderRadius: 8,
                 padding: 16,
                 width: 400,
@@ -239,7 +239,7 @@ function ArgControl({
                 style={{
                   fontFamily: 'monospace',
                   fontSize: 12,
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--sb-border)',
                   borderRadius: 4,
                   padding: 8,
                   resize: 'vertical',
@@ -249,7 +249,7 @@ function ArgControl({
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setJsonOpen(false)}
-                  style={{ padding: '4px 12px', fontSize: 12, cursor: 'pointer', border: '1px solid #e5e7eb', borderRadius: 4, background: 'white' }}
+                  style={{ padding: '4px 12px', fontSize: 12, cursor: 'pointer', border: '1px solid var(--sb-border)', borderRadius: 4, background: 'var(--sb-bg)' }}
                 >
                   Cancel
                 </button>
@@ -263,7 +263,7 @@ function ArgControl({
                       alert('Invalid JSON');
                     }
                   }}
-                  style={{ padding: '4px 12px', fontSize: 12, cursor: 'pointer', border: 'none', borderRadius: 4, background: '#0066FF', color: 'white' }}
+                  style={{ padding: '4px 12px', fontSize: 12, cursor: 'pointer', border: 'none', borderRadius: 4, background: 'var(--sb-accent)', color: 'var(--sb-bg)' }}
                 >
                   Apply
                 </button>
@@ -278,7 +278,7 @@ function ArgControl({
   // text (default)
   return (
     <div>
-      <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
         {def.name}
       </label>
       <input
@@ -290,7 +290,7 @@ function ArgControl({
           width: '100%',
           padding: '3px 6px',
           fontSize: 12,
-          border: '1px solid #e5e7eb',
+          border: '1px solid var(--sb-border)',
           borderRadius: 4,
           outline: 'none',
           boxSizing: 'border-box',
@@ -303,7 +303,7 @@ function ArgControl({
 function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {label && <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>{label}</span>}
+      {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>{label}</span>}
       <select
         value={value}
         onFocus={pushH}
@@ -312,10 +312,10 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
           width: '100%',
           padding: '3px 6px',
           fontSize: 12,
-          border: '1px solid #e5e7eb',
+          border: '1px solid var(--sb-border)',
           borderRadius: 4,
           outline: 'none',
-          background: 'white',
+          background: 'var(--sb-bg)',
           cursor: 'pointer',
           appearance: 'auto',
         }}
@@ -371,8 +371,8 @@ function PropsSection({
         ))}
 
         {!hasContent && (
-          <span style={{ fontSize: 11, color: '#9ca3af', lineHeight: 1.5 }}>
-            No args defined in this story. Add a prop name below, or define <code style={{ fontFamily: 'monospace', background: '#f3f4f6', padding: '0 3px', borderRadius: 2 }}>args</code> in your Storybook story to auto-populate.
+          <span style={{ fontSize: 11, color: 'var(--sb-text-4)', lineHeight: 1.5 }}>
+            No args defined in this story. Add a prop name below, or define <code style={{ fontFamily: 'monospace', background: 'var(--sb-bg-tertiary)', padding: '0 3px', borderRadius: 2 }}>args</code> in your Storybook story to auto-populate.
           </span>
         )}
 
@@ -393,7 +393,7 @@ function PropsSection({
               flex: 1,
               padding: '3px 6px',
               fontSize: 11,
-              border: '1px solid #e5e7eb',
+              border: '1px solid var(--sb-border)',
               borderRadius: 4,
               outline: 'none',
             }}
@@ -405,11 +405,11 @@ function PropsSection({
             style={{
               padding: '3px 8px',
               fontSize: 11,
-              border: '1px solid #e5e7eb',
+              border: '1px solid var(--sb-border)',
               borderRadius: 4,
               cursor: 'pointer',
-              background: 'white',
-              color: '#374151',
+              background: 'var(--sb-bg)',
+              color: 'var(--sb-text-2)',
             }}
           >
             +
@@ -437,7 +437,7 @@ export function PropsInspector() {
 
   if (!selectedFrameData && !selectedComponentData && !selectedTextLayer) {
     return (
-      <div style={{ padding: 16, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
+      <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
         Select a frame or component
       </div>
     );
@@ -459,19 +459,19 @@ export function PropsInspector() {
 
     const btnStyle = (disabled = false): React.CSSProperties => ({
       width: 28, height: 28, padding: 0,
-      border: '1px solid #e5e7eb', borderRadius: 4,
-      background: 'white', cursor: disabled ? 'default' : 'pointer',
+      border: '1px solid var(--sb-border)', borderRadius: 4,
+      background: 'var(--sb-bg)', cursor: disabled ? 'default' : 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       opacity: disabled ? 0.35 : 1,
     });
 
     return (
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)' }}>
           {selectedFrameIds.length} frames selected
         </div>
         <div>
-          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>ALIGN</div>
+          <div style={{ fontSize: 10, color: 'var(--sb-text-4)', marginBottom: 4 }}>ALIGN</div>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             <button title="Align left" style={btnStyle()} onClick={() => applyFrames(alignLeft(frameItems))}><AlignLeftIcon /></button>
             <button title="Align center horizontal" style={btnStyle()} onClick={() => applyFrames(alignCenterH(frameItems))}><AlignCenterHIcon /></button>
@@ -483,7 +483,7 @@ export function PropsInspector() {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>DISTRIBUTE</div>
+          <div style={{ fontSize: 10, color: 'var(--sb-text-4)', marginBottom: 4 }}>DISTRIBUTE</div>
           <div style={{ display: 'flex', gap: 4 }}>
             <button title="Distribute horizontally" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeH(frameItems)); }}><DistributeHIcon /></button>
             <button title="Distribute vertically" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeV(frameItems)); }}><DistributeVIcon /></button>
@@ -513,14 +513,14 @@ export function PropsInspector() {
       <div style={{ overflowY: 'auto', height: '100%' }}>
         <Section title="Text">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Content</label>
+            <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>Content</label>
             <textarea
               value={tl.content}
               rows={3}
               onFocus={pushH}
               onChange={(e) => patch({ content: e.target.value, label: e.target.value.slice(0, 24) || 'Text' })}
               style={{
-                fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4,
+                fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4,
                 padding: '4px 6px', outline: 'none', resize: 'vertical',
                 fontFamily: 'inherit', lineHeight: 1.4,
               }}
@@ -531,14 +531,14 @@ export function PropsInspector() {
         <Section title="Typography">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div>
-              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
                 Font Size
               </label>
               <select
                 value={tl.fontSize}
                 onFocus={pushH}
                 onChange={(e) => patch({ fontSize: e.target.value as typeof tl.fontSize })}
-                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none' }}
               >
                 {TAILWIND_FONT_SIZES.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -549,14 +549,14 @@ export function PropsInspector() {
             </div>
 
             <div>
-              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
                 Font Weight
               </label>
               <select
                 value={tl.fontWeight}
                 onFocus={pushH}
                 onChange={(e) => patch({ fontWeight: e.target.value as typeof tl.fontWeight })}
-                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none' }}
               >
                 {TAILWIND_FONT_WEIGHTS.map((w) => (
                   <option key={w.key} value={w.key}>
@@ -567,7 +567,7 @@ export function PropsInspector() {
             </div>
 
             <div>
-              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
                 Color
               </label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -576,14 +576,14 @@ export function PropsInspector() {
                   value={tl.color}
                   onFocus={pushH}
                   onChange={(e) => patch({ color: e.target.value })}
-                  style={{ width: 32, height: 28, padding: 2, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer' }}
+                  style={{ width: 32, height: 28, padding: 2, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={tl.color}
                   onFocus={pushH}
                   onChange={(e) => patch({ color: e.target.value })}
-                  style={{ flex: 1, padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', fontFamily: 'monospace' }}
+                  style={{ flex: 1, padding: '4px 6px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none', fontFamily: 'monospace' }}
                 />
               </div>
             </div>
@@ -777,7 +777,7 @@ export function PropsInspector() {
         <Section title="Frame">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
-              <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
                 LABEL
               </label>
               <input
@@ -789,7 +789,7 @@ export function PropsInspector() {
                   width: '100%',
                   padding: '3px 6px',
                   fontSize: 12,
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--sb-border)',
                   borderRadius: 4,
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -798,16 +798,16 @@ export function PropsInspector() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Timeline</span>
+              <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>Timeline</span>
               <button
                 onClick={() => updateFrame(selectedFrameData.id, { inTimeline: selectedFrameData.inTimeline === false })}
                 style={{
                   padding: '2px 8px',
                   fontSize: 11,
                   borderRadius: 4,
-                  border: '1px solid #e5e7eb',
-                  background: selectedFrameData.inTimeline !== false ? '#ecfdf5' : '#f9fafb',
-                  color: selectedFrameData.inTimeline !== false ? '#059669' : '#6b7280',
+                  border: '1px solid var(--sb-border)',
+                  background: selectedFrameData.inTimeline !== false ? '#ecfdf5' : 'var(--sb-bg-secondary)',
+                  color: selectedFrameData.inTimeline !== false ? '#059669' : 'var(--sb-text-3)',
                   cursor: 'pointer',
                 }}
               >
@@ -826,9 +826,9 @@ export function PropsInspector() {
                       fontSize: 10,
                       padding: '2px 6px',
                       borderRadius: 4,
-                      border: `1px solid ${active ? '#0066FF' : '#d1d5db'}`,
-                      background: active ? '#eff6ff' : 'transparent',
-                      color: active ? '#0066FF' : '#6b7280',
+                      border: `1px solid ${active ? 'var(--sb-accent)' : 'var(--sb-border-strong)'}`,
+                      background: active ? 'var(--sb-accent-bg)' : 'transparent',
+                      color: active ? 'var(--sb-accent)' : 'var(--sb-text-3)',
                       cursor: 'pointer',
                       fontWeight: active ? 600 : 400,
                     }}
@@ -855,7 +855,7 @@ export function PropsInspector() {
             </div>
 
             <div>
-              <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
                 BACKGROUND
               </label>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -866,7 +866,7 @@ export function PropsInspector() {
                   onChange={(e) =>
                     updateFrame(selectedFrameData.id, { backgroundColor: e.target.value })
                   }
-                  style={{ width: 28, height: 28, padding: 0, border: '1px solid #e5e7eb', borderRadius: 4 }}
+                  style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--sb-border)', borderRadius: 4 }}
                 />
                 <input
                   type="text"
@@ -879,7 +879,7 @@ export function PropsInspector() {
                     flex: 1,
                     padding: '3px 6px',
                     fontSize: 12,
-                    border: '1px solid #e5e7eb',
+                    border: '1px solid var(--sb-border)',
                     borderRadius: 4,
                     outline: 'none',
                   }}
@@ -898,9 +898,9 @@ export function PropsInspector() {
                 padding: '5px 0',
                 fontSize: 12,
                 borderRadius: 4,
-                border: '1px solid #e5e7eb',
-                background: al ? '#0066FF' : 'white',
-                color: al ? 'white' : '#374151',
+                border: '1px solid var(--sb-border)',
+                background: al ? 'var(--sb-accent)' : 'var(--sb-bg)',
+                color: al ? 'white' : 'var(--sb-text-2)',
                 cursor: 'pointer',
               }}
             >
@@ -911,7 +911,7 @@ export function PropsInspector() {
               <>
                 {/* Direction */}
                 <div>
-                  <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
                     Direction
                   </label>
                   <div style={{ display: 'flex', gap: 4 }}>
@@ -924,9 +924,9 @@ export function PropsInspector() {
                           padding: '4px 0',
                           fontSize: 12,
                           borderRadius: 4,
-                          border: '1px solid #e5e7eb',
-                          background: al.direction === dir ? '#0066FF' : 'white',
-                          color: al.direction === dir ? 'white' : '#374151',
+                          border: '1px solid var(--sb-border)',
+                          background: al.direction === dir ? 'var(--sb-accent)' : 'var(--sb-bg)',
+                          color: al.direction === dir ? 'white' : 'var(--sb-text-2)',
                           cursor: 'pointer',
                         }}
                       >
@@ -958,7 +958,7 @@ export function PropsInspector() {
 
                 {/* Padding */}
                 <div>
-                  <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
                     Padding
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -1034,9 +1034,9 @@ export function PropsInspector() {
       width: 28,
       height: 28,
       padding: 0,
-      border: '1px solid #e5e7eb',
+      border: '1px solid var(--sb-border)',
       borderRadius: 4,
-      background: 'white',
+      background: 'var(--sb-bg)',
       cursor: disabled ? 'default' : 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -1046,19 +1046,19 @@ export function PropsInspector() {
 
     return (
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)' }}>
           {selectedComponentIds.length} items selected
         </div>
 
         {items.length === 0 ? (
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>
+          <div style={{ fontSize: 11, color: 'var(--sb-text-4)' }}>
             Alignment not available for auto-layout flow items
           </div>
         ) : (
           <>
             {/* Alignment row */}
             <div>
-              <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>ALIGN</div>
+              <div style={{ fontSize: 10, color: 'var(--sb-text-4)', marginBottom: 4 }}>ALIGN</div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 <button title="Align left" style={btnStyle()} onClick={() => apply(alignLeft(items))}>
                   <AlignLeftIcon />
@@ -1084,7 +1084,7 @@ export function PropsInspector() {
 
             {/* Distribute row */}
             <div>
-              <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>DISTRIBUTE</div>
+              <div style={{ fontSize: 10, color: 'var(--sb-text-4)', marginBottom: 4 }}>DISTRIBUTE</div>
               <div style={{ display: 'flex', gap: 4 }}>
                 <button
                   title="Distribute horizontally"
@@ -1225,7 +1225,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           padding: '10px 12px 6px',
           fontSize: 10,
           fontWeight: 600,
-          color: '#6b7280',
+          color: 'var(--sb-text-3)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
         }}
@@ -1250,7 +1250,7 @@ function SizingSelect({
 }) {
   return (
     <div>
-      <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 2, textTransform: 'uppercase' }}>
+      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2, textTransform: 'uppercase' }}>
         {label}
       </label>
       <select
@@ -1261,10 +1261,10 @@ function SizingSelect({
           width: '100%',
           padding: '3px 6px',
           fontSize: 12,
-          border: '1px solid #e5e7eb',
+          border: '1px solid var(--sb-border)',
           borderRadius: 4,
           outline: 'none',
-          background: 'white',
+          background: 'var(--sb-bg)',
           boxSizing: 'border-box',
         }}
       >
@@ -1308,7 +1308,7 @@ function AlignmentGrid({
 
   return (
     <div>
-      <label style={{ fontSize: 10, color: '#6b7280', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
+      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
         Alignment
       </label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -1326,9 +1326,9 @@ function AlignmentGrid({
                     padding: '4px 0',
                     fontSize: 11,
                     borderRadius: 3,
-                    border: '1px solid #e5e7eb',
-                    background: active ? '#0066FF' : '#f9fafb',
-                    color: active ? 'white' : '#374151',
+                    border: '1px solid var(--sb-border)',
+                    background: active ? 'var(--sb-accent)' : 'var(--sb-bg-secondary)',
+                    color: active ? 'white' : 'var(--sb-text-2)',
                     cursor: 'pointer',
                     lineHeight: 1,
                   }}

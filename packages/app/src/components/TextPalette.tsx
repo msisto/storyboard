@@ -43,12 +43,12 @@ export function TextPalette() {
               borderBottom: '1px solid #f3f4f6',
               position: 'sticky',
               top: 0,
-              background: 'white',
+              background: 'var(--sb-bg)',
               zIndex: 1,
             }}
           >
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>{size.label}</span>
-            <span style={{ fontSize: 10, color: '#9ca3af' }}>{size.px}px / {size.lineHeight}px</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)' }}>{size.label}</span>
+            <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>{size.px}px / {size.lineHeight}px</span>
           </div>
 
           {/* Weight rows */}
@@ -73,7 +73,7 @@ export function TextPalette() {
                 borderBottom: '1px solid #f9fafb',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLDivElement).style.background = '#f9fafb';
+                (e.currentTarget as HTMLDivElement).style.background = 'var(--sb-bg-secondary)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = 'transparent';
@@ -82,7 +82,7 @@ export function TextPalette() {
               <span
                 style={{
                   fontSize: 10,
-                  color: '#9ca3af',
+                  color: 'var(--sb-text-4)',
                   width: 52,
                   flexShrink: 0,
                   lineHeight: 1,
@@ -102,7 +102,7 @@ export function TextPalette() {
                   style={{
                     fontSize: size.px,
                     fontWeight: weight.value,
-                    color: '#111827',
+                    color: 'var(--sb-text)',
                     whiteSpace: 'nowrap',
                     display: 'block',
                     overflow: 'hidden',
@@ -117,7 +117,7 @@ export function TextPalette() {
       ))}
 
       {!selectedFrameId && (
-        <p style={{ padding: 12, fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
+        <p style={{ padding: 12, fontSize: 11, color: 'var(--sb-text-4)', textAlign: 'center', marginTop: 8 }}>
           Select a frame to click-add text, or drag onto a frame.
         </p>
       )}
