@@ -49,9 +49,12 @@ const SizeReporter: Decorator = (Story) => {
     return () => observer.disconnect();
   }, [instanceId]);
 
+  // Before measurement: use a block wrapper that fills the iframe width so
+  // `w-full` components measure correctly. After measurement: display:contents
+  // makes this wrapper transparent so the component fills its container naturally.
   return React.createElement(
     'div',
-    { ref, style: { display: measured ? 'contents' : 'inline-block' } },
+    { ref, style: measured ? { display: 'contents' } : { display: 'block', width: '100%' } },
     React.createElement(Story as React.ComponentType, null)
   );
 };

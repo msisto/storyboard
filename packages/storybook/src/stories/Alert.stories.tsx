@@ -17,7 +17,7 @@ type Story = StoryObj<AlertArgs>;
 export const Default: Story = {
   args: { variant: 'default', title: 'Heads up!', description: 'You can add components to your app using the cli.' },
   render: ({ variant, title, description }) => (
-    <Alert variant={variant} className="w-[400px]">
+    <Alert variant={variant} className="w-full">
       <Terminal className="h-4 w-4" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>
@@ -28,7 +28,7 @@ export const Default: Story = {
 export const Destructive: Story = {
   args: { variant: 'destructive', title: 'Error', description: 'Your session has expired. Please log in again.' },
   render: ({ variant, title, description }) => (
-    <Alert variant={variant} className="w-[400px]">
+    <Alert variant={variant} className="w-full">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>

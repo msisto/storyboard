@@ -16,7 +16,7 @@ type Story = StoryObj<CardArgs>;
 export const Default: Story = {
   args: { title: 'Card Title', description: 'Card description goes here.', content: 'Card content with some text.', action: 'Action' },
   render: ({ title, description, content, action }) => (
-    <Card className="w-[350px]">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -34,7 +34,7 @@ export const Default: Story = {
 export const Simple: Story = {
   args: { content: 'A simple card with just content.' },
   render: ({ content }) => (
-    <Card className="w-[300px] p-6">
+    <Card className="w-full p-6">
       <p className="text-sm">{content}</p>
     </Card>
   ),
@@ -43,7 +43,7 @@ export const Simple: Story = {
 export const WithoutFooter: Story = {
   args: { title: 'No Footer', description: 'This card has no footer.', content: 'Content only, no action buttons.' },
   render: ({ title, description, content }) => (
-    <Card className="w-[350px]">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

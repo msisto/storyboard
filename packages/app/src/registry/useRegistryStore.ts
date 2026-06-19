@@ -28,12 +28,22 @@ export const useRegistryStore = create<RegistryStore>((set, get) => ({
         fetchStorybookArgTypes(),
       ]);
 
-      const argDefinitions: Record<string, ArgDefinition[]> = {};
+      const fetched: Record<string, ArgDefinition[]> = {};
       for (const [storyId, rawTypes] of Object.entries(rawArgTypes)) {
-        argDefinitions[storyId] = parseArgTypes(rawTypes);
+        fetched[storyId] = parseArgTypes(rawTypes);
       }
 
-      set({ stories, argDefinitions, status: 'ready' });
+      // Merge: iframe-populated entries (from ArgsReporter) take priority over
+      // static index.json data. Only replace an existing entry if the fetch has
+      // more definitions for that story (static JSON rarely has full arg lists).
+      set((state) => {
+        const merged = { ...state.argDefinitions };
+        for (const [id, defs] of Object.entries(fetched)) {
+          const existing = merged[id];
+          if (!existing || defs.length >= existing.length) merged[id] = defs;
+        }
+        return { stories, argDefinitions: merged, status: 'ready' };
+      });
     } catch (err) {
       set({
         status: 'error',
