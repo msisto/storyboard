@@ -11,8 +11,6 @@ const SizeReporter: Decorator = (Story) => {
     () => new URLSearchParams(window.location.search).get('instanceId'),
     []
   );
-  const [measured, setMeasured] = React.useState(false);
-
   React.useLayoutEffect(() => {
     if (!instanceId) return;
     const style = document.createElement('style');
@@ -40,7 +38,6 @@ const SizeReporter: Decorator = (Story) => {
           { type: 'storyboard:story-size', instanceId, width: offsetWidth, height: offsetHeight },
           '*'
         );
-        setMeasured(true);
       }
     };
 
@@ -49,12 +46,11 @@ const SizeReporter: Decorator = (Story) => {
     return () => observer.disconnect();
   }, [instanceId]);
 
-  // Before measurement: use a block wrapper that fills the iframe width so
-  // `w-full` components measure correctly. After measurement: display:contents
-  // makes this wrapper transparent so the component fills its container naturally.
+  // Block wrapper fills iframe width so w-full components size correctly,
+  // and remains observable by ResizeObserver so height updates as content changes.
   return React.createElement(
     'div',
-    { ref, style: measured ? { display: 'contents' } : { display: 'block', width: '100%' } },
+    { ref, style: { display: 'block', width: '100%' } },
     React.createElement(Story as React.ComponentType, null)
   );
 };
