@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
-import { buildFrameJsx } from '../export/jsxExport';
+import { buildLocalStoryFile } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
@@ -552,11 +552,11 @@ export function PropsInspector() {
     if (!name?.trim()) return;
     setSaveStatus('saving');
     try {
-      const jsx = buildFrameJsx(frame, stories);
+      const content = buildLocalStoryFile(frame, name.trim(), stories);
       const res = await fetch('http://localhost:3333/api/local-stories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), jsx }),
+        body: JSON.stringify({ name: name.trim(), content }),
       });
       if (!res.ok) throw new Error('Server error');
       setSaveStatus('saved');
