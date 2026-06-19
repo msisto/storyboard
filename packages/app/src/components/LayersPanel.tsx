@@ -56,6 +56,15 @@ export function LayersPanel() {
   ) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
       if (editingId) return;
+      // Guard: only act when the focused row matches store selection.
+      // Without this, a focused frame row deletes the whole frame even
+      // when the user has since clicked a component on the canvas.
+      const state = useDesignStore.getState();
+      if (isFrame) {
+        if (state.selectedFrameId !== id || state.selectedComponentId) return;
+      } else {
+        if (state.selectedComponentId !== id) return;
+      }
       e.preventDefault();
       if (isFrame) {
         deleteFrame(id);

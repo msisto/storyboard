@@ -21,6 +21,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
   const isInteracting = interactingComponentId === instance.id;
   const instanceRef = useRef(instance);
   instanceRef.current = instance;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-size once when the iframe first reports its natural dimensions.
   // Uses a ref so it fires only once per component instance lifetime.
@@ -55,6 +56,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
       e.stopPropagation();
 
       selectComponent(instance.id);
+      containerRef.current?.focus();
 
       const startX = e.clientX;
       const startY = e.clientY;
@@ -154,6 +156,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
         outline: isSelected && !isInteracting ? '2px solid #0066FF' : 'none',
         outlineOffset: -2,
       }}
+      ref={containerRef}
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       onMouseDown={handleContainerMouseDown}
