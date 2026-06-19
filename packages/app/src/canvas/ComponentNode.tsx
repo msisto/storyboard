@@ -42,10 +42,12 @@ export function ComponentNode({
   const computedGeometryRef = useRef(computedGeometry);
   computedGeometryRef.current = computedGeometry;
 
-  // Auto-size once when the iframe first reports its natural dimensions.
-  const hasMeasured = useRef(false);
+  // Track last accepted size so we only update when the component actually
+  // changes dimensions. This lets height re-measure when width changes (e.g.
+  // fill mode reflows text) while avoiding update loops when size is stable.
+  const lastSizeRef = useRef<{ w: number; h: number } | null>(null);
   useEffect(() => {
-    hasMeasured.current = false;
+    lastSizeRef.current = null;
   }, [instance.storybookId]);
 
   useEffect(() => {
@@ -53,11 +55,12 @@ export function ComponentNode({
       if (!e.data || typeof e.data !== 'object') return;
 
       if (e.data.type === 'storyboard:story-size' && e.data.instanceId === instance.id) {
-        if (hasMeasured.current) return;
         const w = Math.round(e.data.width as number);
         const h = Math.round(e.data.height as number);
         if (w > 0 && h > 0) {
-          hasMeasured.current = true;
+          const last = lastSizeRef.current;
+          if (last && last.w === w && last.h === h) return;
+          lastSizeRef.current = { w, h };
           updateComponent(frameId, instance.id, { width: w, height: h });
         }
       }
