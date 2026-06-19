@@ -65,11 +65,19 @@ export interface Comment {
 
 export interface DesignFile {
   version: 1;
+  id: string;
   name: string;
   createdAt: number;
   updatedAt: number;
   frames: Frame[];
   comments: Comment[];
+}
+
+export interface FileListItem {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type Tool = 'select' | 'frame' | 'comment' | 'pan';

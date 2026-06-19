@@ -11,6 +11,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/storybook/, ''),
       },
+      '/api': {
+        target: 'http://localhost:3333',
+        changeOrigin: true,
+      },
     },
   },
 });

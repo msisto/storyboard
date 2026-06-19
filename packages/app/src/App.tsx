@@ -3,13 +3,18 @@ import { Canvas } from './canvas/Canvas';
 import { Toolbar } from './components/Toolbar';
 import { LayersPanel } from './components/LayersPanel';
 import { ComponentPalette } from './components/ComponentPalette';
+import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
 import { useRegistryStore } from './registry/useRegistryStore';
 import { useDesignStore } from './store/useDesignStore';
 import { useCanvasStore } from './store/useCanvasStore';
 import { useCommentSync } from './comments/useCommentSync';
+import { useAutoSave } from './store/useAutoSave';
+import { api } from './store/api';
 import type { StorybookStory } from './types';
+
+type AppView = 'loading' | 'picker' | 'canvas';
 
 const AUTHOR = 'User';
 
@@ -133,11 +138,12 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, newFile, addComponent, addComment, selectedFrameId } = useDesignStore();
+  const { file, loadFile, addComponent, addComment, selectedFrameId } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, zoom, pan } = useCanvasStore();
   const { connected, peerCount } = useCommentSync(AUTHOR);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const [view, setView] = useState<AppView>('loading');
   const [leftTab, setLeftTab] = useState<LeftTab>('layers');
   const [pendingComment, setPendingComment] = useState<{
     frameId: string;
@@ -145,11 +151,42 @@ export default function App() {
     y: number;
   } | null>(null);
 
-  // Initialize with a new file and load registry
+  useAutoSave();
+
+  // URL-based routing: ?file=<id> opens a file; no param shows the picker
   useEffect(() => {
-    newFile('Untitled');
-    loadRegistry();
+    const id = new URLSearchParams(window.location.search).get('file');
+    if (!id) {
+      setView('picker');
+      return;
+    }
+    api
+      .getFile(id)
+      .then((f) => {
+        loadFile(f);
+        loadRegistry();
+        setView('canvas');
+      })
+      .catch(() => {
+        history.replaceState(null, '', window.location.pathname);
+        setView('picker');
+      });
   }, []);
+
+  const handleFileOpened = useCallback(
+    async (id: string) => {
+      // If the store already has this file (just created in FilePicker), skip fetch
+      const existing = useDesignStore.getState().file;
+      if (!existing || existing.id !== id) {
+        const f = await api.getFile(id);
+        loadFile(f);
+      }
+      history.pushState(null, '', `?file=${id}`);
+      loadRegistry();
+      setView('canvas');
+    },
+    [loadFile, loadRegistry]
+  );
 
   // Auto-retry registry every 5s on error
   useEffect(() => {
@@ -338,6 +375,18 @@ export default function App() {
     },
     [addComponent]
   );
+
+  if (view === 'loading') {
+    return (
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+        <p style={{ color: '#6b7280', fontSize: 14 }}>Loading…</p>
+      </div>
+    );
+  }
+
+  if (view === 'picker') {
+    return <FilePicker onFileOpened={handleFileOpened} />;
+  }
 
   if (status === 'error' && error) {
     return <StorybookErrorScreen error={error} onRetry={loadRegistry} />;

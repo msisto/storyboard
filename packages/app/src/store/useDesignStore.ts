@@ -10,7 +10,7 @@ interface DesignStore {
   selectedFrameId: string | null;
   selectedComponentId: string | null;
   newFile: (name: string) => void;
-  loadFile: (file: DesignFile) => void;
+  loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
   addFrame: (x: number, y: number, width: number, height: number) => string;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
   deleteFrame: (id: string) => void;
@@ -34,6 +34,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set({
       file: {
         version: 1,
+        id: crypto.randomUUID(),
         name,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -45,7 +46,11 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     }),
 
   loadFile: (file) =>
-    set({ file, selectedFrameId: null, selectedComponentId: null }),
+    set({
+      file: { ...file, id: file.id ?? crypto.randomUUID() } as DesignFile,
+      selectedFrameId: null,
+      selectedComponentId: null,
+    }),
 
   addFrame: (x, y, width, height) => {
     const id = uid();
