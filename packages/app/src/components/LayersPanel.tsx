@@ -12,6 +12,8 @@ export function LayersPanel() {
     updateComponent,
     deleteFrame,
     deleteComponent,
+    updateTextLayer,
+    deleteTextLayer,
   } = useDesignStore();
   const frameIsDirectlySelected = selectedComponentIds.length === 0;
 
@@ -184,9 +186,7 @@ export function LayersPanel() {
                       cursor: 'pointer',
                       gap: 4,
                     }}
-                    onClick={(e) => {
-                      selectComponent(component.id, e.shiftKey);
-                    }}
+                    onClick={(e) => selectComponent(component.id, e.shiftKey)}
                     onKeyDown={(e) => handleKeyDown(e, component.id, false, frame.id)}
                     tabIndex={0}
                   >
@@ -201,75 +201,82 @@ export function LayersPanel() {
                           if (e.key === 'Escape') setEditingId(null);
                           e.stopPropagation();
                         }}
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          border: '1px solid #0066FF',
-                          borderRadius: 2,
-                          padding: '0 2px',
-                          outline: 'none',
-                        }}
+                        style={{ flex: 1, fontSize: 12, border: '1px solid #0066FF', borderRadius: 2, padding: '0 2px', outline: 'none' }}
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
                       <span
-                        style={{
-                          flex: 1,
-                          fontSize: 12,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          color: '#374151',
-                        }}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(component.id, component.label);
-                        }}
+                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}
+                        onDoubleClick={(e) => { e.stopPropagation(); startEdit(component.id, component.label); }}
                       >
                         {component.label}
                       </span>
                     )}
-
-                    {/* Visibility toggle */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateComponent(frame.id, component.id, {
-                          visible: !component.visible,
-                        });
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 11,
-                        padding: '0 2px',
-                        color: component.visible ? '#374151' : '#d1d5db',
-                      }}
-                      title={component.visible ? 'Hide' : 'Show'}
-                    >
-                      {component.visible ? '👁' : '👁'}
+                    <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: component.visible ? '#374151' : '#d1d5db' }}>
+                      👁
                     </button>
-
-                    {/* Lock toggle */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateComponent(frame.id, component.id, {
-                          locked: !component.locked,
-                        });
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 11,
-                        padding: '0 2px',
-                        color: component.locked ? '#374151' : '#d1d5db',
-                      }}
-                      title={component.locked ? 'Unlock' : 'Lock'}
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: component.locked ? '#374151' : '#d1d5db' }}>
                       {component.locked ? '🔒' : '🔓'}
+                    </button>
+                  </div>
+                );
+              })}
+
+            {/* Text layer rows */}
+            {!isCollapsed &&
+              (frame.textLayers ?? []).map((tl) => {
+                const isSelectedTL = selectedComponentIds.includes(tl.id);
+                return (
+                  <div
+                    key={tl.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '3px 8px 3px 24px',
+                      background: isSelectedTL ? '#eff6ff' : 'transparent',
+                      cursor: 'pointer',
+                      gap: 4,
+                    }}
+                    onClick={(e) => selectComponent(tl.id, e.shiftKey)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Delete' || e.key === 'Backspace') {
+                        if (editingId) return;
+                        if (!selectedComponentIds.includes(tl.id)) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteTextLayer(frame.id, tl.id);
+                      }
+                    }}
+                    tabIndex={0}
+                  >
+                    {editingId === tl.id ? (
+                      <input
+                        autoFocus
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onBlur={() => { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }
+                          if (e.key === 'Escape') setEditingId(null);
+                          e.stopPropagation();
+                        }}
+                        style={{ flex: 1, fontSize: 12, border: '1px solid #0066FF', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span
+                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}
+                        onDoubleClick={(e) => { e.stopPropagation(); startEdit(tl.id, tl.label); }}
+                      >
+                        {tl.label}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 9, color: '#9ca3af', background: '#f3f4f6', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
+                    <button onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, padding: '0 2px', color: tl.visible ? '#374151' : '#d1d5db' }}>
+                      👁
                     </button>
                   </div>
                 );

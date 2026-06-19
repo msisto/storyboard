@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame } from '../types';
+import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, TextLayer } from '../types';
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -29,6 +29,9 @@ interface DesignStore {
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
   resolveComment: (id: string) => void;
   addReply: (commentId: string, reply: Omit<CommentReply, 'id' | 'timestamp'>) => void;
+  addTextLayer: (frameId: string, partial: Pick<TextLayer, 'x' | 'y'>) => string;
+  updateTextLayer: (frameId: string, layerId: string, patch: Partial<TextLayer>) => void;
+  deleteTextLayer: (frameId: string, layerId: string) => void;
 }
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
@@ -206,6 +209,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           frames: state.file.frames.map((f) => ({
             ...f,
             components: f.components.filter((c) => !ids.has(c.id)),
+            textLayers: (f.textLayers ?? []).filter((t) => !ids.has(t.id)),
           })),
         },
         selectedComponentId: null,
@@ -218,8 +222,10 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       if (id === null) {
         return { selectedComponentId: null, selectedComponentIds: [] };
       }
-      const frame = state.file?.frames.find((f) =>
-        f.components.some((c) => c.id === id)
+      const frame = state.file?.frames.find(
+        (f) =>
+          f.components.some((c) => c.id === id) ||
+          (f.textLayers ?? []).some((t) => t.id === id)
       );
       // Shift-select only works within the same frame
       const sameFrame = frame?.id === state.selectedFrameId;
@@ -310,6 +316,83 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
               : c
           ),
         },
+      };
+    }),
+
+  addTextLayer: (frameId, partial) => {
+    const id = uid();
+    set((state) => {
+      if (!state.file) return state;
+      const newLayer: TextLayer = {
+        id,
+        type: 'text',
+        label: 'Text',
+        content: 'Text',
+        x: partial.x,
+        y: partial.y,
+        fontSize: 'base',
+        fontWeight: 'normal',
+        color: '#111827',
+        visible: true,
+        locked: false,
+      };
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) =>
+            f.id === frameId
+              ? { ...f, textLayers: [...(f.textLayers ?? []), newLayer] }
+              : f
+          ),
+        },
+        selectedComponentId: id,
+        selectedComponentIds: [id],
+        selectedFrameId: frameId,
+      };
+    });
+    return id;
+  },
+
+  updateTextLayer: (frameId, layerId, patch) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) =>
+            f.id === frameId
+              ? {
+                  ...f,
+                  textLayers: (f.textLayers ?? []).map((t) =>
+                    t.id === layerId ? { ...t, ...patch } : t
+                  ),
+                }
+              : f
+          ),
+        },
+      };
+    }),
+
+  deleteTextLayer: (frameId, layerId) =>
+    set((state) => {
+      if (!state.file) return state;
+      const newIds = state.selectedComponentIds.filter((i) => i !== layerId);
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) =>
+            f.id === frameId
+              ? { ...f, textLayers: (f.textLayers ?? []).filter((t) => t.id !== layerId) }
+              : f
+          ),
+        },
+        selectedComponentId: newIds[newIds.length - 1] ?? null,
+        selectedComponentIds: newIds,
       };
     }),
 

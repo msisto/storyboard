@@ -128,10 +128,11 @@ export function Toolbar({ connected, peerCount }: ToolbarProps) {
   const zoomPercent = Math.round(viewport.zoom * 100);
 
   const tools: { id: Tool; label: string; key: string }[] = [
-    { id: 'select', label: '↖', key: 'V' },
-    { id: 'frame', label: '⬜', key: 'F' },
-    { id: 'comment', label: '✦', key: 'C' },
-    { id: 'pan', label: '✋', key: 'H' },
+    { id: 'select',  label: '↖',  key: 'V' },
+    { id: 'frame',   label: '⬜', key: 'F' },
+    { id: 'text',    label: 'T',  key: 'T' },
+    { id: 'comment', label: '✦',  key: 'C' },
+    { id: 'pan',     label: '✋', key: 'H' },
   ];
 
   const handleSave = async () => {

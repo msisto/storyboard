@@ -52,6 +52,56 @@ export interface ComponentInstance {
   absolute?: boolean;
 }
 
+// ── Text layers ───────────────────────────────────────────────────────────────
+
+export const TAILWIND_FONT_SIZES = [
+  { key: 'xs',   label: 'text-xs',   px: 12,  lineHeight: 16 },
+  { key: 'sm',   label: 'text-sm',   px: 14,  lineHeight: 20 },
+  { key: 'base', label: 'text-base', px: 16,  lineHeight: 24 },
+  { key: 'lg',   label: 'text-lg',   px: 18,  lineHeight: 28 },
+  { key: 'xl',   label: 'text-xl',   px: 20,  lineHeight: 28 },
+  { key: '2xl',  label: 'text-2xl',  px: 24,  lineHeight: 32 },
+  { key: '3xl',  label: 'text-3xl',  px: 30,  lineHeight: 36 },
+  { key: '4xl',  label: 'text-4xl',  px: 36,  lineHeight: 40 },
+  { key: '5xl',  label: 'text-5xl',  px: 48,  lineHeight: 48 },
+  { key: '6xl',  label: 'text-6xl',  px: 60,  lineHeight: 60 },
+  { key: '7xl',  label: 'text-7xl',  px: 72,  lineHeight: 72 },
+  { key: '8xl',  label: 'text-8xl',  px: 96,  lineHeight: 96 },
+  { key: '9xl',  label: 'text-9xl',  px: 128, lineHeight: 128 },
+] as const;
+
+export type TailwindFontSize = typeof TAILWIND_FONT_SIZES[number]['key'];
+
+export const TAILWIND_FONT_WEIGHTS = [
+  { key: 'thin',       label: 'Thin',        value: 100 },
+  { key: 'extralight', label: 'Extra Light', value: 200 },
+  { key: 'light',      label: 'Light',       value: 300 },
+  { key: 'normal',     label: 'Normal',      value: 400 },
+  { key: 'medium',     label: 'Medium',      value: 500 },
+  { key: 'semibold',   label: 'Semibold',    value: 600 },
+  { key: 'bold',       label: 'Bold',        value: 700 },
+  { key: 'extrabold',  label: 'Extra Bold',  value: 800 },
+  { key: 'black',      label: 'Black',       value: 900 },
+] as const;
+
+export type TailwindFontWeight = typeof TAILWIND_FONT_WEIGHTS[number]['key'];
+
+export interface TextLayer {
+  id: string;
+  type: 'text';
+  label: string;
+  content: string;
+  x: number;
+  y: number;
+  fontSize: TailwindFontSize;
+  fontWeight: TailwindFontWeight;
+  color: string;
+  visible: boolean;
+  locked: boolean;
+}
+
+// ── Frame ─────────────────────────────────────────────────────────────────────
+
 export interface Frame {
   id: string;
   label: string;
@@ -61,6 +111,7 @@ export interface Frame {
   height: number;
   backgroundColor: string;
   components: ComponentInstance[];
+  textLayers?: TextLayer[];
   autoLayout?: AutoLayoutSettings;
 }
 
@@ -100,7 +151,7 @@ export interface FileListItem {
   updatedAt: number;
 }
 
-export type Tool = 'select' | 'frame' | 'comment' | 'pan';
+export type Tool = 'select' | 'frame' | 'text' | 'comment' | 'pan';
 
 export interface CanvasViewport {
   x: number;

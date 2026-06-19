@@ -6,6 +6,7 @@ import { ComponentNode } from './ComponentNode';
 import { ResizeHandles } from './ResizeHandles';
 import { CommentPin } from '../comments/CommentPin';
 import { computeAutoLayout } from './autoLayout';
+import { TextLayerNode } from './TextLayerNode';
 
 type Direction = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
@@ -17,9 +18,9 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentId, selectedComponentIds, selectComponent, reorderComponent } =
+  const { selectFrame, updateFrame, selectedComponentId, selectedComponentIds, selectComponent, reorderComponent, addTextLayer } =
     useDesignStore();
-  const { activeTool, viewport } = useCanvasStore();
+  const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
 
   const sizeRef = useRef({ x: frame.x, y: frame.y, w: frame.width, h: frame.height });
@@ -120,12 +121,22 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
   const handleFrameClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (activeTool === 'text') {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = Math.round((e.clientX - rect.left) / viewport.zoom);
+        const y = Math.round((e.clientY - rect.top) / viewport.zoom);
+        const id = addTextLayer(frame.id, { x, y });
+        setTool('select');
+        // Short delay so the node has mounted before we enter edit mode
+        requestAnimationFrame(() => enterTextEditMode(id));
+        return;
+      }
       if (activeTool === 'select') {
         selectFrame(frame.id);
         selectComponent(null);
       }
     },
-    [activeTool, frame.id, selectFrame, selectComponent]
+    [activeTool, frame.id, viewport.zoom, selectFrame, selectComponent, addTextLayer, setTool, enterTextEditMode]
   );
 
   const handleFrameMouseDown = useCallback(
@@ -283,6 +294,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
           ? '2px solid #0066FF'
           : '1px solid #D1D5DB',
         boxSizing: 'border-box',
+        cursor: activeTool === 'text' ? 'text' : undefined,
       }}
       onClick={handleFrameClick}
       onMouseDown={handleFrameMouseDown}
@@ -323,6 +335,15 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             computedGeometry={layout.components[component.id]}
             inAutoLayout={!!frame.autoLayout && !component.absolute}
             onReorderDragStart={handleReorderDragStart as (id: string, x: number, y: number) => void}
+          />
+        ))}
+
+        {(frame.textLayers ?? []).map((tl) => (
+          <TextLayerNode
+            key={tl.id}
+            layer={tl}
+            frameId={frame.id}
+            isSelected={selectedComponentIds.includes(tl.id)}
           />
         ))}
 

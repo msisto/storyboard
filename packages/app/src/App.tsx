@@ -154,7 +154,7 @@ function CommentModal({
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addComment, selectedFrameId } = useDesignStore();
-  const { activeTool, setTool, exitInteractMode, zoom, pan } = useCanvasStore();
+  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan } = useCanvasStore();
   const { connected, peerCount, sendCursor, peerCursors } = useCommentSync(AUTHOR);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -222,9 +222,10 @@ export default function App() {
       if (!e.metaKey && !e.ctrlKey) {
         if (e.key === 'v' || e.key === 'V') setTool('select');
         if (e.key === 'f' || e.key === 'F') setTool('frame');
+        if (e.key === 't' || e.key === 'T') setTool('text');
         if (e.key === 'c' || e.key === 'C') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
-        if (e.key === 'Escape') exitInteractMode();
+        if (e.key === 'Escape') { exitInteractMode(); exitTextEditMode(); }
 
         // Shift+A: toggle auto layout on selected frame
         if (e.shiftKey && (e.key === 'A' || e.key === 'a')) {

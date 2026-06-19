@@ -5,6 +5,7 @@ interface CanvasStore {
   viewport: CanvasViewport;
   activeTool: Tool;
   interactingComponentId: string | null;
+  editingTextLayerId: string | null;
   setTool: (tool: Tool) => void;
   pan: (dx: number, dy: number) => void;
   zoom: (delta: number, originX: number, originY: number) => void;
@@ -12,6 +13,8 @@ interface CanvasStore {
   resetViewport: () => void;
   enterInteractMode: (componentId: string) => void;
   exitInteractMode: () => void;
+  enterTextEditMode: (id: string) => void;
+  exitTextEditMode: () => void;
 }
 
 const MIN_ZOOM = 0.1;
@@ -21,8 +24,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   viewport: { x: 0, y: 0, zoom: 1 },
   activeTool: 'select',
   interactingComponentId: null,
+  editingTextLayerId: null,
 
-  setTool: (tool) => set({ activeTool: tool, interactingComponentId: null }),
+  setTool: (tool) => set({ activeTool: tool, interactingComponentId: null, editingTextLayerId: null }),
 
   pan: (dx, dy) =>
     set((state) => ({
@@ -53,4 +57,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   exitInteractMode: () => set({ interactingComponentId: null }),
+
+  enterTextEditMode: (id) => set({ editingTextLayerId: id }),
+  exitTextEditMode: () => set({ editingTextLayerId: null }),
 }));

@@ -3,6 +3,7 @@ import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
 import type { ArgDefinition, AutoLayoutSettings, SizingMode } from '../types';
+import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 
 const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
   direction: 'horizontal',
@@ -278,7 +279,7 @@ function ArgControl({
 }
 
 export function PropsInspector() {
-  const { file, selectedFrameId, selectedComponentId, updateFrame, updateComponent } =
+  const { file, selectedFrameId, selectedComponentId, updateFrame, updateComponent, updateTextLayer } =
     useDesignStore();
   const { getArgDefs } = useRegistryStore();
 
@@ -287,11 +288,106 @@ export function PropsInspector() {
   const selectedComponentData = selectedFrameData?.components.find(
     (c) => c.id === selectedComponentId
   );
+  const selectedTextLayer = selectedFrameData?.textLayers?.find(
+    (t) => t.id === selectedComponentId
+  );
 
-  if (!selectedFrameData && !selectedComponentData) {
+  if (!selectedFrameData && !selectedComponentData && !selectedTextLayer) {
     return (
       <div style={{ padding: 16, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
         Select a frame or component
+      </div>
+    );
+  }
+
+  // ── Text layer panel ───────────────────────────────────────────────────────
+  if (selectedTextLayer && selectedFrameData) {
+    const tl = selectedTextLayer;
+    const patch = (p: Parameters<typeof updateTextLayer>[2]) =>
+      updateTextLayer(selectedFrameData.id, tl.id, p);
+
+    return (
+      <div style={{ overflowY: 'auto', height: '100%' }}>
+        <Section title="Text">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase' }}>Content</label>
+            <textarea
+              value={tl.content}
+              rows={3}
+              onChange={(e) => patch({ content: e.target.value, label: e.target.value.slice(0, 24) || 'Text' })}
+              style={{
+                fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4,
+                padding: '4px 6px', outline: 'none', resize: 'vertical',
+                fontFamily: 'inherit', lineHeight: 1.4,
+              }}
+            />
+          </div>
+        </Section>
+
+        <Section title="Typography">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>
+              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                Font Size
+              </label>
+              <select
+                value={tl.fontSize}
+                onChange={(e) => patch({ fontSize: e.target.value as typeof tl.fontSize })}
+                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+              >
+                {TAILWIND_FONT_SIZES.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label} — {s.px}px
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                Font Weight
+              </label>
+              <select
+                value={tl.fontWeight}
+                onChange={(e) => patch({ fontWeight: e.target.value as typeof tl.fontWeight })}
+                style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+              >
+                {TAILWIND_FONT_WEIGHTS.map((w) => (
+                  <option key={w.key} value={w.key}>
+                    {w.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
+                Color
+              </label>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={tl.color}
+                  onChange={(e) => patch({ color: e.target.value })}
+                  style={{ width: 32, height: 28, padding: 2, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer' }}
+                />
+                <input
+                  type="text"
+                  value={tl.color}
+                  onChange={(e) => patch({ color: e.target.value })}
+                  style={{ flex: 1, padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', fontFamily: 'monospace' }}
+                />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Position">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <NumberInput label="X" value={tl.x} onChange={(v) => patch({ x: v })} />
+            <NumberInput label="Y" value={tl.y} onChange={(v) => patch({ y: v })} />
+          </div>
+        </Section>
       </div>
     );
   }
