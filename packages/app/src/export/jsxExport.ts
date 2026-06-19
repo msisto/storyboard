@@ -182,26 +182,124 @@ ${body}
 }`;
 }
 
-// Generates a complete .stories.tsx file string for a frame, including React
-// and shadcn/ui component imports. Written to packages/storybook/src/stories/local/.
+// Generates a complete .stories.tsx file using composeStories so each child
+// component renders with its actual render function and decorators — matching
+// exactly what Storyboard shows in its iframes.
 export function buildLocalStoryFile(frame: Frame, name: string, stories: StorybookStory[]): string {
   const pascal = toPascal(name) || 'LocalComponent';
 
-  const componentImports = new Set<string>();
+  // -- Build per-instance info -------------------------------------------------
+  interface InstanceInfo {
+    varName: string;      // e.g. "CardDefault"
+    exportName: string;   // e.g. "Default"
+    moduleAlias: string;  // e.g. "CardStories"
+    relPath: string;      // e.g. "../Card.stories"
+  }
+  // storybookId → info (first occurrence wins for dedup)
+  const infoMap = new Map<string, InstanceInfo>();
+
   frame.components.filter((c) => c.visible).forEach((instance) => {
+    if (infoMap.has(instance.storybookId)) return;
     const story = stories.find((s) => s.id === instance.storybookId);
-    if (story) componentImports.add(story.title.split('/').pop()!);
+    if (!story?.importPath) return;
+
+    const componentName = (story.title.split('/').pop() ?? 'Component').replace(/\s+/g, '');
+    const exportName = toPascal(story.name) || 'Default';
+    const varName = componentName + exportName;
+    const moduleAlias = componentName + 'Stories';
+    // importPath is relative to Storybook project root: "./src/stories/Card.stories.tsx"
+    // local story lives at "src/stories/local/" — go up one level
+    const relPath = story.importPath
+      .replace(/^\.\/src\/stories\//, '../')
+      .replace(/\.tsx?$/, '');
+
+    infoMap.set(instance.storybookId, { varName, exportName, moduleAlias, relPath });
   });
 
-  const importLines = [...componentImports]
-    .map((n) => `import { ${n} } from '../../components/ui/${n.toLowerCase()}';`)
-    .join('\n');
+  // -- Group by module alias for import + compose lines -----------------------
+  const moduleGroups = new Map<string, { relPath: string; entries: { exportName: string; varName: string }[] }>();
+  infoMap.forEach(({ moduleAlias, relPath, exportName, varName }) => {
+    if (!moduleGroups.has(moduleAlias)) {
+      moduleGroups.set(moduleAlias, { relPath, entries: [] });
+    }
+    const group = moduleGroups.get(moduleAlias)!;
+    if (!group.entries.find((e) => e.exportName === exportName)) {
+      group.entries.push({ exportName, varName });
+    }
+  });
 
-  const body = buildFrameJsx(frame, stories);
+  const hasModules = moduleGroups.size > 0;
+  const importLines: string[] = [];
+  const composeLines: string[] = [];
+
+  if (hasModules) {
+    importLines.push(`import { composeStories } from '@storybook/react';`);
+    moduleGroups.forEach(({ relPath, entries }, alias) => {
+      importLines.push(`import * as ${alias} from '${relPath}';`);
+      const destructure = entries
+        .map(({ exportName, varName }) =>
+          exportName === varName ? exportName : `${exportName}: ${varName}`
+        )
+        .join(', ');
+      composeLines.push(`const { ${destructure} } = composeStories(${alias});`);
+    });
+  }
+
+  // -- Build JSX body using composed var names --------------------------------
+  const body = (() => {
+    const renderInstance = (instance: ComponentInstance): string => {
+      const info = infoMap.get(instance.storybookId);
+      if (!info) return `    {/* ${instance.label || instance.storybookId} */}`;
+      const props = propsString(instance);
+      return `    <${info.varName}${props ? ` ${props}` : ''} />`;
+    };
+
+    if (frame.autoLayout) {
+      const al = frame.autoLayout;
+      const allItems: Array<ComponentInstance | TextLayer> = [
+        ...frame.components.filter((c) => c.visible),
+        ...(frame.textLayers ?? []).filter((t) => t.visible !== false),
+      ];
+      if (frame.flowOrder) {
+        const order = frame.flowOrder;
+        allItems.sort((a, b) => {
+          const ai = order.indexOf(a.id);
+          const bi = order.indexOf(b.id);
+          return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+        });
+      }
+      const children = allItems
+        .map((item) =>
+          (item as TextLayer).type === 'text'
+            ? textSpan(item as TextLayer, false)
+            : renderInstance(item as ComponentInstance)
+        )
+        .join('\n');
+      const className = buildAutoLayoutClassName(al);
+      return `  <div className="${className}" style={{ width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
+${children}
+  </div>`;
+    }
+
+    // Absolute layout
+    const children = [
+      ...frame.components.filter((c) => c.visible).map((instance) => {
+        const inner = renderInstance(instance);
+        return `    <div style={{ position: 'absolute', left: ${instance.x}, top: ${instance.y}, width: ${instance.width}, height: ${instance.height} }}>
+      ${inner.trim()}
+    </div>`;
+      }),
+      ...(frame.textLayers ?? []).filter((t) => t.visible !== false).map((t) => textSpan(t, true)),
+    ].join('\n');
+    return `  <div style={{ position: 'relative', width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
+${children}
+  </div>`;
+  })();
 
   return `import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-${importLines ? importLines + '\n' : ''}
+${importLines.join('\n')}
+${composeLines.length > 0 ? '\n' + composeLines.join('\n') + '\n' : ''}
 // Generated by Storyboard
 const ${pascal} = () => (
 ${body}
