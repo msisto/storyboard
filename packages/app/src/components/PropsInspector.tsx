@@ -304,6 +304,7 @@ export function PropsInspector() {
   const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions } =
     useDesignStore();
   const { getArgDefs } = useRegistryStore();
+  const [tidyGap, setTidyGap] = useState(16);
 
   const selectedFrame = file?.frames.find((f) => f.id === selectedFrameId);
   const selectedFrameData = selectedFrame;
@@ -367,7 +368,17 @@ export function PropsInspector() {
             <button title="Distribute horizontally" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeH(frameItems)); }}><DistributeHIcon /></button>
             <button title="Distribute vertically" style={btnStyle(!canDistribute)} onClick={() => { if (canDistribute) applyFrames(distributeV(frameItems)); }}><DistributeVIcon /></button>
             <div style={{ width: 6 }} />
-            <button title="Tidy up" style={btnStyle()} onClick={() => applyFrames(tidyUp(frameItems))}><TidyUpIcon /></button>
+            <button title="Tidy up" style={btnStyle()} onClick={() => applyFrames(tidyUp(frameItems, tidyGap))}><TidyUpIcon /></button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
+              <input
+                type="number"
+                value={tidyGap}
+                min={0}
+                onChange={(e) => setTidyGap(Math.max(0, Number(e.target.value)))}
+                style={{ width: 44, padding: '3px 5px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', textAlign: 'right' }}
+              />
+              <span style={{ fontSize: 10, color: '#9ca3af' }}>gap</span>
+            </div>
           </div>
         </div>
       </div>
@@ -964,9 +975,19 @@ export function PropsInspector() {
                   <DistributeVIcon />
                 </button>
                 <div style={{ width: 6 }} />
-                <button title="Tidy up" style={btnStyle()} onClick={() => apply(tidyUp(items))}>
+                <button title="Tidy up" style={btnStyle()} onClick={() => apply(tidyUp(items, tidyGap))}>
                   <TidyUpIcon />
                 </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 2 }}>
+                  <input
+                    type="number"
+                    value={tidyGap}
+                    min={0}
+                    onChange={(e) => setTidyGap(Math.max(0, Number(e.target.value)))}
+                    style={{ width: 44, padding: '3px 5px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', textAlign: 'right' }}
+                  />
+                  <span style={{ fontSize: 10, color: '#9ca3af' }}>gap</span>
+                </div>
               </div>
             </div>
           </>

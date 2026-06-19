@@ -78,10 +78,10 @@ export function distributeV(items: ItemGeometry[]): PositionUpdate[] {
   return updates;
 }
 
-export function tidyUp(items: ItemGeometry[]): PositionUpdate[] {
+export function tidyUp(items: ItemGeometry[], gap = 16): PositionUpdate[] {
   if (items.length === 0) return [];
-  const COL_GAP = 16;
-  const ROW_GAP = 16;
+  const COL_GAP = gap;
+  const ROW_GAP = gap;
 
   // Sort by y then x to get reading order
   const sorted = [...items].sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
