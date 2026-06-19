@@ -5,3 +5,4 @@ storybook-static/
 *.log
 .env
 .env.local
+packages/server/storyboard.db
