@@ -17,7 +17,7 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentId, selectComponent, reorderComponent } =
+  const { selectFrame, updateFrame, selectedComponentId, selectedComponentIds, selectComponent, reorderComponent } =
     useDesignStore();
   const { activeTool, viewport } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
@@ -266,7 +266,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         width: layout.frameWidth,
         height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
-        outline: (isSelected && !frame.components.some(c => c.id === selectedComponentId))
+        outline: (isSelected && selectedComponentIds.length === 0)
           ? '2px solid #0066FF'
           : '1px solid #D1D5DB',
         boxSizing: 'border-box',
@@ -306,7 +306,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             key={component.id}
             instance={component}
             frameId={frame.id}
-            isSelected={component.id === selectedComponentId}
+            isSelected={selectedComponentIds.includes(component.id)}
             computedGeometry={layout.components[component.id]}
             inAutoLayout={!!frame.autoLayout && !component.absolute}
             onReorderDragStart={handleReorderDragStart}

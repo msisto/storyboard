@@ -5,7 +5,7 @@ export function LayersPanel() {
   const {
     file,
     selectedFrameId,
-    selectedComponentId,
+    selectedComponentIds,
     selectFrame,
     selectComponent,
     updateFrame,
@@ -58,9 +58,9 @@ export function LayersPanel() {
       // when the user has since clicked a component on the canvas.
       const state = useDesignStore.getState();
       if (isFrame) {
-        if (state.selectedFrameId !== id || state.selectedComponentId) return;
+        if (state.selectedFrameId !== id || state.selectedComponentIds.length > 0) return;
       } else {
-        if (state.selectedComponentId !== id) return;
+        if (!state.selectedComponentIds.includes(id)) return;
       }
       e.preventDefault();
       e.stopPropagation(); // prevent window listener from also firing after this deletes
@@ -171,7 +171,7 @@ export function LayersPanel() {
             {/* Component rows */}
             {!isCollapsed &&
               frame.components.map((component) => {
-                const isSelectedComp = component.id === selectedComponentId;
+                const isSelectedComp = selectedComponentIds.includes(component.id);
                 return (
                   <div
                     key={component.id}
@@ -183,8 +183,8 @@ export function LayersPanel() {
                       cursor: 'pointer',
                       gap: 4,
                     }}
-                    onClick={() => {
-                      selectComponent(component.id);
+                    onClick={(e) => {
+                      selectComponent(component.id, e.shiftKey);
                     }}
                     onKeyDown={(e) => handleKeyDown(e, component.id, false, frame.id)}
                     tabIndex={0}

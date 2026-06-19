@@ -305,11 +305,8 @@ export default function App() {
       // Delete selected
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const state = useDesignStore.getState();
-        if (state.selectedComponentId) {
-          const frame = state.file?.frames.find((f) =>
-            f.components.some((c) => c.id === state.selectedComponentId)
-          );
-          if (frame) state.deleteComponent(frame.id, state.selectedComponentId);
+        if (state.selectedComponentIds.length > 0) {
+          state.deleteSelectedComponents();
         } else if (state.selectedFrameId) {
           state.deleteFrame(state.selectedFrameId);
         }

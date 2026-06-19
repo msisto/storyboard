@@ -11,7 +11,8 @@ interface DesignStore {
   file: DesignFile | null;
   history: DesignFile[];
   selectedFrameId: string | null;
-  selectedComponentId: string | null;
+  selectedComponentId: string | null;     // primary (last clicked) — kept for single-select consumers
+  selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
   undo: () => void;
@@ -22,7 +23,8 @@ interface DesignStore {
   addComponent: (frameId: string, instance: Omit<ComponentInstance, 'id'>) => string;
   updateComponent: (frameId: string, componentId: string, patch: Partial<ComponentInstance>) => void;
   deleteComponent: (frameId: string, componentId: string) => void;
-  selectComponent: (id: string | null) => void;
+  deleteSelectedComponents: () => void;
+  selectComponent: (id: string | null, addToSelection?: boolean) => void;
   reorderComponent: (frameId: string, fromIndex: number, toIndex: number) => void;
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
   resolveComment: (id: string) => void;
@@ -34,6 +36,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   history: [],
   selectedFrameId: null,
   selectedComponentId: null,
+  selectedComponentIds: [],
 
   newFile: (name) =>
     set({
@@ -49,6 +52,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       history: [],
       selectedFrameId: null,
       selectedComponentId: null,
+      selectedComponentIds: [],
     }),
 
   loadFile: (file) =>
@@ -57,6 +61,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       history: [],
       selectedFrameId: null,
       selectedComponentId: null,
+      selectedComponentIds: [],
     }),
 
   undo: () =>
@@ -64,7 +69,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       if (state.history.length === 0) return state;
       const history = state.history.slice(0, -1);
       const previous = state.history[state.history.length - 1];
-      return { file: previous, history };
+      return { file: previous, history, selectedComponentId: null, selectedComponentIds: [] };
     }),
 
   addFrame: (x, y, width, height) => {
@@ -125,7 +130,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       };
     }),
 
-  selectFrame: (id) => set({ selectedFrameId: id, selectedComponentId: null }),
+  selectFrame: (id) => set({ selectedFrameId: id, selectedComponentId: null, selectedComponentIds: [] }),
 
   addComponent: (frameId, instance) => {
     const id = uid();
@@ -172,6 +177,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   deleteComponent: (frameId, componentId) =>
     set((state) => {
       if (!state.file) return state;
+      const newIds = state.selectedComponentIds.filter((i) => i !== componentId);
       return {
         history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
@@ -183,19 +189,54 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
               : f
           ),
         },
-        selectedComponentId:
-          state.selectedComponentId === componentId ? null : state.selectedComponentId,
+        selectedComponentId: newIds[newIds.length - 1] ?? null,
+        selectedComponentIds: newIds,
       };
     }),
 
-  selectComponent: (id) =>
+  deleteSelectedComponents: () =>
     set((state) => {
-      if (id === null) return { selectedComponentId: null };
+      if (!state.file || state.selectedComponentIds.length === 0) return state;
+      const ids = new Set(state.selectedComponentIds);
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) => ({
+            ...f,
+            components: f.components.filter((c) => !ids.has(c.id)),
+          })),
+        },
+        selectedComponentId: null,
+        selectedComponentIds: [],
+      };
+    }),
+
+  selectComponent: (id, addToSelection = false) =>
+    set((state) => {
+      if (id === null) {
+        return { selectedComponentId: null, selectedComponentIds: [] };
+      }
       const frame = state.file?.frames.find((f) =>
         f.components.some((c) => c.id === id)
       );
+      // Shift-select only works within the same frame
+      const sameFrame = frame?.id === state.selectedFrameId;
+      if (addToSelection && sameFrame && state.selectedComponentIds.length > 0) {
+        const already = state.selectedComponentIds.includes(id);
+        const newIds = already
+          ? state.selectedComponentIds.filter((i) => i !== id)
+          : [...state.selectedComponentIds, id];
+        return {
+          selectedComponentId: newIds[newIds.length - 1] ?? null,
+          selectedComponentIds: newIds,
+          selectedFrameId: frame?.id ?? state.selectedFrameId,
+        };
+      }
       return {
         selectedComponentId: id,
+        selectedComponentIds: [id],
         selectedFrameId: frame?.id ?? state.selectedFrameId,
       };
     }),

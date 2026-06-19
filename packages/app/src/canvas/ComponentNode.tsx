@@ -86,7 +86,7 @@ export function ComponentNode({
       if (activeTool !== 'select') return;
       e.stopPropagation();
 
-      selectComponent(instance.id);
+      selectComponent(instance.id, e.shiftKey);
       containerRef.current?.focus();
 
       // In auto layout flow: hand off drag to FrameNode for reorder
