@@ -39,3 +39,42 @@ body {
   background: var(--sb-bg);
   color: var(--sb-text);
 }
+
+/* Form elements inherit theme colors */
+input,
+textarea,
+select {
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  border-color: var(--sb-border);
+  color-scheme: light dark;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--sb-text-4);
+}
+
+/* Styled scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sb-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-border-strong);
+}
