@@ -132,6 +132,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       onMouseDown={handleContainerMouseDown}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Overlay — sits above iframe to capture pointer events when not interacting */}
       {!isInteracting && (
@@ -144,6 +145,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
           }}
           onMouseDown={handleOverlayMouseDown}
           onDoubleClick={handleDoubleClick}
+          onClick={(e) => e.stopPropagation()}
         />
       )}
 

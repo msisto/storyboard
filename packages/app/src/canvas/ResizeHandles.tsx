@@ -78,6 +78,7 @@ export function ResizeHandles({ onResize, zoom }: ResizeHandlesProps) {
             ...POSITIONS[dir],
           }}
           onMouseDown={(e) => handleMouseDown(e, dir)}
+          onClick={(e) => e.stopPropagation()}
         />
       ))}
     </>
