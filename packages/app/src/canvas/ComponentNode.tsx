@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import type { ComponentInstance } from '../types';
 import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
@@ -22,7 +22,31 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
   const instanceRef = useRef(instance);
   instanceRef.current = instance;
 
-  const iframeUrl = buildIframeUrl(instance.storybookId, instance.args);
+  // Auto-size once when the iframe first reports its natural dimensions.
+  // Uses a ref so it fires only once per component instance lifetime.
+  const hasMeasured = useRef(false);
+  useEffect(() => {
+    hasMeasured.current = false;
+  }, [instance.storybookId]);
+
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type !== 'storyboard:story-size') return;
+      if (e.data?.instanceId !== instance.id) return;
+      if (hasMeasured.current) return;
+
+      const w = Math.round(e.data.width as number);
+      const h = Math.round(e.data.height as number);
+      if (w > 0 && h > 0) {
+        hasMeasured.current = true;
+        updateComponent(frameId, instance.id, { width: w, height: h });
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [instance.id, frameId, updateComponent]);
+
+  const iframeUrl = buildIframeUrl(instance.storybookId, instance.args, instance.id);
 
   const handleOverlayMouseDown = useCallback(
     (e: React.MouseEvent) => {

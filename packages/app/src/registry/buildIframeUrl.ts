@@ -1,6 +1,12 @@
-export function buildIframeUrl(storybookId: string, args: Record<string, unknown>): string {
+export function buildIframeUrl(
+  storybookId: string,
+  args: Record<string, unknown>,
+  instanceId?: string
+): string {
   const base = 'http://localhost:6006/iframe.html';
   const params = new URLSearchParams({ id: storybookId, viewMode: 'story' });
+
+  if (instanceId) params.set('instanceId', instanceId);
 
   if (Object.keys(args).length > 0) {
     const argsStr = Object.entries(args)
