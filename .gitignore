@@ -5,4 +5,12 @@ storybook-static/
 *.log
 .env
 .env.local
+
+# Old SQLite database (replaced by JSON file persistence)
+*.db
 packages/server/storyboard.db
+
+# Build artifacts
+packages/app/dist/
+packages/server/dist/
+packages/storybook/storybook-static/
