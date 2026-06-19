@@ -122,6 +122,10 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
   const handleFrameMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0 || activeTool !== 'select') return;
+      // If the event came from a component inside this frame, stop here —
+      // the component's container already called stopPropagation, but guard
+      // defensively against edge cases (e.g. clicking during scroll or resize).
+      if ((e.target as HTMLElement).closest('[data-component-node]')) return;
       e.stopPropagation();
 
       selectFrame(frame.id);
@@ -320,8 +324,8 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         ))}
       </div>
 
-      {/* Resize handles when selected */}
-      {isSelected && (
+      {/* Resize handles only when the frame itself is selected, not when a child component is */}
+      {isSelected && selectedComponentIds.length === 0 && (
         <ResizeHandles
           getGeometry={getGeometry}
           onResize={handleResize}

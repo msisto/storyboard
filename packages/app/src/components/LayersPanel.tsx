@@ -13,6 +13,7 @@ export function LayersPanel() {
     deleteFrame,
     deleteComponent,
   } = useDesignStore();
+  const frameIsDirectlySelected = selectedComponentIds.length === 0;
 
   const [collapsedFrames, setCollapsedFrames] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export function LayersPanel() {
     <div style={{ overflowY: 'auto', height: '100%' }}>
       {file.frames.map((frame) => {
         const isCollapsed = collapsedFrames.has(frame.id);
-        const isSelectedFrame = frame.id === selectedFrameId;
+        const isSelectedFrame = frame.id === selectedFrameId && frameIsDirectlySelected;
 
         return (
           <div key={frame.id}>

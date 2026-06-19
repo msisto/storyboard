@@ -89,6 +89,9 @@ export function ComponentNode({
       selectComponent(instance.id, e.shiftKey);
       containerRef.current?.focus();
 
+      // Shift-click is purely for adding to the selection — don't start a drag.
+      if (e.shiftKey) return;
+
       // In auto layout flow: hand off drag to FrameNode for reorder
       if (inAutoLayout && !instance.absolute) {
         onReorderDragStart?.(instance.id);
@@ -142,6 +145,7 @@ export function ComponentNode({
 
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      e.stopPropagation(); // prevent mousedown from reaching the parent frame
       if (isInteracting && e.target === e.currentTarget) {
         exitInteractMode();
       }
@@ -187,6 +191,7 @@ export function ComponentNode({
 
   return (
     <div
+      data-component-node="true"
       style={{
         position: 'absolute',
         left: effectiveX,
