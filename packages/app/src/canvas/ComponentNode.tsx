@@ -110,18 +110,19 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
     [isInteracting, exitInteractMode]
   );
 
+  const getGeometry = useCallback(
+    () => ({
+      x: instanceRef.current.x,
+      y: instanceRef.current.y,
+      width: instanceRef.current.width,
+      height: instanceRef.current.height,
+    }),
+    []
+  );
+
   const handleResize = useCallback(
-    (dx: number, dy: number, dw: number, dh: number) => {
-      const cur = instanceRef.current;
-      const newW = Math.max(MIN_SIZE, cur.width + dw);
-      const newH = Math.max(MIN_SIZE, cur.height + dh);
-      const actualDx = dw !== 0 && dx !== 0 ? cur.width - newW : 0;
-      updateComponent(frameId, instance.id, {
-        x: dx !== 0 ? cur.x + cur.width - newW : cur.x,
-        y: dy !== 0 ? cur.y + cur.height - newH : cur.y,
-        width: newW,
-        height: newH,
-      });
+    (x: number, y: number, width: number, height: number) => {
+      updateComponent(frameId, instance.id, { x, y, width, height });
     },
     [frameId, instance.id, updateComponent]
   );
@@ -191,8 +192,7 @@ export function ComponentNode({ instance, frameId, isSelected }: ComponentNodePr
       {/* Selection resize handles */}
       {isSelected && !isInteracting && (
         <ResizeHandles
-          width={instance.width}
-          height={instance.height}
+          getGeometry={getGeometry}
           onResize={handleResize}
           zoom={viewport.zoom}
         />

@@ -12,6 +12,11 @@ const SizeReporter: Decorator = (Story) => {
     () => new URLSearchParams(window.location.search).get('instanceId'),
     []
   );
+  // Once the natural size has been reported we switch the wrapper from
+  // inline-block (shrinks to content, lets us measure) to display:contents
+  // (layout-transparent) so flexible components can reflow to fill the
+  // iframe when the user resizes the container in Storyboard.
+  const [measured, setMeasured] = React.useState(false);
 
   // Strip Storybook's centering layout so the component renders from the
   // top-left with no surrounding padding. Without this the body's flex
@@ -44,6 +49,7 @@ const SizeReporter: Decorator = (Story) => {
           { type: 'storyboard:story-size', instanceId, width: offsetWidth, height: offsetHeight },
           '*'
         );
+        setMeasured(true);
       }
     };
 
@@ -54,7 +60,7 @@ const SizeReporter: Decorator = (Story) => {
 
   return React.createElement(
     'div',
-    { ref, style: { display: 'inline-block' } },
+    { ref, style: { display: measured ? 'contents' : 'inline-block' } },
     React.createElement(Story as React.ComponentType, null)
   );
 };

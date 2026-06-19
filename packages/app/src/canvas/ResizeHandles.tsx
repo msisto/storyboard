@@ -2,16 +2,21 @@ import React, { useCallback } from 'react';
 
 type Direction = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
+export type ResizeGeometry = { x: number; y: number; width: number; height: number };
+
 interface ResizeHandlesProps {
-  width: number;
-  height: number;
-  onResize: (dx: number, dy: number, dw: number, dh: number) => void;
+  // Called at mousedown to snapshot current geometry — avoids stale-closure
+  // accumulation when the parent updates position/size on every mousemove.
+  getGeometry: () => ResizeGeometry;
+  onResize: (x: number, y: number, width: number, height: number) => void;
   zoom: number;
 }
 
+const MIN_SIZE = 40;
+
 const CURSORS: Record<Direction, string> = {
   nw: 'nw-resize', n: 'n-resize', ne: 'ne-resize',
-  e: 'e-resize', se: 'se-resize', s: 's-resize',
+  e: 'e-resize',   se: 'se-resize', s: 's-resize',
   sw: 'sw-resize', w: 'w-resize',
 };
 
@@ -28,26 +33,30 @@ const POSITIONS: Record<Direction, React.CSSProperties> = {
 
 const DIRECTIONS: Direction[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
-export function ResizeHandles({ onResize, zoom }: ResizeHandlesProps) {
+export function ResizeHandles({ getGeometry, onResize, zoom }: ResizeHandlesProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, dir: Direction) => {
       e.stopPropagation();
       e.preventDefault();
 
-      const startX = e.clientX;
-      const startY = e.clientY;
+      const clientX0 = e.clientX;
+      const clientY0 = e.clientY;
+      // Snapshot geometry once at drag start — all delta maths are relative
+      // to this, so moving the mouse back actually makes things smaller.
+      const { x: ox, y: oy, width: ow, height: oh } = getGeometry();
 
       const onMove = (mv: MouseEvent) => {
-        const rawDx = (mv.clientX - startX) / zoom;
-        const rawDy = (mv.clientY - startY) / zoom;
+        const ddx = (mv.clientX - clientX0) / zoom;
+        const ddy = (mv.clientY - clientY0) / zoom;
 
-        let dx = 0, dy = 0, dw = 0, dh = 0;
-        if (dir.includes('w')) { dx = rawDx; dw = -rawDx; }
-        if (dir.includes('e')) { dw = rawDx; }
-        if (dir.includes('n')) { dy = rawDy; dh = -rawDy; }
-        if (dir.includes('s')) { dh = rawDy; }
+        let nx = ox, ny = oy, nw = ow, nh = oh;
 
-        onResize(dx, dy, dw, dh);
+        if (dir.includes('e')) nw = Math.max(MIN_SIZE, ow + ddx);
+        if (dir.includes('s')) nh = Math.max(MIN_SIZE, oh + ddy);
+        if (dir.includes('w')) { nw = Math.max(MIN_SIZE, ow - ddx); nx = ox + ow - nw; }
+        if (dir.includes('n')) { nh = Math.max(MIN_SIZE, oh - ddy); ny = oy + oh - nh; }
+
+        onResize(nx, ny, nw, nh);
       };
 
       const onUp = () => {
@@ -58,7 +67,7 @@ export function ResizeHandles({ onResize, zoom }: ResizeHandlesProps) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [onResize, zoom]
+    [getGeometry, onResize, zoom]
   );
 
   return (

@@ -32,16 +32,19 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
     [activeTool, frame.id, selectFrame, selectComponent]
   );
 
+  const getGeometry = useCallback(
+    () => ({
+      x: sizeRef.current.x,
+      y: sizeRef.current.y,
+      width: sizeRef.current.w,
+      height: sizeRef.current.h,
+    }),
+    []
+  );
+
   const handleResize = useCallback(
-    (dx: number, dy: number, dw: number, dh: number) => {
-      const { x, y, w, h } = sizeRef.current;
-      const newW = Math.max(MIN_SIZE, w + dw);
-      const newH = Math.max(MIN_SIZE, h + dh);
-      const actualDw = newW - w;
-      const actualDh = newH - h;
-      const newX = dx !== 0 ? x + (actualDw === newW - w ? dx : 0) : x;
-      const newY = dy !== 0 ? y + (actualDh === newH - h ? dy : 0) : y;
-      updateFrame(frame.id, { x: newX, y: newY, width: newW, height: newH });
+    (x: number, y: number, width: number, height: number) => {
+      updateFrame(frame.id, { x, y, width, height });
     },
     [frame.id, updateFrame]
   );
@@ -125,8 +128,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       {/* Resize handles when selected */}
       {isSelected && (
         <ResizeHandles
-          width={frame.width}
-          height={frame.height}
+          getGeometry={getGeometry}
           onResize={handleResize}
           zoom={viewport.zoom}
         />
