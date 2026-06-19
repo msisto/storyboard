@@ -246,6 +246,13 @@ export default function App() {
         }
       }
 
+      // Undo
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        useDesignStore.getState().undo();
+        return;
+      }
+
       // Zoom
       if (e.metaKey || e.ctrlKey) {
         if (e.key === '=' || e.key === '+') {

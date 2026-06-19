@@ -165,14 +165,14 @@ export function ComponentNode({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if ((e.key === 'Delete' || e.key === 'Backspace') && isSelected && !isInteracting) {
-        deleteComponent(frameId, instance.id);
-      }
+      // Delete is handled by the global window listener in App.tsx.
+      // Handling it here too causes a double-fire: this fires first (clearing
+      // selectedComponentId), then the window listener fires and deletes the frame.
       if (e.key === 'Escape' && isInteracting) {
         exitInteractMode();
       }
     },
-    [isSelected, isInteracting, instance.id, frameId, deleteComponent, exitInteractMode]
+    [isInteracting, exitInteractMode]
   );
 
   const overlayCursor = inAutoLayout && !instance.absolute

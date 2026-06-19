@@ -5,12 +5,16 @@ function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
+const MAX_HISTORY = 50;
+
 interface DesignStore {
   file: DesignFile | null;
+  history: DesignFile[];
   selectedFrameId: string | null;
   selectedComponentId: string | null;
   newFile: (name: string) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
+  undo: () => void;
   addFrame: (x: number, y: number, width: number, height: number) => string;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
   deleteFrame: (id: string) => void;
@@ -27,6 +31,7 @@ interface DesignStore {
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
   file: null,
+  history: [],
   selectedFrameId: null,
   selectedComponentId: null,
 
@@ -41,6 +46,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         frames: [],
         comments: [],
       },
+      history: [],
       selectedFrameId: null,
       selectedComponentId: null,
     }),
@@ -48,8 +54,17 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   loadFile: (file) =>
     set({
       file: { ...file, id: file.id ?? crypto.randomUUID() } as DesignFile,
+      history: [],
       selectedFrameId: null,
       selectedComponentId: null,
+    }),
+
+  undo: () =>
+    set((state) => {
+      if (state.history.length === 0) return state;
+      const history = state.history.slice(0, -1);
+      const previous = state.history[state.history.length - 1];
+      return { file: previous, history };
     }),
 
   addFrame: (x, y, width, height) => {
@@ -58,6 +73,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       if (!state.file) return state;
       const count = state.file.frames.length + 1;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -98,6 +114,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -115,6 +132,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -155,6 +173,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -185,6 +204,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -203,6 +223,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
@@ -218,6 +239,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),

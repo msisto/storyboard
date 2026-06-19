@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
-import { useCanvasStore } from '../store/useCanvasStore';
 
 export function LayersPanel() {
   const {
@@ -13,9 +12,7 @@ export function LayersPanel() {
     updateComponent,
     deleteFrame,
     deleteComponent,
-    reorderComponent,
   } = useDesignStore();
-  const { activeTool } = useCanvasStore();
 
   const [collapsedFrames, setCollapsedFrames] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -66,6 +63,7 @@ export function LayersPanel() {
         if (state.selectedComponentId !== id) return;
       }
       e.preventDefault();
+      e.stopPropagation(); // prevent window listener from also firing after this deletes
       if (isFrame) {
         deleteFrame(id);
       } else if (frameId) {
@@ -172,7 +170,7 @@ export function LayersPanel() {
 
             {/* Component rows */}
             {!isCollapsed &&
-              frame.components.map((component, idx) => {
+              frame.components.map((component) => {
                 const isSelectedComp = component.id === selectedComponentId;
                 return (
                   <div

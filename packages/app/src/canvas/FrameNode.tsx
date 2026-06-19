@@ -266,7 +266,9 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         width: layout.frameWidth,
         height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
-        outline: isSelected ? '2px solid #0066FF' : '1px solid #D1D5DB',
+        outline: (isSelected && !frame.components.some(c => c.id === selectedComponentId))
+          ? '2px solid #0066FF'
+          : '1px solid #D1D5DB',
         boxSizing: 'border-box',
       }}
       onClick={handleFrameClick}
