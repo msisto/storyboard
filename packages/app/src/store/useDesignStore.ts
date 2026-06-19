@@ -27,6 +27,7 @@ interface DesignStore {
   deleteComponent: (frameId: string, componentId: string) => void;
   deleteSelectedComponents: () => void;
   selectComponent: (id: string | null, addToSelection?: boolean) => void;
+  reorderFrame: (fromIndex: number, toIndex: number) => void;
   reorderComponent: (frameId: string, fromIndex: number, toIndex: number) => void;
   reorderFlowItem: (frameId: string, itemId: string, toIndex: number) => void;
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
@@ -267,6 +268,18 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         selectedComponentId: id,
         selectedComponentIds: [id],
         selectedFrameId: frame?.id ?? state.selectedFrameId,
+      };
+    }),
+
+  reorderFrame: (fromIndex, toIndex) =>
+    set((state) => {
+      if (!state.file) return state;
+      const frames = [...state.file.frames];
+      const [moved] = frames.splice(fromIndex, 1);
+      frames.splice(toIndex, 0, moved);
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: { ...state.file, updatedAt: Date.now(), frames },
       };
     }),
 

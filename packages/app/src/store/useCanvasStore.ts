@@ -11,6 +11,7 @@ interface CanvasStore {
   zoom: (delta: number, originX: number, originY: number) => void;
   zoomTo: (level: number) => void;
   resetViewport: () => void;
+  setViewportXY: (x: number, y: number) => void;
   enterInteractMode: (componentId: string) => void;
   exitInteractMode: () => void;
   enterTextEditMode: (id: string) => void;
@@ -50,6 +51,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     })),
 
   resetViewport: () => set({ viewport: { x: 0, y: 0, zoom: 1 } }),
+
+  setViewportXY: (x, y) => set((s) => ({ viewport: { ...s.viewport, x, y } })),
 
   enterInteractMode: (componentId) => {
     const { activeTool } = get();

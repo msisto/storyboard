@@ -14,7 +14,8 @@ import { useCommentSync } from './comments/useCommentSync';
 import { useAutoSave } from './store/useAutoSave';
 import { api } from './store/api';
 import { computeAutoLayout } from './canvas/autoLayout';
-import type { AutoLayoutSettings, StorybookStory } from './types';
+import { StoryboardTimeline } from './timeline/StoryboardTimeline';
+import type { AutoLayoutSettings, Frame, StorybookStory } from './types';
 
 const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
   direction: 'horizontal',
@@ -154,8 +155,8 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, loadFile, addComponent, addComment, selectedFrameId } = useDesignStore();
-  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan } = useCanvasStore();
+  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, reorderFrame } = useDesignStore();
+  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, setViewportXY } = useCanvasStore();
   const { connected, peerCount, sendCursor, peerCursors } = useCommentSync(AUTHOR);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -418,6 +419,32 @@ export default function App() {
     [addComponent]
   );
 
+  const handleSelectFrame = useCallback(
+    (frame: Frame) => {
+      selectFrame(frame.id);
+      if (!canvasRef.current) return;
+      const { width, height } = canvasRef.current.getBoundingClientRect();
+      const vp = useCanvasStore.getState().viewport;
+      setViewportXY(
+        width / 2 - (frame.x + frame.width / 2) * vp.zoom,
+        height / 2 - (frame.y + frame.height / 2) * vp.zoom,
+      );
+    },
+    [selectFrame, setViewportXY]
+  );
+
+  const handleAddFrame = useCallback(() => {
+    const frames = useDesignStore.getState().file?.frames ?? [];
+    const last = frames[frames.length - 1];
+    const x = last ? last.x + last.width + 80 : 100;
+    const y = last?.y ?? 100;
+    const id = addFrame(x, y, 400, 300);
+    requestAnimationFrame(() => {
+      const newFrame = useDesignStore.getState().file?.frames.find((f) => f.id === id);
+      if (newFrame) handleSelectFrame(newFrame);
+    });
+  }, [addFrame, handleSelectFrame]);
+
   if (view === 'loading') {
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
@@ -519,6 +546,14 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      <StoryboardTimeline
+        frames={file?.frames ?? []}
+        selectedFrameId={selectedFrameId}
+        onSelectFrame={handleSelectFrame}
+        onReorderFrame={reorderFrame}
+        onAddFrame={handleAddFrame}
+      />
 
       {/* Comment placement modal */}
       {pendingComment && (
