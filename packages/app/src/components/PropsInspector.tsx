@@ -11,6 +11,120 @@ import {
 import type { ArgDefinition, AutoLayoutSettings, Frame, SizingMode } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 
+// Curated Tailwind background colors: neutrals + light accent tints
+const BG_PALETTE: { label: string; value: string }[][] = [
+  [
+    { label: 'white',      value: '#ffffff' },
+    { label: 'gray-50',    value: '#f9fafb' },
+    { label: 'gray-100',   value: '#f3f4f6' },
+    { label: 'gray-200',   value: '#e5e7eb' },
+    { label: 'gray-300',   value: '#d1d5db' },
+    { label: 'gray-400',   value: '#9ca3af' },
+    { label: 'gray-500',   value: '#6b7280' },
+    { label: 'gray-600',   value: '#4b5563' },
+    { label: 'gray-700',   value: '#374151' },
+    { label: 'gray-800',   value: '#1f2937' },
+    { label: 'gray-900',   value: '#111827' },
+    { label: 'gray-950',   value: '#030712' },
+  ],
+  [
+    { label: 'slate-50',   value: '#f8fafc' },
+    { label: 'slate-100',  value: '#f1f5f9' },
+    { label: 'slate-200',  value: '#e2e8f0' },
+    { label: 'slate-300',  value: '#cbd5e1' },
+    { label: 'slate-400',  value: '#94a3b8' },
+    { label: 'slate-500',  value: '#64748b' },
+    { label: 'slate-600',  value: '#475569' },
+    { label: 'slate-700',  value: '#334155' },
+    { label: 'slate-800',  value: '#1e293b' },
+    { label: 'slate-900',  value: '#0f172a' },
+    { label: 'slate-950',  value: '#020617' },
+    { label: 'black',      value: '#000000' },
+  ],
+  [
+    { label: 'zinc-50',    value: '#fafafa' },
+    { label: 'zinc-100',   value: '#f4f4f5' },
+    { label: 'zinc-200',   value: '#e4e4e7' },
+    { label: 'zinc-300',   value: '#d4d4d8' },
+    { label: 'zinc-400',   value: '#a1a1aa' },
+    { label: 'zinc-500',   value: '#71717a' },
+    { label: 'zinc-600',   value: '#52525b' },
+    { label: 'zinc-700',   value: '#3f3f46' },
+    { label: 'zinc-800',   value: '#27272a' },
+    { label: 'zinc-900',   value: '#18181b' },
+    { label: 'zinc-950',   value: '#09090b' },
+    { label: 'stone-950',  value: '#1c1917' },
+  ],
+  [
+    { label: 'blue-50',    value: '#eff6ff' },
+    { label: 'blue-100',   value: '#dbeafe' },
+    { label: 'indigo-50',  value: '#eef2ff' },
+    { label: 'violet-50',  value: '#f5f3ff' },
+    { label: 'purple-50',  value: '#faf5ff' },
+    { label: 'green-50',   value: '#f0fdf4' },
+    { label: 'green-100',  value: '#dcfce7' },
+    { label: 'teal-50',    value: '#f0fdfa' },
+    { label: 'yellow-50',  value: '#fefce8' },
+    { label: 'amber-50',   value: '#fffbeb' },
+    { label: 'red-50',     value: '#fef2f2' },
+    { label: 'rose-50',    value: '#fff1f2' },
+  ],
+];
+
+function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [tooltip, setTooltip] = React.useState<string | null>(null);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {BG_PALETTE.map((row, ri) => (
+        <div key={ri} style={{ display: 'flex', gap: 3 }}>
+          {row.map((swatch) => {
+            const selected = value.toLowerCase() === swatch.value.toLowerCase();
+            return (
+              <div
+                key={swatch.value}
+                title={swatch.label}
+                onClick={() => onChange(swatch.value)}
+                onMouseEnter={() => setTooltip(swatch.label)}
+                onMouseLeave={() => setTooltip(null)}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 3,
+                  background: swatch.value,
+                  border: selected
+                    ? '2px solid var(--sb-accent)'
+                    : '1px solid var(--sb-border)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {selected && (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path
+                      d="M2 5l2.5 2.5L8 3"
+                      stroke={parseInt(swatch.value.slice(1), 16) > 0x888888 ? '#000' : '#fff'}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {tooltip && (
+        <div style={{ fontSize: 10, color: 'var(--sb-text-3)', marginTop: 1 }}>{tooltip}</div>
+      )}
+    </div>
+  );
+}
+
 const DEVICE_PRESETS = [
   { label: 'iPhone', w: 390, h: 844 },
   { label: 'iPad', w: 820, h: 1180 },
@@ -855,36 +969,13 @@ export function PropsInspector() {
             </div>
 
             <div>
-              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4 }}>
                 BACKGROUND
               </label>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input
-                  type="color"
-                  value={selectedFrameData.backgroundColor}
-                  onFocus={pushH}
-                  onChange={(e) =>
-                    updateFrame(selectedFrameData.id, { backgroundColor: e.target.value })
-                  }
-                  style={{ width: 28, height: 28, padding: 0, border: '1px solid var(--sb-border)', borderRadius: 4 }}
-                />
-                <input
-                  type="text"
-                  value={selectedFrameData.backgroundColor}
-                  onFocus={pushH}
-                  onChange={(e) =>
-                    updateFrame(selectedFrameData.id, { backgroundColor: e.target.value })
-                  }
-                  style={{
-                    flex: 1,
-                    padding: '3px 6px',
-                    fontSize: 12,
-                    border: '1px solid var(--sb-border)',
-                    borderRadius: 4,
-                    outline: 'none',
-                  }}
-                />
-              </div>
+              <BackgroundColorPicker
+                value={selectedFrameData.backgroundColor}
+                onChange={(v) => { pushH(); updateFrame(selectedFrameData.id, { backgroundColor: v }); }}
+              />
             </div>
           </div>
         </Section>
