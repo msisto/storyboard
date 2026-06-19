@@ -208,7 +208,7 @@ ${body}
 );
 
 const meta = {
-  title: 'Local/${name}',
+  title: 'Local/${pascal}',
   component: ${pascal},
 } satisfies Meta<typeof ${pascal}>;
 export default meta;

@@ -548,11 +548,15 @@ export function PropsInspector() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const handleSaveAsStory = useCallback(async (frame: Frame) => {
-    const name = window.prompt('Story name:', frame.label || 'MyComponent');
-    if (!name?.trim()) return;
+    const raw = window.prompt('Story name:', frame.label || 'MyComponent');
+    if (!raw?.trim()) return;
+    // Always PascalCase regardless of what the user typed
+    const name = raw.trim().replace(/[^a-zA-Z0-9]+/g, ' ').trim()
+      .split(' ').filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join('');
+    if (!name) return;
     setSaveStatus('saving');
     try {
-      const content = buildLocalStoryFile(frame, name.trim(), stories);
+      const content = buildLocalStoryFile(frame, name, stories);
       const res = await fetch('http://localhost:3333/api/local-stories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
