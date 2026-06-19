@@ -26,7 +26,7 @@ interface FileBody { id: string; name: string; createdAt: number; updatedAt: num
 // ── Express ───────────────────────────────────────────────────────────────────
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:1234' }));
+app.use(cors({ origin: 'http://localhost:1618' }));
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));

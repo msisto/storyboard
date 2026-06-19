@@ -2,12 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
 import { FrameNode } from './FrameNode';
+import { PeerCursors } from './PeerCursors';
+import type { PeerCursor } from '../comments/useCommentSync';
 
 const CHECKERBOARD = `
   repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%) 0 0 / 20px 20px
 `;
 
-export function Canvas() {
+interface CanvasProps {
+  sendCursor?: (x: number, y: number) => void;
+  peerCursors?: Map<string, PeerCursor>;
+}
+
+export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
   const { viewport, activeTool, pan, zoom, setTool } = useCanvasStore();
   const { file, addFrame, selectFrame, selectComponent, selectedFrameId } = useDesignStore();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -128,8 +135,15 @@ export function Canvas() {
           h: Math.abs(curY - rbStart.current.y),
         });
       }
+      if (sendCursor) {
+        const rect = rootRef.current?.getBoundingClientRect();
+        const cx = e.clientX - (rect?.left ?? 0);
+        const cy = e.clientY - (rect?.top ?? 0);
+        const vp = useCanvasStore.getState().viewport;
+        sendCursor((cx - vp.x) / vp.zoom, (cy - vp.y) / vp.zoom);
+      }
     },
-    [activeTool, pan]
+    [activeTool, pan, sendCursor]
   );
 
   const handleMouseUp = useCallback(
@@ -200,6 +214,11 @@ export function Canvas() {
           />
         ))}
       </div>
+
+      {/* Peer cursors overlay */}
+      {peerCursors && peerCursors.size > 0 && (
+        <PeerCursors cursors={peerCursors} viewport={viewport} />
+      )}
 
       {/* Rubber-band selection for frame tool */}
       {rubberBand && (

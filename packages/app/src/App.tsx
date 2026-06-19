@@ -155,7 +155,7 @@ export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addComment, selectedFrameId } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, zoom, pan } = useCanvasStore();
-  const { connected, peerCount } = useCommentSync(AUTHOR);
+  const { connected, peerCount, sendCursor, peerCursors } = useCommentSync(AUTHOR);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const [view, setView] = useState<AppView>('loading');
@@ -482,7 +482,7 @@ export default function App() {
           onDragOver={handleCanvasDragOver}
           onDrop={handleCanvasDrop}
         >
-          <Canvas />
+          <Canvas sendCursor={sendCursor} peerCursors={peerCursors} />
         </div>
 
         {/* Right panel */}
