@@ -10,7 +10,7 @@ An experience design canvas for Storybook libraries.
 
 ## What it does
 
-Storybook is excellent at developing components in isolation. Figma is good at composing those components into screens. The problem: Figma mockups are static pictures of your components, not the components themselves. Storyboard sits in the middle — it's a canvas that renders your actual Storybook stories as live iframes, so you're composing real, interactive components rather than screenshots.
+Storybook is excellent at developing components in isolation. Figma is good at composing those components into screens. The problem: Figma mockups are static pictures of your components, not the components themselves. Storyboard sits in the middle — it's a canvas that renders your actual Storybook stories as live iframes, so you're composing real, interactive components rather than approximations.
 
 Each canvas frame is a "board" — a screen in a user flow. Boards are arranged in a timeline at the bottom of the UI. The idea is to lay out a journey left-to-right, the way designers already think about flows, while keeping every component in sync with the actual codebase.
 
