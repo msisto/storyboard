@@ -36,6 +36,7 @@ interface DesignStore {
   addTextLayer: (frameId: string, partial: { x: number; y: number; fontSize?: TailwindFontSize; fontWeight?: TailwindFontWeight; content?: string; label?: string }) => string;
   updateTextLayer: (frameId: string, layerId: string, patch: Partial<TextLayer>) => void;
   deleteTextLayer: (frameId: string, layerId: string) => void;
+  batchUpdatePositions: (frameId: string, updates: Array<{ id: string; x?: number; y?: number }>) => void;
 }
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
@@ -470,6 +471,33 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           frames: state.file.frames.map((f) =>
             f.id === frameId ? { ...f, flowOrder: next } : f
           ),
+        },
+      };
+    }),
+
+  batchUpdatePositions: (frameId, updates) =>
+    set((state) => {
+      if (!state.file) return state;
+      const updateMap = new Map(updates.map((u) => [u.id, u]));
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: state.file.frames.map((f) => {
+            if (f.id !== frameId) return f;
+            return {
+              ...f,
+              components: f.components.map((c) => {
+                const u = updateMap.get(c.id);
+                return u ? { ...c, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : c;
+              }),
+              textLayers: (f.textLayers ?? []).map((t) => {
+                const u = updateMap.get(t.id);
+                return u ? { ...t, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : t;
+              }),
+            };
+          }),
         },
       };
     }),

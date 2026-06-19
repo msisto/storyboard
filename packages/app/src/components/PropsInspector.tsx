@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
-import type { ArgDefinition, AutoLayoutSettings, SizingMode } from '../types';
+import {
+  alignLeft, alignCenterH, alignRight,
+  alignTop, alignCenterV, alignBottom,
+  distributeH, distributeV, tidyUp,
+  type ItemGeometry,
+} from '../canvas/alignmentUtils';
+import type { ArgDefinition, AutoLayoutSettings, Frame, SizingMode } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 
 const DEVICE_PRESETS = [
@@ -295,7 +301,7 @@ function ArgControl({
 }
 
 export function PropsInspector() {
-  const { file, selectedFrameId, selectedComponentId, updateFrame, updateComponent, updateTextLayer } =
+  const { file, selectedFrameId, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions } =
     useDesignStore();
   const { getArgDefs } = useRegistryStore();
 
@@ -805,7 +811,212 @@ export function PropsInspector() {
     );
   }
 
+  // Multi-selection panel
+  if (selectedComponentIds.length > 1 && selectedFrameData) {
+    const fr: Frame = selectedFrameData;
+
+    const resolveGeometry = (id: string): ItemGeometry | null => {
+      const c = fr.components.find((c) => c.id === id);
+      if (c) return { id: c.id, x: c.x, y: c.y, width: c.width, height: c.height };
+      const t = (fr.textLayers ?? []).find((t) => t.id === id);
+      if (t) return { id: t.id, x: t.x, y: t.y, width: t.width ?? 200, height: t.height ?? 24 };
+      return null;
+    };
+
+    // Only absolute items (not flow items in auto-layout)
+    const items = selectedComponentIds
+      .map(resolveGeometry)
+      .filter((i): i is ItemGeometry => {
+        if (!i) return false;
+        if (!fr.autoLayout) return true;
+        const comp = fr.components.find((c) => c.id === i.id);
+        const text = (fr.textLayers ?? []).find((t) => t.id === i.id);
+        return !!(comp?.absolute || text?.absolute);
+      });
+
+    const canDistribute = items.length >= 3;
+
+    const apply = (updates: Array<{ id: string; x?: number; y?: number }>) => {
+      const meaningful = updates.filter((u) => u.x !== undefined || u.y !== undefined);
+      if (meaningful.length > 0) batchUpdatePositions(fr.id, meaningful);
+    };
+
+    const btnStyle = (disabled = false): React.CSSProperties => ({
+      width: 28,
+      height: 28,
+      padding: 0,
+      border: '1px solid #e5e7eb',
+      borderRadius: 4,
+      background: 'white',
+      cursor: disabled ? 'default' : 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: disabled ? 0.35 : 1,
+    });
+
+    return (
+      <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>
+          {selectedComponentIds.length} items selected
+        </div>
+
+        {items.length === 0 ? (
+          <div style={{ fontSize: 11, color: '#9ca3af' }}>
+            Alignment not available for auto-layout flow items
+          </div>
+        ) : (
+          <>
+            {/* Alignment row */}
+            <div>
+              <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>ALIGN</div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <button title="Align left" style={btnStyle()} onClick={() => apply(alignLeft(items))}>
+                  <AlignLeftIcon />
+                </button>
+                <button title="Align center horizontal" style={btnStyle()} onClick={() => apply(alignCenterH(items))}>
+                  <AlignCenterHIcon />
+                </button>
+                <button title="Align right" style={btnStyle()} onClick={() => apply(alignRight(items))}>
+                  <AlignRightIcon />
+                </button>
+                <div style={{ width: 6 }} />
+                <button title="Align top" style={btnStyle()} onClick={() => apply(alignTop(items))}>
+                  <AlignTopIcon />
+                </button>
+                <button title="Align center vertical" style={btnStyle()} onClick={() => apply(alignCenterV(items))}>
+                  <AlignCenterVIcon />
+                </button>
+                <button title="Align bottom" style={btnStyle()} onClick={() => apply(alignBottom(items))}>
+                  <AlignBottomIcon />
+                </button>
+              </div>
+            </div>
+
+            {/* Distribute row */}
+            <div>
+              <div style={{ fontSize: 10, color: '#9ca3af', marginBottom: 4 }}>DISTRIBUTE</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  title="Distribute horizontally"
+                  style={btnStyle(!canDistribute)}
+                  onClick={() => { if (canDistribute) apply(distributeH(items)); }}
+                >
+                  <DistributeHIcon />
+                </button>
+                <button
+                  title="Distribute vertically"
+                  style={btnStyle(!canDistribute)}
+                  onClick={() => { if (canDistribute) apply(distributeV(items)); }}
+                >
+                  <DistributeVIcon />
+                </button>
+                <div style={{ width: 6 }} />
+                <button title="Tidy up" style={btnStyle()} onClick={() => apply(tidyUp(items))}>
+                  <TidyUpIcon />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return null;
+}
+
+// ── Alignment icons ───────────────────────────────────────────────────────────
+
+function AlignLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
+      <rect x="4" y="4" width="5" height="3" fill="#374151" rx="0.5" />
+      <rect x="4" y="9" width="8" height="3" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function AlignCenterHIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="7.25" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
+      <rect x="3.5" y="4" width="9" height="3" fill="#374151" rx="0.5" />
+      <rect x="5.5" y="9" width="5" height="3" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function AlignRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="12.5" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
+      <rect x="7" y="4" width="5" height="3" fill="#374151" rx="0.5" />
+      <rect x="4" y="9" width="8" height="3" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function AlignTopIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="2" width="12" height="1.5" fill="#374151" rx="0.5" />
+      <rect x="4" y="4" width="3" height="5" fill="#374151" rx="0.5" />
+      <rect x="9" y="4" width="3" height="8" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function AlignCenterVIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="7.25" width="12" height="1.5" fill="#374151" rx="0.5" />
+      <rect x="4" y="3.5" width="3" height="9" fill="#374151" rx="0.5" />
+      <rect x="9" y="5.5" width="3" height="5" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function AlignBottomIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="12.5" width="12" height="1.5" fill="#374151" rx="0.5" />
+      <rect x="4" y="7" width="3" height="5" fill="#374151" rx="0.5" />
+      <rect x="9" y="4" width="3" height="8" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function DistributeHIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="1.5" y="3" width="1.5" height="10" fill="#374151" rx="0.5" />
+      <rect x="13" y="3" width="1.5" height="10" fill="#374151" rx="0.5" />
+      <rect x="6" y="5" width="4" height="6" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function DistributeVIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="3" y="1.5" width="10" height="1.5" fill="#374151" rx="0.5" />
+      <rect x="3" y="13" width="10" height="1.5" fill="#374151" rx="0.5" />
+      <rect x="5" y="6" width="6" height="4" fill="#374151" rx="0.5" />
+    </svg>
+  );
+}
+
+function TidyUpIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="2" width="5" height="5" fill="#374151" rx="0.5" />
+      <rect x="9" y="2" width="5" height="5" fill="#374151" rx="0.5" />
+      <rect x="2" y="9" width="5" height="5" fill="#374151" rx="0.5" />
+      <rect x="9" y="9" width="5" height="5" fill="#374151" rx="0.5" />
+    </svg>
+  );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
