@@ -169,6 +169,26 @@ export default function App() {
 
   const [view, setView] = useState<AppView>('loading');
   const [leftTab, setLeftTab] = useState<LeftTab>('layers');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(220);
+
+  const handleLeftPanelResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftPanelWidth;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    const onMove = (mv: MouseEvent) => {
+      setLeftPanelWidth(Math.max(160, Math.min(480, startWidth + mv.clientX - startX)));
+    };
+    const onUp = () => {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [leftPanelWidth]);
   const [pendingComment, setPendingComment] = useState<{
     frameId: string;
     x: number;
@@ -511,12 +531,12 @@ export default function App() {
         {/* Left panel */}
         <div
           style={{
-            width: 220,
+            width: leftPanelWidth,
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            borderRight: '1px solid #e5e7eb',
             background: 'white',
+            overflow: 'hidden',
           }}
         >
           {/* Tabs */}
@@ -547,6 +567,20 @@ export default function App() {
             {leftTab === 'layers' ? <LayersPanel /> : leftTab === 'components' ? <ComponentPalette /> : <TextPalette />}
           </div>
         </div>
+
+        {/* Left panel resize handle */}
+        <div
+          onMouseDown={handleLeftPanelResize}
+          style={{
+            width: 4,
+            flexShrink: 0,
+            cursor: 'col-resize',
+            background: '#e5e7eb',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#0066FF')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = '#e5e7eb')}
+        />
 
         {/* Canvas */}
         <div

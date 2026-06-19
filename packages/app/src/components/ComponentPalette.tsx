@@ -198,10 +198,11 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                   alignItems: 'center',
                   gap: 4,
                   userSelect: 'none',
+                  overflow: 'hidden',
                 }}
               >
-                <span style={{ fontSize: 9 }}>{isGroupCollapsed ? '▶' : '▼'}</span>
-                {group}
+                <span style={{ fontSize: 9, flexShrink: 0 }}>{isGroupCollapsed ? '▶' : '▼'}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group}</span>
               </div>
 
               {!isGroupCollapsed &&
@@ -222,10 +223,11 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                           alignItems: 'center',
                           gap: 4,
                           userSelect: 'none',
+                          overflow: 'hidden',
                         }}
                       >
-                        <span style={{ fontSize: 9 }}>{isCompCollapsed ? '▶' : '▼'}</span>
-                        {compName}
+                        <span style={{ fontSize: 9, flexShrink: 0 }}>{isCompCollapsed ? '▶' : '▼'}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{compName}</span>
                       </div>
 
                       {!isCompCollapsed &&
