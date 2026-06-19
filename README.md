@@ -116,6 +116,14 @@ The horizontal strip at the bottom shows frames in sequence order as wireframe t
 
 Frames can be **hidden from the timeline** (Inspect panel → Timeline → Hidden) while staying on the canvas — useful for keeping utility or reference boards that aren't part of the demo flow. Hidden frames show a hover × button in the timeline to restore them, and can be toggled back from the inspector.
 
+### Dark / light mode
+
+The canvas UI responds to the system `prefers-color-scheme` setting. All colors are CSS custom properties — switching your OS between light and dark mode updates the toolbar, panels, inspector, and canvas checkerboard instantly with no reload.
+
+Frame backgrounds automatically follow the theme too: the background color picker offers shadcn/ui semantic tokens (`background`, `card`, `muted`, `secondary`, `accent`, etc.) rather than raw hex values. A frame set to `card` renders with the correct card color in both modes. Values are stored as `hsl(var(--card))` in the design file, which the canvas resolves using the same token definitions as the component library.
+
+Components inside iframes also adapt: the `SizeReporter` decorator applies the `.dark` class to `document.documentElement` based on `prefers-color-scheme`, which activates shadcn/ui's built-in dark mode for every story. The system color scheme change is listened to at runtime, so toggling OS dark mode updates all open iframes immediately.
+
 ### Real-time collaboration
 
 The server maintains a WebSocket room per file ID. When any connected client modifies the design, it broadcasts the full file state to the room (debounced 500ms, with echo suppression keyed on `updatedAt`). Cursor positions are broadcast at ~30fps. The connection reconnects automatically with exponential backoff. Peer cursors appear as colored dots with names on the canvas.
@@ -352,7 +360,7 @@ Frames shown in the timeline represent your demo flow. To remove a frame from th
 
 ### JSX export
 
-Menu (≡) → Export JSX generates a React component for any frame. Auto-layout frames produce a `className` string using Tailwind utility classes for all spacing and flex properties (e.g. `flex flex-col gap-4 p-4 items-start`). Width, height, and background stay as inline `style`. Use it as handoff scaffolding.
+Menu (≡) → Export JSX generates a React component for any frame. Auto-layout frames produce a `className` string using Tailwind utility classes for all spacing and flex properties (e.g. `flex flex-col gap-4 p-4 items-start`). Width, height, and background stay as inline `style`. Semantic background tokens (`hsl(var(--background))` etc.) are preserved as-is so the exported code already uses the correct theme variables. Use it as handoff scaffolding.
 
 ---
 
