@@ -19,6 +19,8 @@ const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
   heightMode: 'fixed',
 };
 
+function pushH() { useDesignStore.getState().pushHistory(); }
+
 function NumberInput({
   label,
   value,
@@ -36,6 +38,7 @@ function NumberInput({
       <input
         type="number"
         value={Math.round(value)}
+        onFocus={readOnly ? undefined : pushH}
         onChange={readOnly ? undefined : (e) => onChange?.(Number(e.target.value))}
         disabled={readOnly}
         style={{
@@ -73,6 +76,7 @@ function ArgControl({
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
         <input
           type="checkbox"
+          onFocus={pushH}
           checked={Boolean(value)}
           onChange={(e) => onChange(e.target.checked)}
         />
@@ -113,6 +117,7 @@ function ArgControl({
         </label>
         <select
           value={strVal}
+          onFocus={pushH}
           onChange={(e) => onChange(e.target.value)}
           style={{
             width: '100%',
@@ -145,12 +150,14 @@ function ArgControl({
           <input
             type="color"
             value={strVal || '#000000'}
+            onFocus={pushH}
             onChange={(e) => onChange(e.target.value)}
             style={{ width: 28, height: 28, padding: 0, border: '1px solid #e5e7eb', borderRadius: 4 }}
           />
           <input
             type="text"
             value={strVal}
+            onFocus={pushH}
             onChange={(e) => onChange(e.target.value)}
             style={{
               flex: 1,
@@ -236,6 +243,7 @@ function ArgControl({
                 <button
                   onClick={() => {
                     try {
+                      pushH();
                       onChange(JSON.parse(jsonText));
                       setJsonOpen(false);
                     } catch {
@@ -263,6 +271,7 @@ function ArgControl({
       <input
         type="text"
         value={strVal}
+        onFocus={pushH}
         onChange={(e) => onChange(e.target.value)}
         style={{
           width: '100%',
@@ -305,6 +314,7 @@ export function PropsInspector() {
     const tl = selectedTextLayer;
     const patch = (p: Parameters<typeof updateTextLayer>[2]) =>
       updateTextLayer(selectedFrameData.id, tl.id, p);
+    const patchWithHistory = (p: Parameters<typeof updateTextLayer>[2]) => { pushH(); patch(p); };
 
     return (
       <div style={{ overflowY: 'auto', height: '100%' }}>
@@ -314,6 +324,7 @@ export function PropsInspector() {
             <textarea
               value={tl.content}
               rows={3}
+              onFocus={pushH}
               onChange={(e) => patch({ content: e.target.value, label: e.target.value.slice(0, 24) || 'Text' })}
               style={{
                 fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4,
@@ -332,6 +343,7 @@ export function PropsInspector() {
               </label>
               <select
                 value={tl.fontSize}
+                onFocus={pushH}
                 onChange={(e) => patch({ fontSize: e.target.value as typeof tl.fontSize })}
                 style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
               >
@@ -349,6 +361,7 @@ export function PropsInspector() {
               </label>
               <select
                 value={tl.fontWeight}
+                onFocus={pushH}
                 onChange={(e) => patch({ fontWeight: e.target.value as typeof tl.fontWeight })}
                 style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
               >
@@ -368,12 +381,14 @@ export function PropsInspector() {
                 <input
                   type="color"
                   value={tl.color}
+                  onFocus={pushH}
                   onChange={(e) => patch({ color: e.target.value })}
                   style={{ width: 32, height: 28, padding: 2, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer' }}
                 />
                 <input
                   type="text"
                   value={tl.color}
+                  onFocus={pushH}
                   onChange={(e) => patch({ color: e.target.value })}
                   style={{ flex: 1, padding: '4px 6px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none', fontFamily: 'monospace' }}
                 />
@@ -476,6 +491,7 @@ export function PropsInspector() {
               <input
                 type="checkbox"
                 checked={selectedComponentData.absolute ?? false}
+                onFocus={pushH}
                 onChange={(e) =>
                   updateComponent(selectedFrameData.id, selectedComponentData.id, {
                     absolute: e.target.checked,
@@ -517,10 +533,13 @@ export function PropsInspector() {
         autoLayout: { ...selectedFrameData.autoLayout!, ...partial },
       });
 
-    const enableAutoLayout = () =>
+    const enableAutoLayout = () => {
+      pushH();
       updateFrame(selectedFrameData.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT } });
+    };
 
     const disableAutoLayout = () => {
+      pushH();
       const layout = computeAutoLayout(selectedFrameData);
       selectedFrameData.components
         .filter((c) => !c.absolute)
@@ -542,6 +561,7 @@ export function PropsInspector() {
               <input
                 type="text"
                 value={selectedFrameData.label}
+                onFocus={pushH}
                 onChange={(e) => updateFrame(selectedFrameData.id, { label: e.target.value })}
                 style={{
                   width: '100%',
@@ -578,6 +598,7 @@ export function PropsInspector() {
                 <input
                   type="color"
                   value={selectedFrameData.backgroundColor}
+                  onFocus={pushH}
                   onChange={(e) =>
                     updateFrame(selectedFrameData.id, { backgroundColor: e.target.value })
                   }
@@ -586,6 +607,7 @@ export function PropsInspector() {
                 <input
                   type="text"
                   value={selectedFrameData.backgroundColor}
+                  onFocus={pushH}
                   onChange={(e) =>
                     updateFrame(selectedFrameData.id, { backgroundColor: e.target.value })
                   }
@@ -632,7 +654,7 @@ export function PropsInspector() {
                     {(['horizontal', 'vertical'] as const).map((dir) => (
                       <button
                         key={dir}
-                        onClick={() => patchAL({ direction: dir })}
+                        onClick={() => { pushH(); patchAL({ direction: dir }); }}
                         style={{
                           flex: 1,
                           padding: '4px 0',
@@ -656,6 +678,7 @@ export function PropsInspector() {
                     <input
                       type="checkbox"
                       checked={al.wrap}
+                      onFocus={pushH}
                       onChange={(e) => patchAL({ wrap: e.target.checked })}
                     />
                     Wrap
@@ -756,6 +779,7 @@ function SizingSelect({
       </label>
       <select
         value={value}
+        onFocus={pushH}
         onChange={(e) => onChange(e.target.value)}
         style={{
           width: '100%',
@@ -819,7 +843,7 @@ function AlignmentGrid({
               return (
                 <button
                   key={pa}
-                  onClick={() => onChange(pa, ca)}
+                  onClick={() => { pushH(); onChange(pa, ca); }}
                   title={`${pa} / ${ca}`}
                   style={{
                     flex: 1,

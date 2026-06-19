@@ -15,7 +15,7 @@ interface TextLayerNodeProps {
 }
 
 export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, inAutoLayout, onReorderDragStart }: TextLayerNodeProps) {
-  const { selectComponent, updateTextLayer } = useDesignStore();
+  const { selectComponent, updateTextLayer, pushHistory } = useDesignStore();
   const { activeTool, editingTextLayerId, enterTextEditMode, exitTextEditMode, viewport } =
     useCanvasStore();
   const isEditing = editingTextLayerId === layer.id;
@@ -82,7 +82,10 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
       const onMove = (mv: MouseEvent) => {
         const dx = (mv.clientX - startX) / viewportRef.current.zoom;
         const dy = (mv.clientY - startY) / viewportRef.current.zoom;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          if (!moved) pushHistory();
+          moved = true;
+        }
         if (!moved) return;
         updateTextLayer(frameId, layer.id, {
           x: Math.round(origX + dx),
@@ -98,7 +101,7 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, layer, frameId, inAutoLayout, onReorderDragStart, selectComponent, updateTextLayer]
+    [activeTool, layer, frameId, inAutoLayout, onReorderDragStart, selectComponent, updateTextLayer, pushHistory]
   );
 
   const handleDoubleClick = useCallback(

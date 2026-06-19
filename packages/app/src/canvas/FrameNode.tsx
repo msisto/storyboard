@@ -18,7 +18,7 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderComponent, addTextLayer } =
+  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderComponent, addTextLayer, pushHistory } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
@@ -165,7 +165,10 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         const zoom = viewportRef.current.zoom;
         const dx = (mv.clientX - startX) / zoom;
         const dy = (mv.clientY - startY) / zoom;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          if (!moved) pushHistory();
+          moved = true;
+        }
         if (!moved) return;
         updateFrame(frame.id, {
           x: Math.round(origX + dx),
@@ -181,7 +184,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, frame.id, selectFrame, selectComponent, updateFrame]
+    [activeTool, frame.id, selectFrame, selectComponent, updateFrame, pushHistory]
   );
 
   const getGeometry = useCallback(
@@ -374,6 +377,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         <ResizeHandles
           getGeometry={getGeometry}
           onResize={handleResize}
+          onResizeStart={pushHistory}
           zoom={viewport.zoom}
           hiddenDirections={hiddenDirs.length > 0 ? hiddenDirs : undefined}
         />

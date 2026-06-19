@@ -25,7 +25,7 @@ export function ComponentNode({
   inAutoLayout,
   onReorderDragStart,
 }: ComponentNodeProps) {
-  const { selectComponent, updateComponent, deleteComponent } = useDesignStore();
+  const { selectComponent, updateComponent, deleteComponent, pushHistory } = useDesignStore();
   const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool } =
     useCanvasStore();
 
@@ -108,7 +108,10 @@ export function ComponentNode({
       const onMove = (mv: MouseEvent) => {
         const dx = (mv.clientX - startX) / viewport.zoom;
         const dy = (mv.clientY - startY) / viewport.zoom;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          if (!moved) pushHistory();
+          moved = true;
+        }
         if (!moved) return;
 
         let newX = origX + dx;
@@ -131,7 +134,7 @@ export function ComponentNode({
       window.addEventListener('mouseup', onUp);
     },
     [activeTool, instance.id, instance.absolute, frameId, inAutoLayout,
-     selectComponent, updateComponent, onReorderDragStart, viewport.zoom]
+     selectComponent, updateComponent, onReorderDragStart, pushHistory, viewport.zoom]
   );
 
   const handleDoubleClick = useCallback(
@@ -243,6 +246,7 @@ export function ComponentNode({
         <ResizeHandles
           getGeometry={getGeometry}
           onResize={handleResize}
+          onResizeStart={pushHistory}
           zoom={viewport.zoom}
         />
       )}

@@ -16,6 +16,7 @@ interface DesignStore {
   selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
+  pushHistory: () => void;
   undo: () => void;
   addFrame: (x: number, y: number, width: number, height: number) => string;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
@@ -66,6 +67,15 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       selectedFrameId: null,
       selectedComponentId: null,
       selectedComponentIds: [],
+    }),
+
+  pushHistory: () =>
+    set((state) => {
+      if (!state.file) return state;
+      const last = state.history[state.history.length - 1];
+      // Dedup: don't push if file hasn't changed since the last snapshot
+      if (last?.updatedAt === state.file.updatedAt) return state;
+      return { history: [...state.history, state.file].slice(-MAX_HISTORY) };
     }),
 
   undo: () =>

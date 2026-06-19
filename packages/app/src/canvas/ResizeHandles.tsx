@@ -9,6 +9,7 @@ interface ResizeHandlesProps {
   // accumulation when the parent updates position/size on every mousemove.
   getGeometry: () => ResizeGeometry;
   onResize: (x: number, y: number, width: number, height: number) => void;
+  onResizeStart?: () => void;
   zoom: number;
   hiddenDirections?: Direction[];
 }
@@ -34,11 +35,12 @@ const POSITIONS: Record<Direction, React.CSSProperties> = {
 
 const DIRECTIONS: Direction[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
-export function ResizeHandles({ getGeometry, onResize, zoom, hiddenDirections }: ResizeHandlesProps) {
+export function ResizeHandles({ getGeometry, onResize, onResizeStart, zoom, hiddenDirections }: ResizeHandlesProps) {
   const handleMouseDown = useCallback(
     (e: React.MouseEvent, dir: Direction) => {
       e.stopPropagation();
       e.preventDefault();
+      onResizeStart?.();
 
       const clientX0 = e.clientX;
       const clientY0 = e.clientY;

@@ -2,26 +2,54 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 
-// ── Database ─────────────────────────────────────────────────────────────────
+// ── Designs directory ─────────────────────────────────────────────────────────
+// Design files live in /designs at the repo root, checked in alongside source.
 
-const DB_PATH = path.join(__dirname, '..', 'storyboard.db');
-const db = new Database(DB_PATH);
+const DESIGNS_DIR = path.join(__dirname, '../../../designs');
+if (!fs.existsSync(DESIGNS_DIR)) fs.mkdirSync(DESIGNS_DIR, { recursive: true });
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS files (
-    id        TEXT PRIMARY KEY,
-    name      TEXT NOT NULL,
-    data      TEXT NOT NULL,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER NOT NULL
-  )
-`);
+interface DesignFile {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  [key: string]: unknown;
+}
 
-interface FileRow { id: string; name: string; createdAt: number; updatedAt: number }
-interface FileBody { id: string; name: string; createdAt: number; updatedAt: number }
+function designPath(id: string): string {
+  return path.join(DESIGNS_DIR, `${id}.json`);
+}
+
+function readDesign(id: string): DesignFile | null {
+  const p = designPath(id);
+  if (!fs.existsSync(p)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf8')) as DesignFile;
+  } catch {
+    return null;
+  }
+}
+
+function writeDesign(file: DesignFile): void {
+  fs.writeFileSync(designPath(file.id), JSON.stringify(file, null, 2), 'utf8');
+}
+
+function listDesigns(): Pick<DesignFile, 'id' | 'name' | 'createdAt' | 'updatedAt'>[] {
+  return fs
+    .readdirSync(DESIGNS_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => {
+      const id = f.replace(/\.json$/, '');
+      const design = readDesign(id);
+      if (!design) return null;
+      return { id: design.id, name: design.name, createdAt: design.createdAt, updatedAt: design.updatedAt };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
 
 // ── Express ───────────────────────────────────────────────────────────────────
 
@@ -32,41 +60,33 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
 app.get('/api/files', (_req, res) => {
-  const rows = db
-    .prepare('SELECT id, name, createdAt, updatedAt FROM files ORDER BY updatedAt DESC')
-    .all() as FileRow[];
-  res.json(rows);
+  res.json(listDesigns());
 });
 
 app.get('/api/files/:id', (req, res) => {
-  const row = db.prepare('SELECT data FROM files WHERE id = ?').get(req.params.id) as
-    | { data: string }
-    | undefined;
-  if (!row) return res.status(404).json({ error: 'Not found' });
-  return res.json(JSON.parse(row.data));
+  const design = readDesign(req.params.id);
+  if (!design) return res.status(404).json({ error: 'Not found' });
+  return res.json(design);
 });
 
 app.post('/api/files', (req, res) => {
-  const file = req.body?.file as FileBody | undefined;
+  const file = req.body?.file as DesignFile | undefined;
   if (!file?.id || !file?.name) return res.status(400).json({ error: 'file.id and file.name required' });
-  db.prepare(
-    'INSERT INTO files (id, name, data, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)'
-  ).run(file.id, file.name, JSON.stringify(req.body.file), file.createdAt, file.updatedAt);
+  writeDesign(file);
   return res.status(201).json({ id: file.id, name: file.name, createdAt: file.createdAt, updatedAt: file.updatedAt });
 });
 
 app.put('/api/files/:id', (req, res) => {
-  const file = req.body?.file as FileBody | undefined;
+  const file = req.body?.file as DesignFile | undefined;
   if (!file) return res.status(400).json({ error: 'file required' });
-  const result = db
-    .prepare('UPDATE files SET name = ?, data = ?, updatedAt = ? WHERE id = ?')
-    .run(file.name, JSON.stringify(req.body.file), file.updatedAt, req.params.id) as { changes: number };
-  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  if (!fs.existsSync(designPath(req.params.id))) return res.status(404).json({ error: 'Not found' });
+  writeDesign(file);
   return res.json({ id: req.params.id, name: file.name, updatedAt: file.updatedAt });
 });
 
 app.delete('/api/files/:id', (req, res) => {
-  db.prepare('DELETE FROM files WHERE id = ?').run(req.params.id);
+  const p = designPath(req.params.id);
+  if (fs.existsSync(p)) fs.unlinkSync(p);
   res.status(204).send();
 });
 
@@ -134,5 +154,5 @@ wss.on('connection', (ws) => {
 
 const PORT = 3333;
 server.listen(PORT, () => {
-  console.log(`Storyboard server listening on :${PORT} — DB: ${DB_PATH}`);
+  console.log(`Storyboard server listening on :${PORT} — designs: ${DESIGNS_DIR}`);
 });
