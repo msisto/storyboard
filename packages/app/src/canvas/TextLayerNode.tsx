@@ -3,14 +3,18 @@ import type { TextLayer } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
+import type { ChildGeometry } from './autoLayout';
 
 interface TextLayerNodeProps {
   layer: TextLayer;
   frameId: string;
   isSelected: boolean;
+  computedGeometry?: ChildGeometry;
+  inAutoLayout?: boolean;
+  onReorderDragStart?: (id: string, startX: number, startY: number) => void;
 }
 
-export function TextLayerNode({ layer, frameId, isSelected }: TextLayerNodeProps) {
+export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, inAutoLayout, onReorderDragStart }: TextLayerNodeProps) {
   const { selectComponent, updateTextLayer } = useDesignStore();
   const { activeTool, editingTextLayerId, enterTextEditMode, exitTextEditMode, viewport } =
     useCanvasStore();
@@ -19,6 +23,10 @@ export function TextLayerNode({ layer, frameId, isSelected }: TextLayerNodeProps
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+
+  const effectiveX = computedGeometry?.x ?? layer.x;
+  const effectiveY = computedGeometry?.y ?? layer.y;
+  const effectiveWidth = computedGeometry?.width ?? layer.width;
 
   const sizeEntry = TAILWIND_FONT_SIZES.find((s) => s.key === layer.fontSize)!;
   const weightEntry = TAILWIND_FONT_WEIGHTS.find((w) => w.key === layer.fontWeight)!;
@@ -58,6 +66,12 @@ export function TextLayerNode({ layer, frameId, isSelected }: TextLayerNodeProps
 
       if (e.shiftKey) return;
 
+      // In auto-layout flow: trigger reorder drag
+      if (inAutoLayout && !layer.absolute && onReorderDragStart) {
+        onReorderDragStart(layer.id, e.clientX, e.clientY);
+        return;
+      }
+
       // Free-position drag
       const startX = e.clientX;
       const startY = e.clientY;
@@ -84,7 +98,7 @@ export function TextLayerNode({ layer, frameId, isSelected }: TextLayerNodeProps
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, layer, frameId, selectComponent, updateTextLayer]
+    [activeTool, layer, frameId, inAutoLayout, onReorderDragStart, selectComponent, updateTextLayer]
   );
 
   const handleDoubleClick = useCallback(
@@ -123,11 +137,12 @@ export function TextLayerNode({ layer, frameId, isSelected }: TextLayerNodeProps
       tabIndex={-1}
       style={{
         position: 'absolute',
-        left: layer.x,
-        top: layer.y,
+        left: effectiveX,
+        top: effectiveY,
+        width: effectiveWidth,
         outline: isSelected && !isEditing ? '2px solid #0066FF' : 'none',
         outlineOffset: 2,
-        cursor: isEditing ? 'text' : activeTool === 'select' ? 'move' : 'default',
+        cursor: isEditing ? 'text' : inAutoLayout && !layer.absolute ? 'grab' : activeTool === 'select' ? 'move' : 'default',
         userSelect: isEditing ? 'text' : 'none',
         opacity: layer.locked ? 0.5 : 1,
       }}

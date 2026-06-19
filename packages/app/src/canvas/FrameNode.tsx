@@ -18,7 +18,7 @@ interface FrameNodeProps {
 const MIN_SIZE = 50;
 
 export function FrameNode({ frame, isSelected }: FrameNodeProps) {
-  const { selectFrame, updateFrame, selectedComponentId, selectedComponentIds, selectComponent, reorderComponent, addTextLayer } =
+  const { selectFrame, updateFrame, selectedComponentIds, selectComponent, reorderComponent, addTextLayer } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
@@ -94,16 +94,20 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         const id = draggingIdRef.current;
         if (id !== null && idx !== null) {
           const f = frameRef.current;
-          const all = f.components;
-          const fromIdx = all.findIndex((c) => c.id === id);
-          const flowComps = all.filter((c) => !c.absolute && c.visible && c.id !== id);
-          const targetComp = flowComps[idx];
-          const toIdx = targetComp
-            ? all.findIndex((c) => c.id === targetComp.id)
-            : all.length;
-          if (fromIdx !== -1 && fromIdx !== toIdx) {
-            reorderComponent(f.id, fromIdx, toIdx);
+          const isComponent = f.components.some((c) => c.id === id);
+          if (isComponent) {
+            const all = f.components;
+            const fromIdx = all.findIndex((c) => c.id === id);
+            const flowComps = all.filter((c) => !c.absolute && c.visible && c.id !== id);
+            const targetComp = flowComps[idx];
+            const toIdx = targetComp
+              ? all.findIndex((c) => c.id === targetComp.id)
+              : all.length;
+            if (fromIdx !== -1 && fromIdx !== toIdx) {
+              reorderComponent(f.id, fromIdx, toIdx);
+            }
           }
+          // Text layer reorder (within text layers) not yet supported — drop is a no-op
         }
         draggingIdRef.current = null;
         setInsertionIndex(null);
@@ -344,6 +348,9 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             layer={tl}
             frameId={frame.id}
             isSelected={selectedComponentIds.includes(tl.id)}
+            computedGeometry={layout.components[tl.id]}
+            inAutoLayout={!!frame.autoLayout && !tl.absolute}
+            onReorderDragStart={handleReorderDragStart as (id: string, x: number, y: number) => void}
           />
         ))}
 
@@ -352,6 +359,14 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         {comments.map((comment) => (
           <CommentPin key={comment.id} comment={comment} />
         ))}
+
+        {/* Transparent overlay that captures clicks anywhere in the frame when the text tool is active */}
+        {activeTool === 'text' && (
+          <div
+            style={{ position: 'absolute', inset: 0, zIndex: 999, cursor: 'text' }}
+            onClick={handleFrameClick}
+          />
+        )}
       </div>
 
       {/* Resize handles only when the frame itself is selected, not when a child component is */}

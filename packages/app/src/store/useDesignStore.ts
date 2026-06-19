@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, TextLayer } from '../types';
+import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, TextLayer, TailwindFontSize, TailwindFontWeight } from '../types';
+import { TAILWIND_FONT_SIZES } from '../types';
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -29,7 +30,7 @@ interface DesignStore {
   addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
   resolveComment: (id: string) => void;
   addReply: (commentId: string, reply: Omit<CommentReply, 'id' | 'timestamp'>) => void;
-  addTextLayer: (frameId: string, partial: Pick<TextLayer, 'x' | 'y'>) => string;
+  addTextLayer: (frameId: string, partial: { x: number; y: number; fontSize?: TailwindFontSize; fontWeight?: TailwindFontWeight; content?: string; label?: string }) => string;
   updateTextLayer: (frameId: string, layerId: string, patch: Partial<TextLayer>) => void;
   deleteTextLayer: (frameId: string, layerId: string) => void;
 }
@@ -323,15 +324,19 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     const id = uid();
     set((state) => {
       if (!state.file) return state;
+      const fontSize = partial.fontSize ?? 'base';
+      const sizeEntry = TAILWIND_FONT_SIZES.find((s) => s.key === fontSize);
       const newLayer: TextLayer = {
         id,
         type: 'text',
-        label: 'Text',
-        content: 'Text',
+        label: partial.label ?? partial.content?.slice(0, 24) ?? 'Text',
+        content: partial.content ?? 'Text',
         x: partial.x,
         y: partial.y,
-        fontSize: 'base',
-        fontWeight: 'normal',
+        width: 200,
+        height: sizeEntry?.lineHeight ?? 24,
+        fontSize,
+        fontWeight: partial.fontWeight ?? 'normal',
         color: '#111827',
         visible: true,
         locked: false,

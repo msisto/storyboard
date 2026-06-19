@@ -93,11 +93,16 @@ export interface TextLayer {
   content: string;
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   fontSize: TailwindFontSize;
   fontWeight: TailwindFontWeight;
   color: string;
   visible: boolean;
   locked: boolean;
+  absolute?: boolean;
+  widthMode?: SizingMode;
+  heightMode?: SizingMode;
 }
 
 // ── Frame ─────────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { Canvas } from './canvas/Canvas';
 import { Toolbar } from './components/Toolbar';
 import { LayersPanel } from './components/LayersPanel';
 import { ComponentPalette } from './components/ComponentPalette';
+import { TextPalette } from './components/TextPalette';
 import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
@@ -75,7 +76,7 @@ function StorybookErrorScreen({ error, onRetry }: { error: string; onRetry: () =
   );
 }
 
-type LeftTab = 'layers' | 'components';
+type LeftTab = 'layers' | 'components' | 'text';
 
 // Comment placement modal
 function CommentModal({
@@ -343,9 +344,12 @@ export default function App() {
     return () => window.removeEventListener('storyboard:place-comment', handler);
   }, []);
 
-  // Drag-drop from component palette onto canvas
+  // Drag-drop from component palette or text palette onto canvas
   const handleCanvasDragOver = useCallback((e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes('application/x-storybook-story')) {
+    if (
+      e.dataTransfer.types.includes('application/x-storybook-story') ||
+      e.dataTransfer.types.includes('application/x-text-style')
+    ) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
@@ -354,55 +358,54 @@ export default function App() {
   const handleCanvasDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      const raw = e.dataTransfer.getData('application/x-storybook-story');
-      if (!raw) return;
 
-      const story: StorybookStory = JSON.parse(raw);
       const state = useDesignStore.getState();
       const viewport = useCanvasStore.getState().viewport;
       const rect = canvasRef.current!.getBoundingClientRect();
-
-      // Convert screen drop position to world coordinates
       const worldX = (e.clientX - rect.left - viewport.x) / viewport.zoom;
       const worldY = (e.clientY - rect.top - viewport.y) / viewport.zoom;
 
-      // Find which frame the cursor landed inside
       const frames = state.file?.frames ?? [];
       let targetFrame = frames.find(
-        (f) =>
-          worldX >= f.x &&
-          worldX <= f.x + f.width &&
-          worldY >= f.y &&
-          worldY <= f.y + f.height
+        (f) => worldX >= f.x && worldX <= f.x + f.width && worldY >= f.y && worldY <= f.y + f.height
       );
 
-      // If not inside any frame, create one at the drop position
-      if (!targetFrame) {
+      const ensureFrame = () => {
+        if (targetFrame) return targetFrame;
         if (frames.length === 0) {
-          const newId = state.addFrame(
-            Math.round(worldX - 200),
-            Math.round(worldY - 100),
-            600,
-            400
-          );
-          targetFrame = useDesignStore.getState().file?.frames.find((f) => f.id === newId);
-        } else {
-          // Fall back to the selected frame or the first frame
-          const fallbackId = state.selectedFrameId ?? frames[0].id;
-          targetFrame = frames.find((f) => f.id === fallbackId);
+          const newId = state.addFrame(Math.round(worldX - 200), Math.round(worldY - 100), 600, 400);
+          return useDesignStore.getState().file?.frames.find((f) => f.id === newId);
         }
+        const fallbackId = state.selectedFrameId ?? frames[0].id;
+        return frames.find((f) => f.id === fallbackId);
+      };
+
+      // ── Text style drop ──────────────────────────────────────────────────
+      const textRaw = e.dataTransfer.getData('application/x-text-style');
+      if (textRaw) {
+        const { fontSize, fontWeight } = JSON.parse(textRaw) as { fontSize: string; fontWeight: string };
+        const frame = ensureFrame();
+        if (!frame) return;
+        const relX = Math.max(0, Math.round(worldX - frame.x));
+        const relY = Math.max(0, Math.round(worldY - frame.y));
+        const id = state.addTextLayer(frame.id, { x: relX, y: relY, fontSize: fontSize as never, fontWeight: fontWeight as never });
+        requestAnimationFrame(() => useCanvasStore.getState().enterTextEditMode(id));
+        return;
       }
 
-      if (!targetFrame) return;
-
-      const relX = worldX - targetFrame.x;
-      const relY = worldY - targetFrame.y;
-
-      addComponent(targetFrame.id, {
+      // ── Component (Storybook story) drop ─────────────────────────────────
+      const storyRaw = e.dataTransfer.getData('application/x-storybook-story');
+      if (!storyRaw) return;
+      const story: StorybookStory = JSON.parse(storyRaw);
+      const frame = ensureFrame();
+      if (!frame) return;
+      const relX = worldX - frame.x;
+      const relY = worldY - frame.y;
+      addComponent(frame.id, {
         storybookId: story.id,
         title: story.title,
         name: story.name,
-        x: Math.max(0, Math.round(relX - 100)), // center on cursor
+        x: Math.max(0, Math.round(relX - 100)),
         y: Math.max(0, Math.round(relY - 40)),
         width: 200,
         height: 80,
@@ -449,7 +452,7 @@ export default function App() {
         >
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb' }}>
-            {(['layers', 'components'] as LeftTab[]).map((tab) => (
+            {(['layers', 'components', 'text'] as LeftTab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setLeftTab(tab)}
@@ -472,7 +475,7 @@ export default function App() {
           </div>
 
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            {leftTab === 'layers' ? <LayersPanel /> : <ComponentPalette />}
+            {leftTab === 'layers' ? <LayersPanel /> : leftTab === 'components' ? <ComponentPalette /> : <TextPalette />}
           </div>
         </div>
 

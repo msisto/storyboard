@@ -1,4 +1,5 @@
-import type { Frame, AutoLayoutSettings, ComponentInstance } from '../types';
+import type { Frame, AutoLayoutSettings, SizingMode } from '../types';
+import { TAILWIND_FONT_SIZES } from '../types';
 
 export interface ChildGeometry {
   x: number;
@@ -13,38 +14,81 @@ export interface ComputedLayout {
   frameHeight: number;
 }
 
+// Minimum shape needed by the layout engine — satisfied by both ComponentInstance and TextLayer
+interface FlowItem {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible: boolean;
+  absolute?: boolean;
+  widthMode?: SizingMode;
+  heightMode?: SizingMode;
+}
+
+function textLayerNaturalHeight(fontSize: string): number {
+  return TAILWIND_FONT_SIZES.find((s) => s.key === fontSize)?.lineHeight ?? 24;
+}
+
+function toFlowItem(item: { id: string; x: number; y: number; width?: number; height?: number; visible: boolean; absolute?: boolean; widthMode?: SizingMode; heightMode?: SizingMode; fontSize?: string }, fallbackW = 200): FlowItem {
+  return {
+    id: item.id,
+    x: item.x,
+    y: item.y,
+    width: item.width ?? fallbackW,
+    height: item.height ?? (item.fontSize ? textLayerNaturalHeight(item.fontSize) : 40),
+    visible: item.visible,
+    absolute: item.absolute,
+    widthMode: item.widthMode,
+    heightMode: item.heightMode,
+  };
+}
+
 export function computeAutoLayout(frame: Frame): ComputedLayout {
-  // Pass-through when auto layout is not enabled
   if (!frame.autoLayout) {
     const components: Record<string, ChildGeometry> = {};
     for (const c of frame.components) {
       components[c.id] = { x: c.x, y: c.y, width: c.width, height: c.height };
+    }
+    for (const t of frame.textLayers ?? []) {
+      components[t.id] = {
+        x: t.x,
+        y: t.y,
+        width: t.width ?? 200,
+        height: t.height ?? textLayerNaturalHeight(t.fontSize),
+      };
     }
     return { components, frameWidth: frame.width, frameHeight: frame.height };
   }
 
   const al = frame.autoLayout;
 
+  // Build combined flow: components first, then text layers
+  const allItems: FlowItem[] = [
+    ...frame.components.map((c) => toFlowItem(c)),
+    ...(frame.textLayers ?? []).map((t) => toFlowItem(t)),
+  ];
+
   if (al.direction === 'horizontal') {
-    return computeHorizontal(frame, al);
+    return computeHorizontal(frame, al, allItems);
   } else {
-    return computeVertical(frame, al);
+    return computeVertical(frame, al, allItems);
   }
 }
 
 // ── Horizontal ────────────────────────────────────────────────────────────────
 
-function computeHorizontal(frame: Frame, al: AutoLayoutSettings): ComputedLayout {
+function computeHorizontal(frame: Frame, al: AutoLayoutSettings, allItems: FlowItem[]): ComputedLayout {
   const result: Record<string, ChildGeometry> = {};
 
-  // Absolute children pass through unchanged
-  for (const c of frame.components) {
+  for (const c of allItems) {
     if (c.absolute || !c.visible) {
       result[c.id] = { x: c.x, y: c.y, width: c.width, height: c.height };
     }
   }
 
-  const flow = frame.components.filter((c) => !c.absolute && c.visible);
+  const flow = allItems.filter((c) => !c.absolute && c.visible);
   if (flow.length === 0) {
     return {
       components: result,
@@ -53,12 +97,9 @@ function computeHorizontal(frame: Frame, al: AutoLayoutSettings): ComputedLayout
     };
   }
 
-  // 1. Resolve child widths
   const hugFrame = al.widthMode === 'hug';
   const fillCount = flow.filter((c) => c.widthMode === 'fill').length;
-  const fixedTotal = flow
-    .filter((c) => c.widthMode !== 'fill')
-    .reduce((s, c) => s + c.width, 0);
+  const fixedTotal = flow.filter((c) => c.widthMode !== 'fill').reduce((s, c) => s + c.width, 0);
   const gapTotal = Math.max(0, flow.length - 1) * al.gap;
   const innerW = frame.width - al.paddingLeft - al.paddingRight;
   const fillWidth =
@@ -68,24 +109,17 @@ function computeHorizontal(frame: Frame, al: AutoLayoutSettings): ComputedLayout
 
   const resolvedW = new Map<string, number>();
   for (const c of flow) {
-    if (c.widthMode === 'fill') {
-      resolvedW.set(c.id, hugFrame ? c.width : fillWidth);
-    } else {
-      resolvedW.set(c.id, c.width);
-    }
+    resolvedW.set(c.id, c.widthMode === 'fill' ? (hugFrame ? c.width : fillWidth) : c.width);
   }
 
-  // 2. Resolve child heights
   const counterAvail = frame.height - al.paddingTop - al.paddingBottom;
   const resolvedH = new Map<string, number>();
   for (const c of flow) {
     resolvedH.set(c.id, c.heightMode === 'fill' ? Math.max(0, counterAvail) : c.height);
   }
 
-  // 3. Build rows (wrap support)
-  const rows = al.wrap ? buildHorizontalRows(flow, resolvedW, innerW, al.gap) : [flow];
+  const rows = al.wrap ? buildRows(flow, resolvedW, innerW, al.gap) : [flow];
 
-  // 4. Assign positions
   let rowTopY = al.paddingTop;
   for (const row of rows) {
     const rowW = row.reduce((s, c) => s + (resolvedW.get(c.id) ?? c.width), 0);
@@ -105,26 +139,24 @@ function computeHorizontal(frame: Frame, al: AutoLayoutSettings): ComputedLayout
     rowTopY += rowH + al.gap;
   }
 
-  // 5. Hug dimensions
   const frameWidth = hugFrame ? hugHorizontalWidth(rows, resolvedW, al) : frame.width;
-  const frameHeight =
-    al.heightMode === 'hug' ? hugHorizontalHeight(rows, resolvedH, al) : frame.height;
+  const frameHeight = al.heightMode === 'hug' ? hugHorizontalHeight(rows, resolvedH, al) : frame.height;
 
   return { components: result, frameWidth, frameHeight };
 }
 
 // ── Vertical ──────────────────────────────────────────────────────────────────
 
-function computeVertical(frame: Frame, al: AutoLayoutSettings): ComputedLayout {
+function computeVertical(frame: Frame, al: AutoLayoutSettings, allItems: FlowItem[]): ComputedLayout {
   const result: Record<string, ChildGeometry> = {};
 
-  for (const c of frame.components) {
+  for (const c of allItems) {
     if (c.absolute || !c.visible) {
       result[c.id] = { x: c.x, y: c.y, width: c.width, height: c.height };
     }
   }
 
-  const flow = frame.components.filter((c) => !c.absolute && c.visible);
+  const flow = allItems.filter((c) => !c.absolute && c.visible);
   if (flow.length === 0) {
     return {
       components: result,
@@ -133,12 +165,9 @@ function computeVertical(frame: Frame, al: AutoLayoutSettings): ComputedLayout {
     };
   }
 
-  // 1. Resolve child heights (primary axis = vertical)
   const hugFrame = al.heightMode === 'hug';
   const fillCount = flow.filter((c) => c.heightMode === 'fill').length;
-  const fixedTotal = flow
-    .filter((c) => c.heightMode !== 'fill')
-    .reduce((s, c) => s + c.height, 0);
+  const fixedTotal = flow.filter((c) => c.heightMode !== 'fill').reduce((s, c) => s + c.height, 0);
   const gapTotal = Math.max(0, flow.length - 1) * al.gap;
   const innerH = frame.height - al.paddingTop - al.paddingBottom;
   const fillHeight =
@@ -148,24 +177,15 @@ function computeVertical(frame: Frame, al: AutoLayoutSettings): ComputedLayout {
 
   const resolvedH = new Map<string, number>();
   for (const c of flow) {
-    if (c.heightMode === 'fill') {
-      resolvedH.set(c.id, hugFrame ? c.height : fillHeight);
-    } else {
-      resolvedH.set(c.id, c.height);
-    }
+    resolvedH.set(c.id, c.heightMode === 'fill' ? (hugFrame ? c.height : fillHeight) : c.height);
   }
 
-  // 2. Resolve child widths (counter axis = horizontal)
   const counterAvail = frame.width - al.paddingLeft - al.paddingRight;
   const resolvedW = new Map<string, number>();
   for (const c of flow) {
     resolvedW.set(c.id, c.widthMode === 'fill' ? Math.max(0, counterAvail) : c.width);
   }
 
-  // 3. Single column (vertical does not wrap in this impl)
-  const rows = [flow];
-
-  // 4. Assign positions
   const colH = flow.reduce((s, c) => s + (resolvedH.get(c.id) ?? c.height), 0);
   const effectiveGap = computeEffectiveGap(al.primaryAlign, flow.length, innerH, colH, al.gap);
   const startY = computeStartX(al.primaryAlign, al.paddingTop, frame.height - al.paddingBottom, colH, al.gap, flow.length);
@@ -180,23 +200,17 @@ function computeVertical(frame: Frame, al: AutoLayoutSettings): ComputedLayout {
     cursor += ch + effectiveGap;
   }
 
-  // 5. Hug dimensions
-  const frameWidth = al.widthMode === 'hug' ? hugVerticalWidth(rows, resolvedW, al) : frame.width;
-  const frameHeight = hugFrame ? hugVerticalHeight(rows, resolvedH, al) : frame.height;
+  const frameWidth = al.widthMode === 'hug' ? hugVerticalWidth(flow, resolvedW, al) : frame.width;
+  const frameHeight = hugFrame ? hugVerticalHeight(flow, resolvedH, al) : frame.height;
 
   return { components: result, frameWidth, frameHeight };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function buildHorizontalRows(
-  flow: ComponentInstance[],
-  resolvedW: Map<string, number>,
-  innerW: number,
-  gap: number
-): ComponentInstance[][] {
-  const rows: ComponentInstance[][] = [];
-  let row: ComponentInstance[] = [];
+function buildRows(flow: FlowItem[], resolvedW: Map<string, number>, innerW: number, gap: number): FlowItem[][] {
+  const rows: FlowItem[][] = [];
+  let row: FlowItem[] = [];
   let rowW = 0;
 
   for (const c of flow) {
@@ -263,50 +277,31 @@ function counterAlignOffset(
   }
 }
 
-function hugHorizontalWidth(
-  rows: ComponentInstance[][],
-  resolvedW: Map<string, number>,
-  al: AutoLayoutSettings
-): number {
+function hugHorizontalWidth(rows: FlowItem[][], resolvedW: Map<string, number>, al: AutoLayoutSettings): number {
   const maxRowW = Math.max(
     0,
     ...rows.map((row) => {
       const itemsW = row.reduce((s, c) => s + (resolvedW.get(c.id) ?? c.width), 0);
-      const gaps = Math.max(0, row.length - 1) * al.gap;
-      return itemsW + gaps;
+      return itemsW + Math.max(0, row.length - 1) * al.gap;
     })
   );
   return al.paddingLeft + maxRowW + al.paddingRight;
 }
 
-function hugHorizontalHeight(
-  rows: ComponentInstance[][],
-  resolvedH: Map<string, number>,
-  al: AutoLayoutSettings
-): number {
-  const totalRowH = rows.reduce((s, row) => {
-    return s + Math.max(0, ...row.map((c) => resolvedH.get(c.id) ?? c.height));
-  }, 0);
-  const rowGaps = Math.max(0, rows.length - 1) * al.gap;
-  return al.paddingTop + totalRowH + rowGaps + al.paddingBottom;
+function hugHorizontalHeight(rows: FlowItem[][], resolvedH: Map<string, number>, al: AutoLayoutSettings): number {
+  const totalRowH = rows.reduce(
+    (s, row) => s + Math.max(0, ...row.map((c) => resolvedH.get(c.id) ?? c.height)),
+    0
+  );
+  return al.paddingTop + totalRowH + Math.max(0, rows.length - 1) * al.gap + al.paddingBottom;
 }
 
-function hugVerticalWidth(
-  rows: ComponentInstance[][],
-  resolvedW: Map<string, number>,
-  al: AutoLayoutSettings
-): number {
-  const maxW = Math.max(0, ...rows.flat().map((c) => resolvedW.get(c.id) ?? c.width));
+function hugVerticalWidth(flow: FlowItem[], resolvedW: Map<string, number>, al: AutoLayoutSettings): number {
+  const maxW = Math.max(0, ...flow.map((c) => resolvedW.get(c.id) ?? c.width));
   return al.paddingLeft + maxW + al.paddingRight;
 }
 
-function hugVerticalHeight(
-  rows: ComponentInstance[][],
-  resolvedH: Map<string, number>,
-  al: AutoLayoutSettings
-): number {
-  const flow = rows.flat();
+function hugVerticalHeight(flow: FlowItem[], resolvedH: Map<string, number>, al: AutoLayoutSettings): number {
   const itemsH = flow.reduce((s, c) => s + (resolvedH.get(c.id) ?? c.height), 0);
-  const gaps = Math.max(0, flow.length - 1) * al.gap;
-  return al.paddingTop + itemsH + gaps + al.paddingBottom;
+  return al.paddingTop + itemsH + Math.max(0, flow.length - 1) * al.gap + al.paddingBottom;
 }
