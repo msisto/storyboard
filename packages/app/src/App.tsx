@@ -282,26 +282,52 @@ export default function App() {
       if (!raw) return;
 
       const story: StorybookStory = JSON.parse(raw);
-      const frameId = selectedFrameId ?? useDesignStore.getState().file?.frames[0]?.id;
-      if (!frameId) return;
-
-      const frame = useDesignStore.getState().file?.frames.find((f) => f.id === frameId);
-      if (!frame) return;
-
+      const state = useDesignStore.getState();
       const viewport = useCanvasStore.getState().viewport;
       const rect = canvasRef.current!.getBoundingClientRect();
+
+      // Convert screen drop position to world coordinates
       const worldX = (e.clientX - rect.left - viewport.x) / viewport.zoom;
       const worldY = (e.clientY - rect.top - viewport.y) / viewport.zoom;
 
-      const relX = worldX - frame.x;
-      const relY = worldY - frame.y;
+      // Find which frame the cursor landed inside
+      const frames = state.file?.frames ?? [];
+      let targetFrame = frames.find(
+        (f) =>
+          worldX >= f.x &&
+          worldX <= f.x + f.width &&
+          worldY >= f.y &&
+          worldY <= f.y + f.height
+      );
 
-      addComponent(frameId, {
+      // If not inside any frame, create one at the drop position
+      if (!targetFrame) {
+        if (frames.length === 0) {
+          const newId = state.addFrame(
+            Math.round(worldX - 200),
+            Math.round(worldY - 100),
+            600,
+            400
+          );
+          targetFrame = useDesignStore.getState().file?.frames.find((f) => f.id === newId);
+        } else {
+          // Fall back to the selected frame or the first frame
+          const fallbackId = state.selectedFrameId ?? frames[0].id;
+          targetFrame = frames.find((f) => f.id === fallbackId);
+        }
+      }
+
+      if (!targetFrame) return;
+
+      const relX = worldX - targetFrame.x;
+      const relY = worldY - targetFrame.y;
+
+      addComponent(targetFrame.id, {
         storybookId: story.id,
         title: story.title,
         name: story.name,
-        x: Math.max(0, Math.round(relX)),
-        y: Math.max(0, Math.round(relY)),
+        x: Math.max(0, Math.round(relX - 100)), // center on cursor
+        y: Math.max(0, Math.round(relY - 40)),
         width: 200,
         height: 80,
         args: {},
@@ -310,7 +336,7 @@ export default function App() {
         label: `${story.title.split('/').pop()} · ${story.name}`,
       });
     },
-    [selectedFrameId, addComponent]
+    [addComponent]
   );
 
   if (status === 'error' && error) {
