@@ -20,6 +20,8 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
 
   const sizeRef = useRef({ x: frame.x, y: frame.y, w: frame.width, h: frame.height });
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
 
   const handleFrameClick = useCallback(
     (e: React.MouseEvent) => {
@@ -30,6 +32,43 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
       }
     },
     [activeTool, frame.id, selectFrame, selectComponent]
+  );
+
+  const handleFrameMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0 || activeTool !== 'select') return;
+      e.stopPropagation();
+
+      selectFrame(frame.id);
+      selectComponent(null);
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const origX = sizeRef.current.x;
+      const origY = sizeRef.current.y;
+      let moved = false;
+
+      const onMove = (mv: MouseEvent) => {
+        const zoom = viewportRef.current.zoom;
+        const dx = (mv.clientX - startX) / zoom;
+        const dy = (mv.clientY - startY) / zoom;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+        if (!moved) return;
+        updateFrame(frame.id, {
+          x: Math.round(origX + dx),
+          y: Math.round(origY + dy),
+        });
+      };
+
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [activeTool, frame.id, selectFrame, selectComponent, updateFrame]
   );
 
   const getGeometry = useCallback(
@@ -79,11 +118,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
         boxSizing: 'border-box',
       }}
       onClick={handleFrameClick}
-      onMouseDown={(e) => {
-        if (activeTool === 'select' && e.button === 0) {
-          selectFrame(frame.id);
-        }
-      }}
+      onMouseDown={handleFrameMouseDown}
     >
       {/* Frame label */}
       <div
