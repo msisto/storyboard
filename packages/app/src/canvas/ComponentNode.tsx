@@ -148,6 +148,7 @@ export function ComponentNode({
       }
 
       // Free-position drag (existing behaviour)
+      document.body.style.userSelect = 'none';
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
@@ -175,6 +176,7 @@ export function ComponentNode({
       };
 
       const onUp = () => {
+        document.body.style.userSelect = '';
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
       };
@@ -285,6 +287,7 @@ export function ComponentNode({
           width: '100%',
           height: '100%',
           border: 'none',
+          background: 'transparent',
           pointerEvents: isInteracting ? 'auto' : 'none',
         }}
         title={instance.label}

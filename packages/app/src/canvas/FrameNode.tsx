@@ -67,6 +67,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
     (compId: string, startClientX: number, startClientY: number) => {
       draggingIdRef.current = compId;
       selectComponent(compId);
+      document.body.style.userSelect = 'none';
 
       const onMove = (mv: MouseEvent) => {
         if (
@@ -104,6 +105,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
       };
 
       const onUp = () => {
+        document.body.style.userSelect = '';
         const idx = insertionIndexRef.current;
         const id = draggingIdRef.current;
         if (id !== null && idx !== null) {
@@ -160,6 +162,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
 
       selectFrame(frame.id);
       selectComponent(null);
+      document.body.style.userSelect = 'none';
 
       const startX = e.clientX;
       const startY = e.clientY;
@@ -183,6 +186,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
       };
 
       const onUp = () => {
+        document.body.style.userSelect = '';
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
       };

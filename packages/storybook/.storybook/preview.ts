@@ -22,7 +22,8 @@ const SizeReporter: Decorator = (Story) => {
       'min-height:unset!important;' +
       'align-items:unset!important;' +
       'justify-content:unset!important;' +
-      'flex-direction:unset!important}';
+      'flex-direction:unset!important;' +
+      'background:transparent!important}';
     document.head.appendChild(style);
     return () => style.remove();
   }, [instanceId]);

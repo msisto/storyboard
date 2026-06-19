@@ -47,7 +47,7 @@ http://localhost:6006/iframe.html?id=ui-button--default&viewMode=story&instanceI
 
 Storybook already supports this URL format for story embeds. Storyboard adds two things on top:
 
-**Auto-sizing.** When a component is first dropped onto the canvas, the iframe needs a size. A global decorator in `.storybook/preview.ts` (the `SizeReporter`) wraps every story in a `ResizeObserver`, measures the rendered component's natural dimensions, and posts them to the parent window via `postMessage({ type: 'storyboard:story-size', instanceId, width, height })`. The canvas listens for this message and resizes the iframe container to fit. Once measured, the wrapper switches to `display: contents` so the component can fill the iframe on resize.
+**Auto-sizing.** A global decorator in `.storybook/preview.ts` (the `SizeReporter`) wraps every story in a permanent `display: block; width: 100%` div and attaches a `ResizeObserver` to it. On every size change it posts `{ type: 'storyboard:story-size', instanceId, width, height }` to the parent window. The canvas updates the iframe container to match. Because the wrapper always occupies full iframe width, components using `w-full` measure against the correct width, and height re-measures correctly as text content grows or shrinks. The iframe background is transparent so components with rounded corners blend cleanly with the frame background color.
 
 **Interact mode.** By default a transparent overlay sits above the iframe so the canvas can intercept mouse events for dragging and selection. Double-clicking a component removes the overlay and passes pointer events directly to the iframe — you can type in inputs, click buttons, trigger hover states. Press Escape to exit.
 
@@ -162,14 +162,16 @@ import React from 'react';
 import type { Decorator } from '@storybook/react';
 import { useArgs } from '@storybook/preview-api';
 
-// Auto-sizes the iframe container when a component is first dropped on the canvas.
+// Reports the story's natural size to the canvas on every resize.
+// The wrapper is permanently block/full-width so w-full components measure correctly
+// and height updates as content grows (e.g. editable text). Background is transparent
+// so components with rounded corners blend with the frame background color.
 const SizeReporter: Decorator = (Story) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const instanceId = React.useMemo(
     () => new URLSearchParams(window.location.search).get('instanceId'),
     []
   );
-  const [measured, setMeasured] = React.useState(false);
 
   React.useLayoutEffect(() => {
     if (!instanceId) return;
@@ -177,7 +179,7 @@ const SizeReporter: Decorator = (Story) => {
     style.textContent =
       'body,#storybook-root{display:block!important;padding:0!important;margin:0!important;' +
       'min-height:unset!important;align-items:unset!important;justify-content:unset!important;' +
-      'flex-direction:unset!important}';
+      'flex-direction:unset!important;background:transparent!important}';
     document.head.appendChild(style);
     return () => style.remove();
   }, [instanceId]);
@@ -192,7 +194,6 @@ const SizeReporter: Decorator = (Story) => {
           { type: 'storyboard:story-size', instanceId, width: offsetWidth, height: offsetHeight },
           '*'
         );
-        setMeasured(true);
       }
     };
     const observer = new ResizeObserver(report);
@@ -202,7 +203,7 @@ const SizeReporter: Decorator = (Story) => {
 
   return React.createElement(
     'div',
-    { ref, style: { display: measured ? 'contents' : 'inline-block' } },
+    { ref, style: { display: 'block', width: '100%' } },
     React.createElement(Story as React.ComponentType, null)
   );
 };
@@ -338,7 +339,7 @@ Frames shown in the timeline represent your demo flow. To remove a frame from th
 
 ### JSX export
 
-Menu (≡) → Export JSX generates a React component for any frame. Use it as handoff scaffolding.
+Menu (≡) → Export JSX generates a React component for any frame. Auto-layout frames produce a `className` string using Tailwind utility classes for all spacing and flex properties (e.g. `flex flex-col gap-4 p-4 items-start`). Width, height, and background stay as inline `style`. Use it as handoff scaffolding.
 
 ---
 
@@ -470,3 +471,4 @@ designs/
 - **No component library abstraction** — each frame has its own independent component list. There's no concept of reusable symbols or shared instances across frames.
 - **JSX export doesn't handle nested auto-layout** — the exporter generates correct flexbox JSX for top-level auto-layout frames but does not recurse into nested frames.
 - **Hardcoded story renders** — stories that use `render: () => (...)` with no `args` won't show editable props. Migrate content to `args` to make it editable.
+- **Box shadows are clipped at iframe boundaries** — each component renders inside an iframe sized to its natural dimensions. CSS `box-shadow` that bleeds outside the component's bounding box is clipped by the iframe viewport. A future fix would add a transparent padding buffer around each story so shadows have room to render without affecting the reported component size.

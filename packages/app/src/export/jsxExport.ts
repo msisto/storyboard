@@ -1,4 +1,4 @@
-import type { ComponentInstance, Frame, StorybookStory, TextLayer } from '../types';
+import type { AutoLayoutSettings, ComponentInstance, Frame, StorybookStory, TextLayer } from '../types';
 
 const FONT_SIZE_MAP: Record<string, string> = {
   xs: '0.75rem',
@@ -16,13 +16,60 @@ const FONT_WEIGHT_MAP: Record<string, number> = {
   medium: 500, semibold: 600, bold: 700, extrabold: 800, black: 900,
 };
 
-const PRIMARY_ALIGN: Record<string, string> = {
-  start: 'flex-start', center: 'center', end: 'flex-end', 'space-between': 'space-between',
+// Maps pixel values (from the Tailwind spacing scale) to Tailwind token strings
+const PX_TO_TAILWIND: Record<number, string> = {
+  0: '0', 2: '0.5', 4: '1', 6: '1.5', 8: '2', 10: '2.5', 12: '3', 14: '3.5',
+  16: '4', 20: '5', 24: '6', 28: '7', 32: '8', 36: '9', 40: '10', 44: '11',
+  48: '12', 56: '14', 64: '16', 80: '20', 96: '24', 112: '28', 128: '32',
 };
 
-const COUNTER_ALIGN: Record<string, string> = {
-  start: 'flex-start', center: 'center', end: 'flex-end',
+const COUNTER_ALIGN_CLASS: Record<string, string> = {
+  start: 'items-start', center: 'items-center', end: 'items-end',
 };
+
+const PRIMARY_ALIGN_CLASS: Record<string, string> = {
+  start: 'justify-start', center: 'justify-center', end: 'justify-end', 'space-between': 'justify-between',
+};
+
+function pxClass(prefix: string, px: number): string | null {
+  const token = PX_TO_TAILWIND[px];
+  return token !== undefined ? `${prefix}-${token}` : null;
+}
+
+function buildAutoLayoutClassName(al: AutoLayoutSettings): string {
+  const classes: string[] = ['flex'];
+
+  classes.push(al.direction === 'horizontal' ? 'flex-row' : 'flex-col');
+
+  const gap = pxClass('gap', al.gap);
+  if (gap) classes.push(gap);
+
+  const pt = al.paddingTop ?? 0;
+  const pr = al.paddingRight ?? 0;
+  const pb = al.paddingBottom ?? 0;
+  const pl = al.paddingLeft ?? 0;
+
+  if (pt === pr && pr === pb && pb === pl) {
+    const p = pxClass('p', pt);
+    if (p) classes.push(p);
+  } else if (pt === pb && pr === pl) {
+    const py = pxClass('py', pt);
+    const px = pxClass('px', pr);
+    if (py) classes.push(py);
+    if (px) classes.push(px);
+  } else {
+    const ptc = pxClass('pt', pt); if (ptc) classes.push(ptc);
+    const prc = pxClass('pr', pr); if (prc) classes.push(prc);
+    const pbc = pxClass('pb', pb); if (pbc) classes.push(pbc);
+    const plc = pxClass('pl', pl); if (plc) classes.push(plc);
+  }
+
+  const counterClass = COUNTER_ALIGN_CLASS[al.counterAlign] ?? 'items-start';
+  const primaryClass = PRIMARY_ALIGN_CLASS[al.primaryAlign] ?? 'justify-start';
+  classes.push(counterClass, primaryClass);
+
+  return classes.join(' ');
+}
 
 function propsString(instance: ComponentInstance): string {
   return Object.entries(instance.args)
@@ -51,7 +98,6 @@ export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): strin
   if (frame.autoLayout) {
     const al = frame.autoLayout;
 
-    // Build combined ordered list
     const allItems: Array<ComponentInstance | TextLayer> = [
       ...frame.components.filter((c) => c.visible),
       ...(frame.textLayers ?? []).filter((t) => t.visible !== false),
@@ -80,20 +126,7 @@ export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): strin
       })
       .join('\n');
 
-    const containerStyle = [
-      `display: 'flex'`,
-      `flexDirection: '${al.direction === 'horizontal' ? 'row' : 'column'}'`,
-      `gap: ${al.gap}`,
-      `paddingTop: ${al.paddingTop}`,
-      `paddingRight: ${al.paddingRight}`,
-      `paddingBottom: ${al.paddingBottom}`,
-      `paddingLeft: ${al.paddingLeft}`,
-      `alignItems: '${COUNTER_ALIGN[al.counterAlign] ?? 'flex-start'}'`,
-      `justifyContent: '${PRIMARY_ALIGN[al.primaryAlign] ?? 'flex-start'}'`,
-      `width: ${frame.width}`,
-      `height: ${frame.height}`,
-      `background: '${frame.backgroundColor}'`,
-    ].join(', ');
+    const className = buildAutoLayoutClassName(al);
 
     const importBlock = [...imports]
       .map((name) => `import { ${name} } from '@/components/ui/${name.toLowerCase()}';`)
@@ -103,7 +136,7 @@ export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): strin
 
 export function ${fnName}() {
   return (
-    <div style={{ ${containerStyle} }}>
+    <div className="${className}" style={{ width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
 ${children}
     </div>
   );
