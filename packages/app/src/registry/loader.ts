@@ -1,10 +1,10 @@
 import type { StorybookIndex, StorybookStory } from '../types';
 
-const STORYBOOK_URL = 'http://localhost:6006';
+const STORYBOOK_URL = import.meta.env.VITE_STORYBOOK_URL ?? 'http://localhost:6006';
 
 export async function fetchStorybookIndex(): Promise<StorybookStory[]> {
   const res = await fetch(`${STORYBOOK_URL}/index.json`);
-  if (!res.ok) throw new Error(`Storybook not reachable at localhost:6006 (${res.status})`);
+  if (!res.ok) throw new Error(`Storybook not reachable at ${STORYBOOK_URL} (${res.status})`);
   const index: StorybookIndex = await res.json();
   return Object.values(index.entries).filter(
     (entry) => !entry.type || entry.type === 'story'

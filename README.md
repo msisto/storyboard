@@ -390,8 +390,5 @@ designs/
 
 ## Known limitations
 
-- **Storybook URL is hardcoded** — `localhost:6006` appears in `loader.ts`, `buildIframeUrl.ts`, and `vite.config.ts`. There's no config file or environment variable yet.
 - **No component library abstraction** — each frame has its own independent component list. There's no concept of reusable symbols or shared instances across frames.
-- **JSX export is position-only** — exported components use absolute positioning. No flexbox, grid, or responsive layout is generated.
-- **Fixed-pixel frames** — frames have explicit pixel dimensions. There's no viewport or breakpoint simulation.
-- **Hardcoded author name** — the collaborator display name is `'User'` in `App.tsx`. There's no login or profile system.
+- **JSX export doesn't handle nested auto-layout** — the exporter generates correct flexbox JSX for top-level auto-layout frames but does not recurse into nested frames.

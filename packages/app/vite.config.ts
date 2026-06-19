@@ -7,7 +7,7 @@ export default defineConfig({
     port: 1618,
     proxy: {
       '/storybook': {
-        target: 'http://localhost:6006',
+        target: process.env.VITE_STORYBOOK_URL ?? 'http://localhost:6006',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/storybook/, ''),
       },

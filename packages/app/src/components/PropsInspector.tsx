@@ -5,6 +5,13 @@ import { computeAutoLayout } from '../canvas/autoLayout';
 import type { ArgDefinition, AutoLayoutSettings, SizingMode } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 
+const DEVICE_PRESETS = [
+  { label: 'iPhone', w: 390, h: 844 },
+  { label: 'iPad', w: 820, h: 1180 },
+  { label: 'Desktop', w: 1440, h: 900 },
+  { label: 'MacBook', w: 1280, h: 800 },
+] as const;
+
 const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
   direction: 'horizontal',
   wrap: false,
@@ -611,6 +618,30 @@ export function PropsInspector() {
                   boxSizing: 'border-box',
                 }}
               />
+            </div>
+
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {DEVICE_PRESETS.map((preset) => {
+                const active = selectedFrameData.width === preset.w && selectedFrameData.height === preset.h;
+                return (
+                  <button
+                    key={preset.label}
+                    onClick={() => { pushH(); updateFrame(selectedFrameData.id, { width: preset.w, height: preset.h }); }}
+                    style={{
+                      fontSize: 10,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      border: `1px solid ${active ? '#0066FF' : '#d1d5db'}`,
+                      background: active ? '#eff6ff' : 'transparent',
+                      color: active ? '#0066FF' : '#6b7280',
+                      cursor: 'pointer',
+                      fontWeight: active ? 600 : 400,
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

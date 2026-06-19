@@ -3,7 +3,7 @@ export function buildIframeUrl(
   args: Record<string, unknown>,
   instanceId?: string
 ): string {
-  const base = 'http://localhost:6006/iframe.html';
+  const base = `${import.meta.env.VITE_STORYBOOK_URL ?? 'http://localhost:6006'}/iframe.html`;
   const params = new URLSearchParams({ id: storybookId, viewMode: 'story' });
 
   if (instanceId) params.set('instanceId', instanceId);

@@ -9,6 +9,8 @@ import type { Tool } from '../types';
 interface ToolbarProps {
   connected: boolean;
   peerCount: number;
+  author: string;
+  onAuthorChange: (name: string) => void;
 }
 
 interface ExportModalProps {
@@ -119,7 +121,7 @@ function ExportModal({ onClose }: ExportModalProps) {
   );
 }
 
-export function Toolbar({ connected, peerCount }: ToolbarProps) {
+export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo } = useCanvasStore();
   const { file, newFile, loadFile, selectedFrameId } = useDesignStore();
   const [showExport, setShowExport] = useState(false);
@@ -253,6 +255,23 @@ export function Toolbar({ connected, peerCount }: ToolbarProps) {
         ))}
 
         <div style={{ flex: 1 }} />
+
+        {/* Author name */}
+        <input
+          type="text"
+          value={author}
+          onChange={(e) => onAuthorChange(e.target.value)}
+          placeholder="Your name"
+          style={{
+            width: 120,
+            padding: '3px 7px',
+            fontSize: 12,
+            border: '1px solid #e5e7eb',
+            borderRadius: 4,
+            outline: 'none',
+            color: '#374151',
+          }}
+        />
 
         {/* Zoom controls */}
         <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />

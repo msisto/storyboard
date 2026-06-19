@@ -33,7 +33,7 @@ const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
 
 type AppView = 'loading' | 'picker' | 'canvas';
 
-const AUTHOR = 'User';
+const AUTHOR_KEY = 'storyboard:author';
 
 function StorybookErrorScreen({ error, onRetry }: { error: string; onRetry: () => void }) {
   return (
@@ -83,12 +83,14 @@ type LeftTab = 'layers' | 'components' | 'text';
 function CommentModal({
   onSubmit,
   onCancel,
+  initialAuthor,
 }: {
   onSubmit: (text: string, author: string) => void;
   onCancel: () => void;
+  initialAuthor: string;
 }) {
   const [text, setText] = useState('');
-  const [author, setAuthor] = useState(AUTHOR);
+  const [author, setAuthor] = useState(initialAuthor);
 
   return (
     <div
@@ -157,7 +159,12 @@ export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, reorderFrame } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, setViewportXY } = useCanvasStore();
-  const { connected, peerCount, sendCursor, peerCursors } = useCommentSync(AUTHOR);
+  const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
+  const handleAuthorChange = useCallback((name: string) => {
+    setAuthorName(name);
+    localStorage.setItem(AUTHOR_KEY, name);
+  }, []);
+  const { connected, peerCount, sendCursor, peerCursors } = useCommentSync(authorName || 'Anonymous');
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const [view, setView] = useState<AppView>('loading');
@@ -463,7 +470,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <Toolbar connected={connected} peerCount={peerCount} />
+      <Toolbar connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange} />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left panel */}
@@ -571,6 +578,7 @@ export default function App() {
             setTool('select');
           }}
           onCancel={() => setPendingComment(null)}
+          initialAuthor={authorName}
         />
       )}
     </div>
