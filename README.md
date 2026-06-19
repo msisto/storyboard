@@ -136,6 +136,8 @@ cd storyboard
 npm install
 ```
 
+> If `npm install` fails with an esbuild version mismatch, run `npm install --legacy-peer-deps`. This is a known issue when your system has a conflicting esbuild version from another project.
+
 ### Run everything
 
 ```bash
@@ -153,14 +155,25 @@ Open `http://localhost:1618`. The first screen is the file picker. Create a new 
 
 ## Connecting your own Storybook
 
+> **Storyboard runs as a separate process alongside your Storybook dev server.** There is nothing to `npm install` into your project — just copy the decorator code below into `.storybook/preview.ts` and point the canvas at your Storybook URL.
+
 ### Step 1 — Add the decorators
 
-Copy the following into your `.storybook/preview.ts` and add both decorators. These are the only code changes required in your project.
+The import path for `useArgs` changed in Storybook 9:
+
+| Version | Import |
+|---------|--------|
+| Storybook 8 | `import { useArgs } from '@storybook/preview-api'` |
+| Storybook 9 / 10 | `import { useArgs } from 'storybook/preview-api'` |
+
+Copy the following into your `.storybook/preview.ts`, adjusting the import for your version.
 
 ```typescript
 import React from 'react';
 import type { Decorator } from '@storybook/react';
-import { useArgs } from '@storybook/preview-api';
+// Storybook 8:  import { useArgs } from '@storybook/preview-api';
+// Storybook 9+: import { useArgs } from 'storybook/preview-api';
+import { useArgs } from 'storybook/preview-api';
 
 // Reports the story's natural size to the canvas on every resize.
 // The wrapper is permanently block/full-width so w-full components measure correctly
