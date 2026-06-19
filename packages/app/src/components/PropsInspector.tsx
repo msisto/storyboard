@@ -12,6 +12,64 @@ import {
 import type { ArgDefinition, AutoLayoutSettings, Frame, SizingMode } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 
+// shadcn/ui semantic foreground / text tokens
+const SEMANTIC_FG_TOKENS = [
+  { token: 'foreground',            label: 'foreground',            desc: 'Default text' },
+  { token: 'muted-foreground',      label: 'muted-foreground',      desc: 'Subdued / secondary text' },
+  { token: 'card-foreground',       label: 'card-foreground',       desc: 'Text on card' },
+  { token: 'primary',               label: 'primary',               desc: 'Primary brand color' },
+  { token: 'primary-foreground',    label: 'primary-foreground',    desc: 'Text on primary' },
+  { token: 'secondary-foreground',  label: 'secondary-foreground',  desc: 'Text on secondary surface' },
+  { token: 'accent-foreground',     label: 'accent-foreground',     desc: 'Text on accent' },
+  { token: 'destructive',           label: 'destructive',           desc: 'Error / danger' },
+  { token: 'destructive-foreground',label: 'destructive-foreground',desc: 'Text on destructive' },
+] as const;
+
+function TextColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {SEMANTIC_FG_TOKENS.map(({ token, label, desc }) => {
+        const tv = `hsl(var(--${token}))`;
+        const selected = value === tv;
+        return (
+          <div
+            key={token}
+            onClick={() => onChange(tv)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '4px 6px',
+              borderRadius: 5,
+              cursor: 'pointer',
+              background: selected ? 'var(--sb-accent-bg)' : 'transparent',
+              border: selected ? '1px solid var(--sb-accent)' : '1px solid transparent',
+            }}
+          >
+            <div style={{
+              width: 24,
+              height: 24,
+              borderRadius: 4,
+              background: tv,
+              border: '1px solid var(--sb-border)',
+              flexShrink: 0,
+            }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{label}</div>
+              <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
+            </div>
+            {selected && (
+              <svg style={{ marginLeft: 'auto' }} width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6l3 3 5-5" stroke="var(--sb-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // shadcn/ui semantic background tokens
 const SEMANTIC_BG_TOKENS = [
   { token: 'background', label: 'background',   desc: 'Page / app background' },
@@ -653,22 +711,10 @@ export function PropsInspector() {
               <label style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>
                 Color
               </label>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input
-                  type="color"
-                  value={tl.color}
-                  onFocus={pushH}
-                  onChange={(e) => patch({ color: e.target.value })}
-                  style={{ width: 32, height: 28, padding: 2, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer' }}
-                />
-                <input
-                  type="text"
-                  value={tl.color}
-                  onFocus={pushH}
-                  onChange={(e) => patch({ color: e.target.value })}
-                  style={{ flex: 1, padding: '4px 6px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none', fontFamily: 'monospace' }}
-                />
-              </div>
+              <TextColorPicker
+                value={tl.color ?? 'hsl(var(--foreground))'}
+                onChange={(v) => { pushH(); patch({ color: v }); }}
+              />
             </div>
           </div>
         </Section>
