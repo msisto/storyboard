@@ -43,12 +43,21 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
 
   const innerDivRef = useRef<HTMLDivElement>(null);
 
+  const REORDER_DRAG_THRESHOLD = 6; // px — must move this far before treating as a drag
+
   const handleReorderDragStart = useCallback(
-    (compId: string) => {
+    (compId: string, startClientX: number, startClientY: number) => {
       draggingIdRef.current = compId;
       selectComponent(compId);
 
       const onMove = (mv: MouseEvent) => {
+        // Ignore tiny jitter during a click — only activate drag after real movement
+        if (
+          Math.hypot(mv.clientX - startClientX, mv.clientY - startClientY) <
+          REORDER_DRAG_THRESHOLD
+        )
+          return;
+
         const f = frameRef.current;
         const al = f.autoLayout;
         if (!al || !innerDivRef.current) return;
@@ -313,7 +322,7 @@ export function FrameNode({ frame, isSelected }: FrameNodeProps) {
             isSelected={selectedComponentIds.includes(component.id)}
             computedGeometry={layout.components[component.id]}
             inAutoLayout={!!frame.autoLayout && !component.absolute}
-            onReorderDragStart={handleReorderDragStart}
+            onReorderDragStart={handleReorderDragStart as (id: string, x: number, y: number) => void}
           />
         ))}
 

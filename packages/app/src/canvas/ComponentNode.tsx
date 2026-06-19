@@ -12,7 +12,7 @@ interface ComponentNodeProps {
   isSelected: boolean;
   computedGeometry?: ChildGeometry;
   inAutoLayout?: boolean;
-  onReorderDragStart?: (id: string) => void;
+  onReorderDragStart?: (id: string, startX: number, startY: number) => void;
 }
 
 const MIN_SIZE = 40;
@@ -94,7 +94,7 @@ export function ComponentNode({
 
       // In auto layout flow: hand off drag to FrameNode for reorder
       if (inAutoLayout && !instance.absolute) {
-        onReorderDragStart?.(instance.id);
+        onReorderDragStart?.(instance.id, e.clientX, e.clientY);
         return;
       }
 
