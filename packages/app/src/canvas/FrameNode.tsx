@@ -57,8 +57,9 @@ function ChildFrameNode({
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+  const outerRef = useRef<HTMLDivElement>(null);
 
-  // "Entered" = a direct child item is currently selected (user has clicked into the group).
+  // "Entered" = a direct child item is currently selected.
   const isEntered = selectedComponentIds.some(
     (id) =>
       frame.components.some((c) => c.id === id) ||
@@ -66,18 +67,18 @@ function ChildFrameNode({
       (frame.frames ?? []).some((f) => f.id === id)
   );
 
-  // Show the group-selection overlay whenever neither selected nor entered.
-  // The overlay intercepts all pointer events so clicks on inner items reach the group first.
-  const showOverlay = !isSelected && !isEntered;
+  // The overlay stays present until the user explicitly enters the group via
+  // double-click. A single click always selects/drags the group — so click →
+  // release → click+drag still moves the whole group, not an item inside.
+  const showOverlay = !isEntered;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
       e.stopPropagation();
       // preventDefault stops the browser from initiating a native drag, which
-      // would swallow our window mousemove listener. To keep keyboard shortcuts
-      // working we also explicitly blur any focused input (e.g. the inspector),
-      // since preventDefault would otherwise keep focus there.
+      // would swallow our window mousemove listener. Explicitly blur any focused
+      // inspector input so keyboard shortcuts keep working after group selection.
       e.preventDefault();
       const active = document.activeElement as HTMLElement | null;
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
@@ -131,6 +132,33 @@ function ChildFrameNode({
     [frame.id, inAutoLayout, selectComponent, onReorderDragStart, updateFrame, pushHistory]
   );
 
+  // Double-click enters the group: geometric hit-test against the frame's
+  // children to find and select whichever item is under the cursor.
+  const handleOverlayDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const rect = outerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const zoom = viewportRef.current.zoom;
+      const relX = (e.clientX - rect.left) / zoom;
+      const relY = (e.clientY - rect.top) / zoom;
+
+      const frameLayout = computeAutoLayout(frame);
+      const children = [
+        ...frame.components.map((c) => ({ id: c.id, geo: frameLayout.components[c.id] })),
+        ...(frame.textLayers ?? []).map((t) => ({ id: t.id, geo: frameLayout.components[t.id] })),
+        ...(frame.frames ?? []).map((f) => ({ id: f.id, geo: frameLayout.components[f.id] })),
+      ];
+      const hit = children.find(
+        ({ geo }) =>
+          geo && relX >= geo.x && relX < geo.x + geo.width && relY >= geo.y && relY < geo.y + geo.height
+      );
+      if (hit) selectComponent(hit.id);
+    },
+    [frame, selectComponent]
+  );
+
   const getChildGeometry = useCallback(
     () => ({ x: sizeRef.current.x, y: sizeRef.current.y, width: sizeRef.current.w, height: sizeRef.current.h }),
     []
@@ -147,6 +175,7 @@ function ChildFrameNode({
     // Outer div owns the selection outline — keeps it at the correct bounds.
     // ResizeHandles also render here (outside the clipped content area).
     <div
+      ref={outerRef}
       data-component-node
       style={{
         position: 'absolute',
@@ -163,12 +192,14 @@ function ChildFrameNode({
         <FrameNode frame={{ ...frame, x: 0, y: 0 }} isSelected={false} isChildFrame />
       </div>
 
-      {/* Overlay: intercepts all clicks so the first interaction selects the group,
-          not an individual item inside it. Removed once selected or entered. */}
+      {/* Overlay stays until the user double-clicks to enter the group.
+          Single click = select group / drag group.
+          Double click = enter group, selecting the item under the cursor. */}
       {showOverlay && (
         <div
           style={{ position: 'absolute', inset: 0, zIndex: 10 }}
           onMouseDown={handleMouseDown}
+          onDoubleClick={handleOverlayDoubleClick}
         />
       )}
 
