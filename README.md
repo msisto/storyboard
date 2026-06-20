@@ -338,6 +338,8 @@ npm run dev -w packages/app & npm run dev -w packages/server
 | Constrain drag to axis | Shift + drag |
 | Delete selected | Delete |
 | Undo | Cmd/Ctrl+Z |
+| Enter child frame / group | Double-click |
+| Exit child frame / group | Escape |
 
 ### Adding components to a frame
 
@@ -360,6 +362,8 @@ Open the Text tab to browse the Tailwind type scale. Click a row to add a text l
 Select the frame tool (F) and draw inside an existing frame to create a child frame. The child frame participates in its parent's auto-layout flow. Select a child frame to see its own auto-layout controls, sizing modes, position, and background in the inspector. Child frames appear nested in the layers panel with indentation.
 
 Drag a story onto a child frame to add components directly into it. Drop handling resolves the deepest frame at the drop point, so nested frames receive drops naturally.
+
+**Selection model (Figma-style):** Clicking a child frame always selects the frame as a unit — you can drag it, resize it, or inspect its properties. To interact with items *inside* the child frame, double-click it. This enters the frame and lets you select, move, or edit its individual children. Press Escape to step back out to the parent level. A single drag-in-one-motion gesture always moves the whole group; a deliberate double-click is required to reach the contents.
 
 ### Auto-layout
 
