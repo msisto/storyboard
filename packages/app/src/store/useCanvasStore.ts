@@ -32,7 +32,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   editingTextLayerId: null,
   globalInteractMode: false,
 
-  setTool: (tool) => set({ activeTool: tool, interactingComponentId: null, editingTextLayerId: null }),
+  setTool: (tool) => set({ activeTool: tool, interactingComponentId: null, editingTextLayerId: null, globalInteractMode: false }),
 
   pan: (dx, dy) =>
     set((state) => ({
