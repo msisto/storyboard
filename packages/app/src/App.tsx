@@ -157,7 +157,7 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, toggleFrameSelection, reorderFrame } = useDesignStore();
+  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
@@ -615,7 +615,7 @@ export default function App() {
               letterSpacing: '0.05em',
             }}
           >
-            Inspect
+            {selectedFrameId || selectedComponentId || selectedFrameIds.length > 0 ? 'Inspect' : 'Theme'}
           </div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <PropsInspector />

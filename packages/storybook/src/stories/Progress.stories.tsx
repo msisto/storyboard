@@ -17,21 +17,21 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { value: 60, className: 'w-80' },
+  args: { value: 60, className: 'w-full' },
 };
 
 export const Empty: Story = {
-  args: { value: 0, className: 'w-80' },
+  args: { value: 0, className: 'w-full' },
 };
 
 export const Complete: Story = {
-  args: { value: 100, className: 'w-80' },
+  args: { value: 100, className: 'w-full' },
 };
 
 export const WithLabel: Story = {
   args: { value: 45 },
   render: ({ value }) => (
-    <div className="w-80 space-y-2">
+    <div className="w-full space-y-2">
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Uploading...</span>
         <span className="font-medium">{value}%</span>

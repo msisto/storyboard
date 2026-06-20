@@ -388,7 +388,7 @@ function SelectIcon() {
       <path
         d="M5 3L5 18.5L9.5 14L12.5 21L14.5 20.2L11.5 13.2L18 13.2L5 3Z"
         fill="currentColor"
-        stroke="white"
+        stroke="var(--sb-bg)"
         strokeWidth="1"
         strokeLinejoin="round"
       />
@@ -410,7 +410,7 @@ function SaveIcon() {
       <rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.3" fill="none" />
       <rect x="4" y="1.5" width="6" height="4" rx="0.5" fill="currentColor" />
       <rect x="3" y="7.5" width="8" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
-      <rect x="5.5" y="2" width="1.5" height="2.5" rx="0.5" fill="white" />
+      <rect x="5.5" y="2" width="1.5" height="2.5" rx="0.5" fill="var(--sb-bg)" />
     </svg>
   );
 }

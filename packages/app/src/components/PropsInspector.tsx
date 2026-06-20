@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
@@ -589,11 +590,7 @@ export function PropsInspector() {
   );
 
   if (!selectedFrameData && !selectedComponentData && !selectedTextLayer) {
-    return (
-      <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
-        Select a frame or component
-      </div>
-    );
+    return <ThemeEditor />;
   }
 
   // Multi-frame alignment panel

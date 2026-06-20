@@ -17,7 +17,7 @@ type Story = StoryObj<TabsArgs>;
 export const Default: Story = {
   args: { defaultValue: 'account' },
   render: ({ defaultValue }) => (
-    <Tabs defaultValue={defaultValue} className="w-96">
+    <Tabs defaultValue={defaultValue} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="account">Account</TabsTrigger>
         <TabsTrigger value="password">Password</TabsTrigger>
@@ -55,7 +55,7 @@ export const Default: Story = {
 export const ThreeTabs: Story = {
   args: { defaultValue: 'music' },
   render: ({ defaultValue }) => (
-    <Tabs defaultValue={defaultValue} className="w-80">
+    <Tabs defaultValue={defaultValue} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="music">Music</TabsTrigger>
         <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
@@ -77,7 +77,7 @@ export const ThreeTabs: Story = {
 export const WithDisabled: Story = {
   args: { defaultValue: 'overview' },
   render: ({ defaultValue }) => (
-    <Tabs defaultValue={defaultValue} className="w-72">
+    <Tabs defaultValue={defaultValue} className="w-full">
       <TabsList>
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="analytics">Analytics</TabsTrigger>

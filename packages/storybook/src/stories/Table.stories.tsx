@@ -61,7 +61,7 @@ export const Default: Story = {
 
 export const Simple: Story = {
   render: () => (
-    <Table className="w-96">
+    <Table className="w-full">
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>

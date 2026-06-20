@@ -213,7 +213,7 @@ export function StoryboardTimeline({
                 />
               )}
 
-              {/* Board card */}
+              {/* Frame card */}
               <div
                 style={{
                   width: CARD_WIDTH,
@@ -268,7 +268,7 @@ export function StoryboardTimeline({
                       width: 14,
                       height: 14,
                       borderRadius: '50%',
-                      background: 'var(--sb-text-3)',
+                      background: 'rgba(0,0,0,0.45)',
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
@@ -349,7 +349,7 @@ export function StoryboardTimeline({
           }}
         >
           <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
-          <span>Add Board</span>
+          <span>Add Frame</span>
         </button>
       </div>
     </div>

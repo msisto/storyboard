@@ -15,7 +15,7 @@ type Story = StoryObj<AccordionArgs>;
 export const Default: Story = {
   args: { type: 'single', collapsible: true },
   render: ({ type, collapsible }) => (
-    <Accordion type={type} collapsible={collapsible} className="w-80">
+    <Accordion type={type} collapsible={collapsible} className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>Is it accessible?</AccordionTrigger>
         <AccordionContent>
@@ -41,7 +41,7 @@ export const Default: Story = {
 export const MultipleOpen: Story = {
   args: { type: 'multiple', collapsible: true },
   render: () => (
-    <Accordion type="multiple" className="w-80">
+    <Accordion type="multiple" className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>Getting started</AccordionTrigger>
         <AccordionContent>
@@ -67,7 +67,7 @@ export const MultipleOpen: Story = {
 export const PreOpened: Story = {
   args: { type: 'single', collapsible: true },
   render: () => (
-    <Accordion type="single" defaultValue="item-2" collapsible className="w-80">
+    <Accordion type="single" defaultValue="item-2" collapsible className="w-full">
       <AccordionItem value="item-1">
         <AccordionTrigger>Section one</AccordionTrigger>
         <AccordionContent>Content for section one.</AccordionContent>
