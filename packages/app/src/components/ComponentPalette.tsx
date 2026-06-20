@@ -27,7 +27,6 @@ function buildComponentEntries(stories: StorybookStory[]): ComponentEntry[] {
     }
     const entry = map.get(key)!;
     entry.stories.push(story);
-    // prefer a story explicitly named "Default"
     if (story.name.toLowerCase() === 'default') entry.defaultStory = story;
   }
   return [...map.values()];
@@ -91,17 +90,11 @@ function VariantThumbnail({
           <iframe
             src={src}
             style={{
-              width: 258,
-              height: 144,
-              border: 'none',
-              transform: 'scale(0.5)',
-              transformOrigin: '0 0',
-              pointerEvents: 'none',
-              position: 'absolute',
-              top: 0,
-              left: 0,
+              width: 258, height: 144, border: 'none',
+              transform: 'scale(0.5)', transformOrigin: '0 0',
+              pointerEvents: 'none', position: 'absolute', top: 0, left: 0,
             }}
-            title={`${story.name}`}
+            title={story.name}
             tabIndex={-1}
             sandbox="allow-scripts allow-same-origin"
           />
@@ -115,13 +108,9 @@ function VariantThumbnail({
         )}
       </div>
       <div style={{
-        fontSize: 10,
-        color: 'var(--sb-text-2)',
-        textAlign: 'center',
-        padding: '3px 4px 4px',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
+        fontSize: 10, color: 'var(--sb-text-2)', textAlign: 'center',
+        padding: '3px 4px 4px', whiteSpace: 'nowrap',
+        overflow: 'hidden', textOverflow: 'ellipsis',
         background: 'var(--sb-bg)',
       }}>
         {story.name}
@@ -132,46 +121,41 @@ function VariantThumbnail({
 
 // ── VariantPopover ────────────────────────────────────────────────────────────
 
-interface VariantPopoverProps {
-  componentName: string;
+interface ActivePopover {
+  name: string;
   stories: StorybookStory[];
-  onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
   x: number;
   y: number;
 }
 
-function VariantPopover({ componentName, stories, onDragStart, onMouseEnter, onMouseLeave, x, y }: VariantPopoverProps) {
+interface VariantPopoverProps extends ActivePopover {
+  onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}
+
+function VariantPopover({ name, stories, x, y, onDragStart, onMouseEnter, onMouseLeave }: VariantPopoverProps) {
   return createPortal(
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        position: 'fixed',
-        left: x,
-        top: y,
-        width: 280,
-        maxHeight: 340,
+        position: 'fixed', left: x, top: y,
+        width: 280, maxHeight: 340,
         background: 'var(--sb-bg)',
         border: '1px solid var(--sb-border)',
         borderRadius: 8,
         boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
         zIndex: 9999,
-        overflowY: 'auto',
-        overflowX: 'hidden',
+        overflowY: 'auto', overflowX: 'hidden',
       }}
     >
       <div style={{
-        padding: '7px 10px 6px',
-        fontSize: 11,
-        fontWeight: 600,
-        color: 'var(--sb-text-3)',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '0.05em',
-        borderBottom: '1px solid var(--sb-border)',
+        padding: '7px 10px 6px', fontSize: 11, fontWeight: 600,
+        color: 'var(--sb-text-3)', textTransform: 'uppercase' as const,
+        letterSpacing: '0.05em', borderBottom: '1px solid var(--sb-border)',
       }}>
-        {componentName}
+        {name}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 8 }}>
         {stories.map((story) => (
@@ -187,45 +171,42 @@ function VariantPopover({ componentName, stories, onDragStart, onMouseEnter, onM
 
 function ComponentRow({
   entry,
+  myKey,
+  isActive,
+  onEnter,
+  onLeave,
   onDragStart,
 }: {
   entry: ComponentEntry;
+  myKey: string;
+  isActive: boolean;
+  onEnter: (key: string, rect: DOMRect, name: string, stories: StorybookStory[]) => void;
+  onLeave: () => void;
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
   const rowRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
-
-  const show = useCallback(() => {
-    clearTimeout(timer.current);
-    if (rowRef.current) {
-      const r = rowRef.current.getBoundingClientRect();
-      setPos({ x: r.right + 8, y: r.top });
-    }
-    setOpen(true);
-  }, []);
-  const hide = useCallback(() => { timer.current = setTimeout(() => setOpen(false), 100); }, []);
-  useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
-    <div ref={rowRef} onMouseEnter={show} onMouseLeave={hide}>
+    <div
+      ref={rowRef}
+      onMouseEnter={() => {
+        if (rowRef.current) {
+          onEnter(myKey, rowRef.current.getBoundingClientRect(), entry.componentName, entry.stories);
+        }
+      }}
+      onMouseLeave={onLeave}
+      style={{ background: isActive ? 'var(--sb-bg-secondary)' : undefined }}
+    >
       <div
         draggable
         onDragStart={(e) => onDragStart(e, entry.defaultStory)}
         onMouseDown={(e) => e.stopPropagation()}
         className="palette-story-item"
         style={{
-          padding: '4px 8px 4px 16px',
-          fontSize: 12,
-          fontWeight: 500,
-          color: 'var(--sb-text-2)',
-          cursor: 'grab',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          userSelect: 'none',
-          overflow: 'hidden',
+          padding: '4px 8px 4px 16px', fontSize: 12, fontWeight: 500,
+          color: 'var(--sb-text-2)', cursor: 'grab',
+          display: 'flex', alignItems: 'center', gap: 6,
+          userSelect: 'none', overflow: 'hidden',
         }}
       >
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -240,17 +221,6 @@ function ComponentRow({
           </span>
         )}
       </div>
-      {open && (
-        <VariantPopover
-          componentName={entry.componentName}
-          stories={entry.stories}
-          onDragStart={onDragStart}
-          onMouseEnter={show}
-          onMouseLeave={hide}
-          x={pos.x}
-          y={pos.y}
-        />
-      )}
     </div>
   );
 }
@@ -259,63 +229,50 @@ function ComponentRow({
 
 function LocalStoryRow({
   story,
+  myKey,
+  isActive,
+  onEnter,
+  onLeave,
   onDragStart,
 }: {
   story: StorybookStory;
+  myKey: string;
+  isActive: boolean;
+  onEnter: (key: string, rect: DOMRect, name: string, stories: StorybookStory[]) => void;
+  onLeave: () => void;
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
   const rowRef = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
-
-  const show = useCallback(() => {
-    clearTimeout(timer.current);
-    if (rowRef.current) {
-      const r = rowRef.current.getBoundingClientRect();
-      setPos({ x: r.right + 8, y: r.top });
-    }
-    setOpen(true);
-  }, []);
-  const hide = useCallback(() => { timer.current = setTimeout(() => setOpen(false), 100); }, []);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const displayName = story.title.replace(/^Local\//, '');
 
   return (
-    <div ref={rowRef} onMouseEnter={show} onMouseLeave={hide}>
+    <div
+      ref={rowRef}
+      onMouseEnter={() => {
+        if (rowRef.current) {
+          onEnter(myKey, rowRef.current.getBoundingClientRect(), displayName, [story]);
+        }
+      }}
+      onMouseLeave={onLeave}
+      style={{ background: isActive ? 'var(--sb-bg-secondary)' : undefined }}
+    >
       <div
         draggable
         onDragStart={(e) => onDragStart(e, story)}
         onMouseDown={(e) => e.stopPropagation()}
         className="palette-story-item"
         style={{
-          padding: '3px 8px 3px 16px',
-          fontSize: 12,
-          color: 'var(--sb-text-2)',
-          cursor: 'grab',
-          borderRadius: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          userSelect: 'none',
-          overflow: 'hidden',
+          padding: '3px 8px 3px 16px', fontSize: 12,
+          color: 'var(--sb-text-2)', cursor: 'grab', borderRadius: 3,
+          display: 'flex', alignItems: 'center', gap: 5,
+          userSelect: 'none', overflow: 'hidden',
         }}
       >
         <span style={{ fontSize: 9, color: 'var(--sb-accent)', flexShrink: 0 }}>◆</span>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {story.title.replace(/^Local\//, '')}
+          {displayName}
         </span>
       </div>
-      {open && (
-        <VariantPopover
-          componentName={story.title.replace(/^Local\//, '')}
-          stories={[story]}
-          onDragStart={onDragStart}
-          onMouseEnter={show}
-          onMouseLeave={hide}
-          x={pos.x}
-          y={pos.y}
-        />
-      )}
     </div>
   );
 }
@@ -331,6 +288,36 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
   const [search, setSearch] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
+  // ── Single shared popover state ──────────────────────────────────────────
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [activePopover, setActivePopover] = useState<ActivePopover | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleRowEnter = useCallback((key: string, rect: DOMRect, name: string, rowStories: StorybookStory[]) => {
+    clearTimeout(closeTimer.current);
+    setActiveKey(key);
+    setActivePopover({ name, stories: rowStories, x: rect.right + 8, y: rect.top });
+  }, []);
+
+  const handleRowLeave = useCallback(() => {
+    closeTimer.current = setTimeout(() => {
+      setActiveKey(null);
+      setActivePopover(null);
+    }, 150);
+  }, []);
+
+  const handlePopoverEnter = useCallback(() => clearTimeout(closeTimer.current), []);
+
+  const handlePopoverLeave = useCallback(() => {
+    closeTimer.current = setTimeout(() => {
+      setActiveKey(null);
+      setActivePopover(null);
+    }, 150);
+  }, []);
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  // ── Story filtering ───────────────────────────────────────────────────────
   const localStories = useMemo(() => stories.filter((s) => s.title.startsWith('Local/')), [stories]);
   const nonLocal = useMemo(() => stories.filter((s) => !s.title.startsWith('Local/')), [stories]);
 
@@ -413,9 +400,20 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                 {filteredLocal.length}
               </span>
             </div>
-            {filteredLocal.map((story) => (
-              <LocalStoryRow key={story.id} story={story} onDragStart={handleDragStart} />
-            ))}
+            {filteredLocal.map((story) => {
+              const key = `local/${story.id}`;
+              return (
+                <LocalStoryRow
+                  key={story.id}
+                  story={story}
+                  myKey={key}
+                  isActive={activeKey === key}
+                  onEnter={handleRowEnter}
+                  onLeave={handleRowLeave}
+                  onDragStart={handleDragStart}
+                />
+              );
+            })}
             <div style={{ height: 1, background: 'var(--sb-border)', margin: '4px 0' }} />
           </div>
         )}
@@ -439,17 +437,34 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                 <span style={{ fontSize: 9, flexShrink: 0 }}>{isCollapsed ? '▶' : '▼'}</span>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group}</span>
               </div>
-              {!isCollapsed && entries.map((entry) => (
-                <ComponentRow
-                  key={`${entry.groupName}/${entry.componentName}`}
-                  entry={entry}
-                  onDragStart={handleDragStart}
-                />
-              ))}
+              {!isCollapsed && entries.map((entry) => {
+                const key = `${entry.groupName}/${entry.componentName}`;
+                return (
+                  <ComponentRow
+                    key={key}
+                    entry={entry}
+                    myKey={key}
+                    isActive={activeKey === key}
+                    onEnter={handleRowEnter}
+                    onLeave={handleRowLeave}
+                    onDragStart={handleDragStart}
+                  />
+                );
+              })}
             </div>
           );
         })}
       </div>
+
+      {/* Single shared popover — rendered once at this level via portal */}
+      {activePopover && (
+        <VariantPopover
+          {...activePopover}
+          onDragStart={handleDragStart}
+          onMouseEnter={handlePopoverEnter}
+          onMouseLeave={handlePopoverLeave}
+        />
+      )}
     </div>
   );
 }
