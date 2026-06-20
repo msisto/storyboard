@@ -6,6 +6,9 @@ storybook-static/
 .env
 .env.local
 
+# Design files — tracked by the app server, not git
+designs/
+
 # Old SQLite database (replaced by JSON file persistence)
 *.db
 packages/server/storyboard.db
