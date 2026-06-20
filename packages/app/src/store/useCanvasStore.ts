@@ -38,7 +38,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   zoom: (delta, originX, originY) =>
     set((state) => {
       const oldZoom = state.viewport.zoom;
-      const factor = delta > 0 ? 1.1 : 0.9;
+      // Scale proportionally to gesture magnitude so a light touch gives a
+      // small change and a fast pinch gives a larger one. Cap the exponent to
+      // ±0.12 so a single event can never change zoom by more than ~13%.
+      const factor = Math.exp(Math.max(-0.12, Math.min(0.12, delta * 0.003)));
       const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom * factor));
       // Keep the point under the cursor fixed in world space
       const newX = originX - (originX - state.viewport.x) * (newZoom / oldZoom);
