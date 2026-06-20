@@ -45,7 +45,7 @@ function ChildFrameNode({
   inAutoLayout,
   onReorderDragStart,
 }: ChildFrameNodeProps) {
-  const { selectComponent, updateFrame, pushHistory } = useDesignStore();
+  const { selectComponent, updateFrame, pushHistory, selectedComponentIds } = useDesignStore();
   const { viewport } = useCanvasStore();
 
   const x = inAutoLayout ? (computedGeometry?.x ?? frame.x) : frame.x;
@@ -57,6 +57,18 @@ function ChildFrameNode({
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+
+  // "Entered" = a direct child item is currently selected (user has clicked into the group).
+  const isEntered = selectedComponentIds.some(
+    (id) =>
+      frame.components.some((c) => c.id === id) ||
+      (frame.textLayers ?? []).some((t) => t.id === id) ||
+      (frame.frames ?? []).some((f) => f.id === id)
+  );
+
+  // Show the group-selection overlay whenever neither selected nor entered.
+  // The overlay intercepts all pointer events so clicks on inner items reach the group first.
+  const showOverlay = !isSelected && !isEntered;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -130,6 +142,16 @@ function ChildFrameNode({
       onMouseDown={handleMouseDown}
     >
       <FrameNode frame={{ ...frame, x: 0, y: 0 }} isSelected={isSelected} isChildFrame />
+
+      {/* Overlay: intercepts all clicks so the first interaction selects the group,
+          not an individual item inside it. Removed once selected or entered. */}
+      {showOverlay && (
+        <div
+          style={{ position: 'absolute', inset: 0, zIndex: 10 }}
+          onMouseDown={handleMouseDown}
+        />
+      )}
+
       {isSelected && !inAutoLayout && (
         <ResizeHandles
           getGeometry={getChildGeometry}

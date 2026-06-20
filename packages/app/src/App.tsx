@@ -287,7 +287,31 @@ export default function App() {
         if (e.key === 't' || e.key === 'T') setTool('text');
         if (e.key === 'c' || e.key === 'C') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
-        if (e.key === 'Escape') { exitInteractMode(); exitTextEditMode(); }
+        if (e.key === 'Escape') {
+          exitInteractMode();
+          exitTextEditMode();
+          // Pop out of an entered group: if the selected item is a direct child of a
+          // child frame (not the top-level frame itself), select the parent group.
+          const ds = useDesignStore.getState();
+          if (ds.selectedComponentId && ds.file) {
+            const allFrames = ds.file.frames;
+            const parentGroup = (function findDirectParent(frames: Frame[], id: string): Frame | undefined {
+              for (const f of frames) {
+                const isDirect =
+                  f.components.some((c) => c.id === id) ||
+                  (f.textLayers ?? []).some((t) => t.id === id) ||
+                  (f.frames ?? []).some((cf) => cf.id === id);
+                if (isDirect) return f;
+                const found = findDirectParent(f.frames ?? [], id);
+                if (found) return found;
+              }
+            })(allFrames, ds.selectedComponentId);
+            // Only pop up if the parent is a child frame (not a top-level frame)
+            if (parentGroup && !allFrames.some((f) => f.id === parentGroup.id)) {
+              ds.selectComponent(parentGroup.id);
+            }
+          }
+        }
 
         // Shift+A: toggle auto layout on selected frame or selected child frame
         if (e.shiftKey && (e.key === 'A' || e.key === 'a')) {
