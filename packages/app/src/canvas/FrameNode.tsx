@@ -46,7 +46,7 @@ function ChildFrameNode({
   onReorderDragStart,
 }: ChildFrameNodeProps) {
   const { selectComponent, updateFrame, pushHistory, selectedComponentIds } = useDesignStore();
-  const { viewport } = useCanvasStore();
+  const { viewport, globalInteractMode } = useCanvasStore();
 
   const x = inAutoLayout ? (computedGeometry?.x ?? frame.x) : frame.x;
   const y = inAutoLayout ? (computedGeometry?.y ?? frame.y) : frame.y;
@@ -70,7 +70,7 @@ function ChildFrameNode({
   // The overlay stays present until the user explicitly enters the group via
   // double-click. A single click always selects/drags the group — so click →
   // release → click+drag still moves the whole group, not an item inside.
-  const showOverlay = !isEntered;
+  const showOverlay = !isEntered && !globalInteractMode;
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {

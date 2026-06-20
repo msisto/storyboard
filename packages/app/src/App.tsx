@@ -190,7 +190,7 @@ function CommentModal({
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame } = useDesignStore();
-  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan } = useCanvasStore();
+  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, toggleGlobalInteractMode, exitGlobalInteractMode, globalInteractMode } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
     setAuthorName(name);
@@ -287,7 +287,9 @@ export default function App() {
         if (e.key === 't' || e.key === 'T') setTool('text');
         if (e.key === 'c' || e.key === 'C') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
+        if (e.key === 'i' || e.key === 'I') toggleGlobalInteractMode();
         if (e.key === 'Escape') {
+          if (globalInteractMode) { exitGlobalInteractMode(); return; }
           exitInteractMode();
           exitTextEditMode();
           // Pop out of an entered group: if the selected item is a direct child of a

@@ -12,7 +12,7 @@ interface CanvasProps {
 }
 
 export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
-  const { viewport, activeTool, pan, zoom, setTool } = useCanvasStore();
+  const { viewport, activeTool, pan, zoom, setTool, globalInteractMode, exitGlobalInteractMode } = useCanvasStore();
   const { file, addFrame, addChildFrame, selectFrame, selectComponent, selectedFrameId, selectedFrameIds } = useDesignStore();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -208,6 +208,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         overscrollBehavior: 'none',
         background: 'var(--sb-canvas-bg)',
         cursor,
+        boxShadow: globalInteractMode ? 'inset 0 0 0 3px var(--sb-accent)' : 'none',
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -237,6 +238,30 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
       {/* Peer cursors overlay */}
       {peerCursors && peerCursors.size > 0 && (
         <PeerCursors cursors={peerCursors} viewport={viewport} />
+      )}
+
+      {/* Global interact mode badge */}
+      {globalInteractMode && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--sb-accent)',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 500,
+            padding: '4px 12px',
+            borderRadius: 20,
+            whiteSpace: 'nowrap',
+            zIndex: 100,
+            pointerEvents: 'none',
+            letterSpacing: '0.01em',
+          }}
+        >
+          Interact mode · I to exit
+        </div>
       )}
 
       {/* Rubber-band selection for frame tool */}

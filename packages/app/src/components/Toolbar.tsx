@@ -122,7 +122,7 @@ function ExportModal({ onClose }: ExportModalProps) {
 }
 
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
-  const { activeTool, setTool, viewport, zoomTo } = useCanvasStore();
+  const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
   const { file, newFile, loadFile, selectedFrameId } = useDesignStore();
   const { status, loadRegistry } = useRegistryStore();
   const [showExport, setShowExport] = useState(false);
@@ -251,6 +251,24 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             <span style={{ fontSize: 10, color: activeTool === tool.id ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>{tool.key}</span>
           </button>
         ))}
+
+        <button
+          onClick={toggleGlobalInteractMode}
+          title="Global interact mode (I) — all iframes receive pointer events"
+          style={{
+            padding: '5px 9px',
+            border: globalInteractMode ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
+            borderRadius: 4,
+            cursor: 'pointer',
+            background: globalInteractMode ? 'var(--sb-accent-bg)' : 'var(--sb-bg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          <InteractIcon />
+          <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>I</span>
+        </button>
 
         <div style={{ flex: 1 }} />
 
@@ -432,6 +450,14 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <path d="M12 7A5 5 0 1 1 9.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
       <path d="M9.5 1V3.5H12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function InteractIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M4 2.5V9.5L6.5 7.5L8 11L9.5 10.4L8 7H11L4 2.5Z" fill="currentColor" strokeLinejoin="round" />
     </svg>
   );
 }

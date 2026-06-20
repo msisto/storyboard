@@ -29,7 +29,7 @@ export function ComponentNode({
   onReorderDragStart,
 }: ComponentNodeProps) {
   const { selectComponent, updateComponent, deleteComponent, pushHistory } = useDesignStore();
-  const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool } =
+  const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool, globalInteractMode } =
     useCanvasStore();
   const { updateArgDefinitions } = useRegistryStore();
 
@@ -263,8 +263,9 @@ export function ComponentNode({
       onMouseDown={handleContainerMouseDown}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Overlay — sits above iframe to capture pointer events when not interacting */}
-      {!isInteracting && (
+      {/* Overlay — sits above iframe to capture pointer events when not interacting.
+          Hidden in global interact mode so all iframes receive events directly. */}
+      {!isInteracting && !globalInteractMode && (
         <div
           style={{
             position: 'absolute',
@@ -289,7 +290,7 @@ export function ComponentNode({
           height: '100%',
           border: 'none',
           background: 'transparent',
-          pointerEvents: isInteracting ? 'auto' : 'none',
+          pointerEvents: isInteracting || globalInteractMode ? 'auto' : 'none',
         }}
         title={instance.label}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
@@ -305,8 +306,8 @@ export function ComponentNode({
         />
       )}
 
-      {/* Interact mode badge */}
-      {isInteracting && (
+      {/* Per-component interact badge — hidden in global interact mode (canvas shows its own) */}
+      {isInteracting && !globalInteractMode && (
         <div
           style={{
             position: 'absolute',
