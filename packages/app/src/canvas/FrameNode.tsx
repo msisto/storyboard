@@ -73,10 +73,16 @@ function ChildFrameNode({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
-      // stopPropagation prevents the parent frame from also handling this click.
-      // No preventDefault here — we want the browser to move focus naturally so
-      // keyboard shortcuts (e.g. Cmd+−) keep working after group selection.
       e.stopPropagation();
+      // preventDefault stops the browser from initiating a native drag, which
+      // would swallow our window mousemove listener. To keep keyboard shortcuts
+      // working we also explicitly blur any focused input (e.g. the inspector),
+      // since preventDefault would otherwise keep focus there.
+      e.preventDefault();
+      const active = document.activeElement as HTMLElement | null;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        active.blur();
+      }
       selectComponent(frame.id);
 
       if (inAutoLayout) {
