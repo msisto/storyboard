@@ -8,7 +8,7 @@ import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
 import { useRegistryStore } from './registry/useRegistryStore';
-import { useDesignStore } from './store/useDesignStore';
+import { useDesignStore, findFrame } from './store/useDesignStore';
 import { useCanvasStore } from './store/useCanvasStore';
 import { useCommentSync } from './comments/useCommentSync';
 import { useAutoSave } from './store/useAutoSave';
@@ -17,19 +17,51 @@ import { computeAutoLayout } from './canvas/autoLayout';
 import { StoryboardTimeline } from './timeline/StoryboardTimeline';
 import type { AutoLayoutSettings, Frame, StorybookStory } from './types';
 
-const DEFAULT_AUTO_LAYOUT: AutoLayoutSettings = {
-  direction: 'horizontal',
-  wrap: false,
-  gap: 16,
-  paddingTop: 16,
-  paddingRight: 16,
-  paddingBottom: 16,
-  paddingLeft: 16,
-  primaryAlign: 'start',
-  counterAlign: 'start',
-  widthMode: 'fixed',
-  heightMode: 'fixed',
-};
+function inferAutoLayout(frame: Frame): AutoLayoutSettings {
+  type Item = { x: number; y: number; width?: number; height?: number };
+  const allItems: Item[] = [
+    ...frame.components.filter((c) => !c.absolute && c.visible !== false),
+    ...(frame.textLayers ?? []).filter((t) => !t.absolute && t.visible !== false),
+    ...(frame.frames ?? []).filter((f) => !f.absolute && (f.visible ?? true)),
+  ];
+
+  // Detect direction: if items spread further in X than Y, use horizontal.
+  let direction: 'horizontal' | 'vertical' = 'vertical';
+  if (allItems.length >= 2) {
+    const xRange = Math.max(...allItems.map((i) => i.x)) - Math.min(...allItems.map((i) => i.x));
+    const yRange = Math.max(...allItems.map((i) => i.y)) - Math.min(...allItems.map((i) => i.y));
+    if (xRange > yRange) direction = 'horizontal';
+  }
+
+  // Sort by the flow axis and measure gaps between adjacent items.
+  const sorted = [...allItems].sort((a, b) =>
+    direction === 'vertical' ? a.y - b.y : a.x - b.x
+  );
+  const gaps: number[] = [];
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const space = direction === 'vertical'
+      ? b.y - (a.y + (a.height ?? 20))
+      : b.x - (a.x + (a.width ?? 100));
+    if (space > 0) gaps.push(space);
+  }
+  const gap = gaps.length > 0 ? Math.round(gaps.reduce((s, g) => s + g, 0) / gaps.length) : 0;
+
+  return {
+    direction,
+    gap,
+    paddingTop: 0,
+    paddingRight: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    primaryAlign: 'start',
+    counterAlign: 'start',
+    widthMode: 'fixed',
+    heightMode: 'hug',
+    wrap: false,
+  };
+}
 
 type AppView = 'loading' | 'picker' | 'canvas';
 
@@ -257,11 +289,16 @@ export default function App() {
         if (e.key === 'h' || e.key === 'H') setTool('pan');
         if (e.key === 'Escape') { exitInteractMode(); exitTextEditMode(); }
 
-        // Shift+A: toggle auto layout on selected frame
+        // Shift+A: toggle auto layout on selected frame or selected child frame
         if (e.shiftKey && (e.key === 'A' || e.key === 'a')) {
           e.preventDefault();
           const state = useDesignStore.getState();
-          const frame = state.file?.frames.find((f) => f.id === state.selectedFrameId);
+          // If the selected "component" is actually a child frame, target it directly.
+          const childFrame = state.selectedComponentId && state.file
+            ? findFrame(state.file.frames, state.selectedComponentId)
+            : null;
+          const frame: Frame | null | undefined = childFrame
+            ?? state.file?.frames.find((f) => f.id === state.selectedFrameId);
           if (frame) {
             if (frame.autoLayout) {
               const layout = computeAutoLayout(frame);
@@ -271,7 +308,7 @@ export default function App() {
               });
               state.updateFrame(frame.id, { autoLayout: undefined });
             } else {
-              state.updateFrame(frame.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT } });
+              state.updateFrame(frame.id, { autoLayout: inferAutoLayout(frame) });
             }
           }
         }

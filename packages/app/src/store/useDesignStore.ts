@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, TextLayer, TailwindFontSize, TailwindFontWeight } from '../types';
 import { TAILWIND_FONT_SIZES } from '../types';
+import { computeAutoLayout } from '../canvas/autoLayout';
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -639,11 +640,20 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       const selTextLayers = (parent.textLayers ?? []).filter((t) => selSet.has(t.id));
       const selChildFrames = (parent.frames ?? []).filter((f) => selSet.has(f.id));
 
-      // Bounding box over stored positions
+      // When the parent has auto-layout, use computed positions (stored x/y are stale).
+      const computed = parent.autoLayout ? computeAutoLayout(parent).components : null;
+      const pos = (id: string, fallbackX: number, fallbackY: number, w: number, h: number) => {
+        const geo = computed?.[id];
+        return geo
+          ? { x: geo.x, y: geo.y, r: geo.x + geo.width, b: geo.y + geo.height }
+          : { x: fallbackX, y: fallbackY, r: fallbackX + w, b: fallbackY + h };
+      };
+
+      // Bounding box over actual visual positions
       const items = [
-        ...selComponents.map((c) => ({ x: c.x, y: c.y, r: c.x + c.width, b: c.y + c.height })),
-        ...selTextLayers.map((t) => ({ x: t.x, y: t.y, r: t.x + (t.width ?? 100), b: t.y + (t.height ?? 20) })),
-        ...selChildFrames.map((f) => ({ x: f.x, y: f.y, r: f.x + f.width, b: f.y + f.height })),
+        ...selComponents.map((c) => pos(c.id, c.x, c.y, c.width, c.height)),
+        ...selTextLayers.map((t) => pos(t.id, t.x, t.y, t.width ?? 100, t.height ?? 20)),
+        ...selChildFrames.map((f) => pos(f.id, f.x, f.y, f.width, f.height)),
       ];
       const minX = Math.min(...items.map((i) => i.x));
       const minY = Math.min(...items.map((i) => i.y));
@@ -651,6 +661,11 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       const maxB = Math.max(...items.map((i) => i.b));
 
       const childFrameId = uid();
+      const actualPos = (id: string, fallbackX: number, fallbackY: number) => {
+        const geo = computed?.[id];
+        return geo ? { x: geo.x, y: geo.y } : { x: fallbackX, y: fallbackY };
+      };
+
       const childFrame: Frame = {
         id: childFrameId,
         label: 'Group',
@@ -659,9 +674,18 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         width: maxR - minX,
         height: maxB - minY,
         backgroundColor: 'transparent',
-        components: selComponents.map((c) => ({ ...c, x: c.x - minX, y: c.y - minY })),
-        textLayers: selTextLayers.map((t) => ({ ...t, x: t.x - minX, y: t.y - minY })),
-        frames: selChildFrames.map((f) => ({ ...f, x: f.x - minX, y: f.y - minY })),
+        components: selComponents.map((c) => {
+          const { x, y } = actualPos(c.id, c.x, c.y);
+          return { ...c, x: x - minX, y: y - minY };
+        }),
+        textLayers: selTextLayers.map((t) => {
+          const { x, y } = actualPos(t.id, t.x, t.y);
+          return { ...t, x: x - minX, y: y - minY };
+        }),
+        frames: selChildFrames.map((f) => {
+          const { x, y } = actualPos(f.id, f.x, f.y);
+          return { ...f, x: x - minX, y: y - minY };
+        }),
         flowOrder: [
           ...selComponents.map((c) => c.id),
           ...selTextLayers.map((t) => t.id),
