@@ -58,6 +58,27 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  // Receive ctrl+wheel forwarded from iframes so zoom works in global interact mode.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (!e.data || e.data.type !== 'storyboard:wheel') return;
+      const { instanceId, deltaY, clientX, clientY } = e.data as {
+        instanceId: string; deltaY: number; clientX: number; clientY: number;
+      };
+      // Find the iframe by src URL containing the instanceId and translate
+      // its local clientX/Y to canvas-relative coordinates.
+      const iframe = Array.from(document.querySelectorAll('iframe')).find(
+        (el) => el.src.includes(instanceId)
+      );
+      if (!iframe || !rootRef.current) return;
+      const iframeRect = iframe.getBoundingClientRect();
+      const canvasRect = rootRef.current.getBoundingClientRect();
+      zoom(-deltaY, iframeRect.left + clientX - canvasRect.left, iframeRect.top + clientY - canvasRect.top);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [zoom]);
+
   // Keyboard shortcuts for pan tool
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

@@ -238,17 +238,17 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             title={`${tool.label} (${tool.key})`}
             style={{
               padding: '5px 9px',
-              border: activeTool === tool.id ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
+              border: activeTool === tool.id && !globalInteractMode ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
               borderRadius: 4,
               cursor: 'pointer',
-              background: activeTool === tool.id ? 'var(--sb-accent-bg)' : 'var(--sb-bg)',
+              background: activeTool === tool.id && !globalInteractMode ? 'var(--sb-accent-bg)' : 'var(--sb-bg)',
               display: 'flex',
               alignItems: 'center',
               gap: 5,
             }}
           >
             {tool.icon}
-            <span style={{ fontSize: 10, color: activeTool === tool.id ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>{tool.key}</span>
+            <span style={{ fontSize: 10, color: activeTool === tool.id && !globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>{tool.key}</span>
           </button>
         ))}
 

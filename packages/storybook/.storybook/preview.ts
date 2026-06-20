@@ -56,6 +56,21 @@ const SizeReporter: Decorator = (Story) => {
     return () => observer.disconnect();
   }, [instanceId]);
 
+  // Forward ctrl/meta wheel to the parent canvas so zoom works in global interact mode.
+  React.useEffect(() => {
+    if (!instanceId) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      window.parent.postMessage(
+        { type: 'storyboard:wheel', instanceId, deltaY: e.deltaY, clientX: e.clientX, clientY: e.clientY },
+        '*'
+      );
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
+  }, [instanceId]);
+
   // Block wrapper fills iframe width so w-full components size correctly,
   // and remains observable by ResizeObserver so height updates as content changes.
   return React.createElement(
