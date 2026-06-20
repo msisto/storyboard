@@ -28,7 +28,7 @@ function buildComponentEntries(stories: StorybookStory[]): ComponentEntry[] {
     entry.stories.push(story);
     if (story.name.toLowerCase() === 'default') entry.defaultStory = story;
   }
-  return [...map.values()];
+  return [...map.values()].sort((a, b) => a.componentName.localeCompare(b.componentName));
 }
 
 function fuzzyMatch(text: string, query: string): boolean {
@@ -293,7 +293,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
       arr.push(entry);
       map.set(entry.groupName, arr);
     }
-    return map;
+    return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)));
   }, [filteredEntries]);
 
   if (status === 'loading') {

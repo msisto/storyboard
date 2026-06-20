@@ -313,6 +313,10 @@ export default function App() {
             .then((loaded) => useDesignStore.getState().loadFile(loaded))
             .catch(() => {});
         }
+        if (e.key === 'g' || e.key === 'G') {
+          e.preventDefault();
+          useDesignStore.getState().groupSelectedItems();
+        }
         if (e.key === 'd') {
           e.preventDefault();
           const state = useDesignStore.getState();

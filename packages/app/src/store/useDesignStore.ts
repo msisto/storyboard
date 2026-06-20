@@ -87,6 +87,7 @@ interface DesignStore {
   updateTextLayer: (frameId: string, layerId: string, patch: Partial<TextLayer>) => void;
   deleteTextLayer: (frameId: string, layerId: string) => void;
   batchUpdatePositions: (frameId: string, updates: Array<{ id: string; x?: number; y?: number }>) => void;
+  groupSelectedItems: () => void;
 }
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
@@ -607,6 +608,94 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
             }),
           })),
         },
+      };
+    }),
+
+  groupSelectedItems: () =>
+    set((state) => {
+      const { file, selectedComponentIds } = state;
+      if (!file || selectedComponentIds.length < 2) return state;
+
+      const selSet = new Set(selectedComponentIds);
+
+      // Find the immediate parent frame whose direct children include ALL selected ids
+      function findDirectParent(frames: Frame[]): Frame | undefined {
+        for (const f of frames) {
+          const directIds = new Set([
+            ...f.components.map((c) => c.id),
+            ...(f.textLayers ?? []).map((t) => t.id),
+            ...(f.frames ?? []).map((cf) => cf.id),
+          ]);
+          if ([...selSet].every((id) => directIds.has(id))) return f;
+          const found = findDirectParent(f.frames ?? []);
+          if (found) return found;
+        }
+      }
+
+      const parent = findDirectParent(file.frames);
+      if (!parent) return state;
+
+      const selComponents = parent.components.filter((c) => selSet.has(c.id));
+      const selTextLayers = (parent.textLayers ?? []).filter((t) => selSet.has(t.id));
+      const selChildFrames = (parent.frames ?? []).filter((f) => selSet.has(f.id));
+
+      // Bounding box over stored positions
+      const items = [
+        ...selComponents.map((c) => ({ x: c.x, y: c.y, r: c.x + c.width, b: c.y + c.height })),
+        ...selTextLayers.map((t) => ({ x: t.x, y: t.y, r: t.x + (t.width ?? 100), b: t.y + (t.height ?? 20) })),
+        ...selChildFrames.map((f) => ({ x: f.x, y: f.y, r: f.x + f.width, b: f.y + f.height })),
+      ];
+      const minX = Math.min(...items.map((i) => i.x));
+      const minY = Math.min(...items.map((i) => i.y));
+      const maxR = Math.max(...items.map((i) => i.r));
+      const maxB = Math.max(...items.map((i) => i.b));
+
+      const childFrameId = uid();
+      const childFrame: Frame = {
+        id: childFrameId,
+        label: 'Group',
+        x: minX,
+        y: minY,
+        width: maxR - minX,
+        height: maxB - minY,
+        backgroundColor: 'transparent',
+        components: selComponents.map((c) => ({ ...c, x: c.x - minX, y: c.y - minY })),
+        textLayers: selTextLayers.map((t) => ({ ...t, x: t.x - minX, y: t.y - minY })),
+        frames: selChildFrames.map((f) => ({ ...f, x: f.x - minX, y: f.y - minY })),
+        flowOrder: [
+          ...selComponents.map((c) => c.id),
+          ...selTextLayers.map((t) => t.id),
+          ...selChildFrames.map((f) => f.id),
+        ],
+      };
+
+      const updatedFrames = mapFrames(file.frames, parent.id, (p) => {
+        const newComponents = p.components.filter((c) => !selSet.has(c.id));
+        const newTextLayers = (p.textLayers ?? []).filter((t) => !selSet.has(t.id));
+        const newChildFrames = (p.frames ?? []).filter((f) => !selSet.has(f.id));
+
+        let newFlowOrder: string[] | undefined;
+        if (p.flowOrder) {
+          const firstIdx = p.flowOrder.findIndex((id) => selSet.has(id));
+          const filtered = p.flowOrder.filter((id) => !selSet.has(id));
+          filtered.splice(firstIdx >= 0 ? firstIdx : filtered.length, 0, childFrameId);
+          newFlowOrder = filtered;
+        }
+
+        return {
+          ...p,
+          components: newComponents,
+          textLayers: newTextLayers,
+          frames: [...newChildFrames, childFrame],
+          ...(newFlowOrder !== undefined ? { flowOrder: newFlowOrder } : {}),
+        };
+      });
+
+      return {
+        history: [...state.history, file].slice(-MAX_HISTORY),
+        file: { ...file, frames: updatedFrames, updatedAt: Date.now() },
+        selectedComponentId: childFrameId,
+        selectedComponentIds: [childFrameId],
       };
     }),
 

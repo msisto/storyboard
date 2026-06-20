@@ -334,6 +334,7 @@ npm run dev -w packages/app & npm run dev -w packages/server
 | Pan canvas | Space + drag, or middle mouse drag |
 | Zoom to cursor | Trackpad pinch, or Cmd/Ctrl + scroll |
 | Toggle auto-layout | Shift+A (with frame selected) |
+| Group selected items into a frame | Cmd/Ctrl+G |
 | Constrain drag to axis | Shift + drag |
 | Delete selected | Delete |
 | Undo | Cmd/Ctrl+Z |
@@ -387,6 +388,8 @@ Menu (≡) → Export JSX generates a React component for any frame. Auto-layout
 `packages/storybook` ships stories for the complete [shadcn/ui](https://ui.shadcn.com/docs/components) component set — 45+ components with multiple story variants each, giving the canvas a full design vocabulary out of the box:
 
 Accordion, Alert, AlertDialog, AspectRatio, Avatar, Badge, Breadcrumb, Button, Calendar, Card, Carousel, Checkbox, Collapsible, Command, ContextMenu, Dialog, Drawer, DropdownMenu, EmptyState, Form, HoverCard, Input, InputOTP, Label, Menubar, NavigationMenu, Pagination, Popover, Progress, RadioGroup, Resizable, ScrollArea, Select, Separator, Sheet, Skeleton, Slider, Sonner, Switch, Table, Tabs, Textarea, Toggle, ToggleGroup, Tooltip
+
+> Listed alphabetically — all 45+ components have multiple story variants.
 
 All stories use the `args` pattern so every component's props are editable live from the canvas inspector.
 
