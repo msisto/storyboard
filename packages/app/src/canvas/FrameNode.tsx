@@ -185,6 +185,7 @@ function ChildFrameNode({
         outlineOffset: '1px',
       }}
       onMouseDown={handleMouseDown}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Content div clips the inner FrameNode so it never bleeds into the gap
           between adjacent groups in an auto-layout parent. */}
@@ -317,6 +318,9 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
   const handleFrameClick = useCallback(
     (e: React.MouseEvent) => {
       if (isChildFrame) return;
+      // Don't deselect components/groups when click originates on one of them.
+      // Matches the guard already in handleFrameMouseDown.
+      if ((e.target as HTMLElement).closest('[data-component-node]')) return;
       e.stopPropagation();
       if (activeTool === 'text') {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
