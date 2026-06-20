@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { buildIframeUrl } from '../registry/buildIframeUrl';
 import type { StorybookStory } from '../types';
@@ -119,97 +118,41 @@ function VariantThumbnail({
   );
 }
 
-// ── VariantPopover ────────────────────────────────────────────────────────────
-
-interface ActivePopover {
-  name: string;
-  stories: StorybookStory[];
-  x: number;
-  y: number;
-}
-
-interface VariantPopoverProps extends ActivePopover {
-  onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}
-
-function VariantPopover({ name, stories, x, y, onDragStart, onMouseEnter, onMouseLeave }: VariantPopoverProps) {
-  return createPortal(
-    <div
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      style={{
-        position: 'fixed', left: x, top: y,
-        width: 280, maxHeight: 340,
-        background: 'var(--sb-bg)',
-        border: '1px solid var(--sb-border)',
-        borderRadius: 8,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-        zIndex: 9999,
-        overflowY: 'auto', overflowX: 'hidden',
-      }}
-    >
-      <div style={{
-        padding: '7px 10px 6px', fontSize: 11, fontWeight: 600,
-        color: 'var(--sb-text-3)', textTransform: 'uppercase' as const,
-        letterSpacing: '0.05em', borderBottom: '1px solid var(--sb-border)',
-      }}>
-        {name}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 8 }}>
-        {stories.map((story) => (
-          <VariantThumbnail key={story.id} story={story} onDragStart={onDragStart} />
-        ))}
-      </div>
-    </div>,
-    document.body
-  );
-}
-
 // ── ComponentRow ──────────────────────────────────────────────────────────────
 
 function ComponentRow({
   entry,
-  myKey,
-  isActive,
-  onEnter,
-  onLeave,
+  expanded,
+  onToggle,
   onDragStart,
 }: {
   entry: ComponentEntry;
-  myKey: string;
-  isActive: boolean;
-  onEnter: (key: string, rect: DOMRect, name: string, stories: StorybookStory[]) => void;
-  onLeave: () => void;
+  expanded: boolean;
+  onToggle: () => void;
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
-
   return (
-    <div
-      ref={rowRef}
-      onMouseEnter={() => {
-        if (rowRef.current) {
-          onEnter(myKey, rowRef.current.getBoundingClientRect(), entry.componentName, entry.stories);
-        }
-      }}
-      onMouseLeave={onLeave}
-      style={{ background: isActive ? 'var(--sb-bg-secondary)' : undefined }}
-    >
+    <div>
       <div
+        onClick={onToggle}
         draggable
-        onDragStart={(e) => onDragStart(e, entry.defaultStory)}
+        onDragStart={(e) => { e.stopPropagation(); onDragStart(e, entry.defaultStory); }}
         onMouseDown={(e) => e.stopPropagation()}
         className="palette-story-item"
         style={{
-          padding: '4px 8px 4px 16px', fontSize: 12, fontWeight: 500,
+          padding: '7px 8px 7px 16px', fontSize: 12, fontWeight: 500,
           color: 'var(--sb-text-2)', cursor: 'grab',
           display: 'flex', alignItems: 'center', gap: 6,
           userSelect: 'none', overflow: 'hidden',
         }}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{
+          fontSize: 8, color: 'var(--sb-text-4)', flexShrink: 0,
+          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 120ms ease',
+          display: 'inline-block',
+        }}>▶</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {entry.componentName}
         </span>
         {entry.stories.length > 1 && (
@@ -221,6 +164,16 @@ function ComponentRow({
           </span>
         )}
       </div>
+      {expanded && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 6, padding: '4px 8px 8px 8px',
+        }}>
+          {entry.stories.map((story) => (
+            <VariantThumbnail key={story.id} story={story} onDragStart={onDragStart} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,50 +182,48 @@ function ComponentRow({
 
 function LocalStoryRow({
   story,
-  myKey,
-  isActive,
-  onEnter,
-  onLeave,
+  expanded,
+  onToggle,
   onDragStart,
 }: {
   story: StorybookStory;
-  myKey: string;
-  isActive: boolean;
-  onEnter: (key: string, rect: DOMRect, name: string, stories: StorybookStory[]) => void;
-  onLeave: () => void;
+  expanded: boolean;
+  onToggle: () => void;
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
-  const rowRef = useRef<HTMLDivElement>(null);
   const displayName = story.title.replace(/^Local\//, '');
 
   return (
-    <div
-      ref={rowRef}
-      onMouseEnter={() => {
-        if (rowRef.current) {
-          onEnter(myKey, rowRef.current.getBoundingClientRect(), displayName, [story]);
-        }
-      }}
-      onMouseLeave={onLeave}
-      style={{ background: isActive ? 'var(--sb-bg-secondary)' : undefined }}
-    >
+    <div>
       <div
+        onClick={onToggle}
         draggable
-        onDragStart={(e) => onDragStart(e, story)}
+        onDragStart={(e) => { e.stopPropagation(); onDragStart(e, story); }}
         onMouseDown={(e) => e.stopPropagation()}
         className="palette-story-item"
         style={{
-          padding: '3px 8px 3px 16px', fontSize: 12,
+          padding: '7px 8px 7px 16px', fontSize: 12,
           color: 'var(--sb-text-2)', cursor: 'grab', borderRadius: 3,
           display: 'flex', alignItems: 'center', gap: 5,
           userSelect: 'none', overflow: 'hidden',
         }}
       >
         <span style={{ fontSize: 9, color: 'var(--sb-accent)', flexShrink: 0 }}>◆</span>
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {displayName}
         </span>
+        <span style={{
+          fontSize: 8, color: 'var(--sb-text-4)', flexShrink: 0,
+          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 120ms ease',
+          display: 'inline-block',
+        }}>▶</span>
       </div>
+      {expanded && (
+        <div style={{ padding: '4px 8px 8px 8px' }}>
+          <VariantThumbnail story={story} onDragStart={onDragStart} />
+        </div>
+      )}
     </div>
   );
 }
@@ -286,38 +237,32 @@ interface ComponentPaletteProps {
 export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
   const { stories, status } = useRegistryStore();
   const [search, setSearch] = useState('');
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
 
-  // ── Single shared popover state ──────────────────────────────────────────
-  const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [activePopover, setActivePopover] = useState<ActivePopover | null>(null);
-  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
-
-  const handleRowEnter = useCallback((key: string, rect: DOMRect, name: string, rowStories: StorybookStory[]) => {
-    clearTimeout(closeTimer.current);
-    setActiveKey(key);
-    setActivePopover({ name, stories: rowStories, x: rect.right + 8, y: rect.top });
+  const handleDragStart = useCallback((e: React.DragEvent, story: StorybookStory) => {
+    e.dataTransfer.setData('application/x-storybook-story', JSON.stringify(story));
+    e.dataTransfer.effectAllowed = 'copy';
   }, []);
 
-  const handleRowLeave = useCallback(() => {
-    closeTimer.current = setTimeout(() => {
-      setActiveKey(null);
-      setActivePopover(null);
-    }, 150);
+  const toggleGroup = useCallback((key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }, []);
 
-  const handlePopoverEnter = useCallback(() => clearTimeout(closeTimer.current), []);
-
-  const handlePopoverLeave = useCallback(() => {
-    closeTimer.current = setTimeout(() => {
-      setActiveKey(null);
-      setActivePopover(null);
-    }, 150);
+  const toggleComponent = useCallback((key: string) => {
+    setExpandedComponents((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }, []);
 
-  useEffect(() => () => clearTimeout(closeTimer.current), []);
-
-  // ── Story filtering ───────────────────────────────────────────────────────
   const localStories = useMemo(() => stories.filter((s) => s.title.startsWith('Local/')), [stories]);
   const nonLocal = useMemo(() => stories.filter((s) => !s.title.startsWith('Local/')), [stories]);
 
@@ -344,20 +289,6 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
     }
     return map;
   }, [filteredEntries]);
-
-  const handleDragStart = useCallback((e: React.DragEvent, story: StorybookStory) => {
-    e.dataTransfer.setData('application/x-storybook-story', JSON.stringify(story));
-    e.dataTransfer.effectAllowed = 'copy';
-  }, []);
-
-  const toggleGroup = useCallback((key: string) => {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
 
   if (status === 'loading') {
     return <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-3)' }}>Loading components...</div>;
@@ -406,10 +337,8 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                 <LocalStoryRow
                   key={story.id}
                   story={story}
-                  myKey={key}
-                  isActive={activeKey === key}
-                  onEnter={handleRowEnter}
-                  onLeave={handleRowLeave}
+                  expanded={expandedComponents.has(key)}
+                  onToggle={() => toggleComponent(key)}
                   onDragStart={handleDragStart}
                 />
               );
@@ -421,7 +350,7 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
         {/* ── Storybook library ──────────────────────────────────────── */}
         {[...groupedEntries.entries()].map(([group, entries]) => {
           const groupKey = `g:${group}`;
-          const isCollapsed = collapsed.has(groupKey);
+          const isCollapsed = collapsedGroups.has(groupKey);
           return (
             <div key={group}>
               <div
@@ -443,10 +372,8 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
                   <ComponentRow
                     key={key}
                     entry={entry}
-                    myKey={key}
-                    isActive={activeKey === key}
-                    onEnter={handleRowEnter}
-                    onLeave={handleRowLeave}
+                    expanded={expandedComponents.has(key)}
+                    onToggle={() => toggleComponent(key)}
                     onDragStart={handleDragStart}
                   />
                 );
@@ -455,16 +382,6 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
           );
         })}
       </div>
-
-      {/* Single shared popover — rendered once at this level via portal */}
-      {activePopover && (
-        <VariantPopover
-          {...activePopover}
-          onDragStart={handleDragStart}
-          onMouseEnter={handlePopoverEnter}
-          onMouseLeave={handlePopoverLeave}
-        />
-      )}
     </div>
   );
 }

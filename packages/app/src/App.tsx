@@ -169,7 +169,7 @@ export default function App() {
 
   const [view, setView] = useState<AppView>('loading');
   const [leftTab, setLeftTab] = useState<LeftTab>('layers');
-  const [leftPanelWidth, setLeftPanelWidth] = useState(220);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(280);
 
   const handleLeftPanelResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
