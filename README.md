@@ -2,7 +2,7 @@
 
 An experience design canvas for Storybook libraries.
 
-<img width="3456" height="1876" alt="CleanShot 2026-06-20 at 13 01 09@2x" src="https://github.com/user-attachments/assets/9c074e60-f44f-4992-b6d0-19354ddd157b" />
+<img width="1728" height="939" alt="Screenshot 2026-06-20 at 1 01 42 PM" src="https://github.com/user-attachments/assets/2b0d7d58-db68-485b-8a85-b91a9bcb6f47" />
 
 
 ---
