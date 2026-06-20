@@ -73,8 +73,10 @@ function ChildFrameNode({
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return;
+      // stopPropagation prevents the parent frame from also handling this click.
+      // No preventDefault here — we want the browser to move focus naturally so
+      // keyboard shortcuts (e.g. Cmd+−) keep working after group selection.
       e.stopPropagation();
-      e.preventDefault();
       selectComponent(frame.id);
 
       if (inAutoLayout) {
@@ -136,12 +138,24 @@ function ChildFrameNode({
   );
 
   return (
+    // Outer div owns the selection outline — keeps it at the correct bounds.
+    // ResizeHandles also render here (outside the clipped content area).
     <div
       data-component-node
-      style={{ position: 'absolute', left: x, top: y, width: w, height: h }}
+      style={{
+        position: 'absolute',
+        left: x, top: y,
+        width: w, height: h,
+        outline: isSelected ? '2px solid var(--sb-accent)' : 'none',
+        outlineOffset: '1px',
+      }}
       onMouseDown={handleMouseDown}
     >
-      <FrameNode frame={{ ...frame, x: 0, y: 0 }} isSelected={isSelected} isChildFrame />
+      {/* Content div clips the inner FrameNode so it never bleeds into the gap
+          between adjacent groups in an auto-layout parent. */}
+      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <FrameNode frame={{ ...frame, x: 0, y: 0 }} isSelected={false} isChildFrame />
+      </div>
 
       {/* Overlay: intercepts all clicks so the first interaction selects the group,
           not an individual item inside it. Removed once selected or entered. */}
