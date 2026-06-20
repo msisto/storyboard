@@ -8,6 +8,52 @@ function uid(): string {
 
 const MAX_HISTORY = 50;
 
+// ── Recursive frame helpers ───────────────────────────────────────────────────
+
+function mapFrames(frames: Frame[], id: string, fn: (f: Frame) => Frame): Frame[] {
+  return frames.map((f) => {
+    if (f.id === id) return fn(f);
+    if (!f.frames || f.frames.length === 0) return f;
+    return { ...f, frames: mapFrames(f.frames, id, fn) };
+  });
+}
+
+export function findFrame(frames: Frame[], id: string): Frame | undefined {
+  for (const f of frames) {
+    if (f.id === id) return f;
+    if (f.frames) {
+      const found = findFrame(f.frames, id);
+      if (found) return found;
+    }
+  }
+}
+
+function removeFrame(frames: Frame[], id: string): Frame[] {
+  return frames
+    .filter((f) => f.id !== id)
+    .map((f) => f.frames ? { ...f, frames: removeFrame(f.frames, id) } : f);
+}
+
+function frameContainsItem(frame: Frame, id: string): boolean {
+  if (frame.id === id) return true;
+  if (frame.components.some((c) => c.id === id)) return true;
+  if ((frame.textLayers ?? []).some((t) => t.id === id)) return true;
+  for (const cf of frame.frames ?? []) {
+    if (frameContainsItem(cf, id)) return true;
+  }
+  return false;
+}
+
+function buildDefaultFlowOrder(f: Frame): string[] {
+  return [
+    ...f.components.map((c) => c.id),
+    ...(f.textLayers ?? []).map((t) => t.id),
+    ...(f.frames ?? []).map((cf) => cf.id),
+  ];
+}
+
+// ── Interface ─────────────────────────────────────────────────────────────────
+
 interface DesignStore {
   file: DesignFile | null;
   history: DesignFile[];
@@ -20,6 +66,7 @@ interface DesignStore {
   pushHistory: () => void;
   undo: () => void;
   addFrame: (x: number, y: number, width: number, height: number) => string;
+  addChildFrame: (parentFrameId: string, x: number, y: number, width: number, height: number) => string;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
   deleteFrame: (id: string) => void;
   selectFrame: (id: string | null) => void;
@@ -82,7 +129,6 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file) return state;
       const last = state.history[state.history.length - 1];
-      // Dedup: don't push if file hasn't changed since the last snapshot
       if (last?.updatedAt === state.file.updatedAt) return state;
       return { history: [...state.history, state.file].slice(-MAX_HISTORY) };
     }),
@@ -126,6 +172,45 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     return id;
   },
 
+  addChildFrame: (parentFrameId, x, y, width, height) => {
+    const id = uid();
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: mapFrames(state.file.frames, parentFrameId, (f) => {
+            const count = (f.frames ?? []).length + 1;
+            const newChild: Frame = {
+              id,
+              label: `Frame ${count}`,
+              x,
+              y,
+              width,
+              height,
+              backgroundColor: 'transparent',
+              components: [],
+              visible: true,
+            };
+            const newFlowOrder = f.autoLayout
+              ? [...(f.flowOrder ?? buildDefaultFlowOrder(f)), id]
+              : f.flowOrder ? [...f.flowOrder, id] : undefined;
+            return {
+              ...f,
+              frames: [...(f.frames ?? []), newChild],
+              ...(newFlowOrder !== undefined ? { flowOrder: newFlowOrder } : {}),
+            };
+          }),
+        },
+        selectedComponentId: id,
+        selectedComponentIds: [id],
+      };
+    });
+    return id;
+  },
+
   updateFrame: (id, patch) =>
     set((state) => {
       if (!state.file) return state;
@@ -133,7 +218,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => (f.id === id ? { ...f, ...patch } : f)),
+          frames: mapFrames(state.file.frames, id, (f) => ({ ...f, ...patch })),
         },
       };
     }),
@@ -146,7 +231,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.filter((f) => f.id !== id),
+          frames: removeFrame(state.file.frames, id),
         },
         selectedFrameId: state.selectedFrameId === id ? null : state.selectedFrameId,
         selectedFrameIds: state.selectedFrameIds.filter((fid) => fid !== id),
@@ -202,10 +287,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => {
-            if (f.id !== frameId) return f;
+          frames: mapFrames(state.file.frames, frameId, (f) => {
             const newFlowOrder = f.autoLayout
-              ? [...(f.flowOrder ?? [...f.components.map(c => c.id), ...(f.textLayers ?? []).map(t => t.id)]), id]
+              ? [...(f.flowOrder ?? buildDefaultFlowOrder(f)), id]
               : f.flowOrder ? [...f.flowOrder, id] : undefined;
             return {
               ...f,
@@ -227,16 +311,12 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? {
-                  ...f,
-                  components: f.components.map((c) =>
-                    c.id === componentId ? { ...c, ...patch } : c
-                  ),
-                }
-              : f
-          ),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: f.components.map((c) =>
+              c.id === componentId ? { ...c, ...patch } : c
+            ),
+          })),
         },
       };
     }),
@@ -250,15 +330,11 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? {
-                  ...f,
-                  components: f.components.filter((c) => c.id !== componentId),
-                  ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== componentId) } : {}),
-                }
-              : f
-          ),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: f.components.filter((c) => c.id !== componentId),
+            ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== componentId) } : {}),
+          })),
         },
         selectedComponentId: newIds[newIds.length - 1] ?? null,
         selectedComponentIds: newIds,
@@ -269,17 +345,23 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     set((state) => {
       if (!state.file || state.selectedComponentIds.length === 0) return state;
       const ids = new Set(state.selectedComponentIds);
+
+      function deleteFromFrame(f: Frame): Frame {
+        return {
+          ...f,
+          components: f.components.filter((c) => !ids.has(c.id)),
+          textLayers: (f.textLayers ?? []).filter((t) => !ids.has(t.id)),
+          frames: (f.frames ?? []).filter((cf) => !ids.has(cf.id)).map(deleteFromFrame),
+          ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => !ids.has(id)) } : {}),
+        };
+      }
+
       return {
         history: [...state.history, state.file].slice(-MAX_HISTORY),
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => ({
-            ...f,
-            components: f.components.filter((c) => !ids.has(c.id)),
-            textLayers: (f.textLayers ?? []).filter((t) => !ids.has(t.id)),
-            ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => !ids.has(id)) } : {}),
-          })),
+          frames: state.file.frames.map(deleteFromFrame),
         },
         selectedComponentId: null,
         selectedComponentIds: [],
@@ -291,13 +373,10 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       if (id === null) {
         return { selectedComponentId: null, selectedComponentIds: [] };
       }
-      const frame = state.file?.frames.find(
-        (f) =>
-          f.components.some((c) => c.id === id) ||
-          (f.textLayers ?? []).some((t) => t.id === id)
-      );
+      // Find the TOP-LEVEL frame that contains this item anywhere in the nested tree
+      const topFrame = state.file?.frames.find((f) => frameContainsItem(f, id));
       // Shift-select only works within the same frame
-      const sameFrame = frame?.id === state.selectedFrameId;
+      const sameFrame = topFrame?.id === state.selectedFrameId;
       if (addToSelection && sameFrame && state.selectedComponentIds.length > 0) {
         const already = state.selectedComponentIds.includes(id);
         const newIds = already
@@ -306,13 +385,13 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         return {
           selectedComponentId: newIds[newIds.length - 1] ?? null,
           selectedComponentIds: newIds,
-          selectedFrameId: frame?.id ?? state.selectedFrameId,
+          selectedFrameId: topFrame?.id ?? state.selectedFrameId,
         };
       }
       return {
         selectedComponentId: id,
         selectedComponentIds: [id],
-        selectedFrameId: frame?.id ?? state.selectedFrameId,
+        selectedFrameId: topFrame?.id ?? state.selectedFrameId,
       };
     }),
 
@@ -339,8 +418,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => {
-            if (f.id !== frameId) return f;
+          frames: mapFrames(state.file.frames, frameId, (f) => {
             const components = [...f.components];
             const [moved] = components.splice(fromIndex, 1);
             components.splice(toIndex, 0, moved);
@@ -431,10 +509,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => {
-            if (f.id !== frameId) return f;
+          frames: mapFrames(state.file.frames, frameId, (f) => {
             const newFlowOrder = f.autoLayout
-              ? [...(f.flowOrder ?? [...f.components.map(c => c.id), ...(f.textLayers ?? []).map(t => t.id)]), id]
+              ? [...(f.flowOrder ?? buildDefaultFlowOrder(f)), id]
               : f.flowOrder ? [...f.flowOrder, id] : undefined;
             return {
               ...f,
@@ -458,16 +535,12 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? {
-                  ...f,
-                  textLayers: (f.textLayers ?? []).map((t) =>
-                    t.id === layerId ? { ...t, ...patch } : t
-                  ),
-                }
-              : f
-          ),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            textLayers: (f.textLayers ?? []).map((t) =>
+              t.id === layerId ? { ...t, ...patch } : t
+            ),
+          })),
         },
       };
     }),
@@ -481,15 +554,11 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId
-              ? {
-                  ...f,
-                  textLayers: (f.textLayers ?? []).filter((t) => t.id !== layerId),
-                  ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== layerId) } : {}),
-                }
-              : f
-          ),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            textLayers: (f.textLayers ?? []).filter((t) => t.id !== layerId),
+            ...(f.flowOrder ? { flowOrder: f.flowOrder.filter((id) => id !== layerId) } : {}),
+          })),
         },
         selectedComponentId: newIds[newIds.length - 1] ?? null,
         selectedComponentIds: newIds,
@@ -499,12 +568,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   reorderFlowItem: (frameId, itemId, toIndex) =>
     set((state) => {
       if (!state.file) return state;
-      const frame = state.file.frames.find((f) => f.id === frameId);
+      const frame = findFrame(state.file.frames, frameId);
       if (!frame) return state;
-      const current = frame.flowOrder ?? [
-        ...frame.components.map((c) => c.id),
-        ...(frame.textLayers ?? []).map((t) => t.id),
-      ];
+      const current = frame.flowOrder ?? buildDefaultFlowOrder(frame);
       const from = current.indexOf(itemId);
       if (from === -1) return state;
       const next = [...current];
@@ -515,9 +581,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) =>
-            f.id === frameId ? { ...f, flowOrder: next } : f
-          ),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({ ...f, flowOrder: next })),
         },
       };
     }),
@@ -531,20 +595,17 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: {
           ...state.file,
           updatedAt: Date.now(),
-          frames: state.file.frames.map((f) => {
-            if (f.id !== frameId) return f;
-            return {
-              ...f,
-              components: f.components.map((c) => {
-                const u = updateMap.get(c.id);
-                return u ? { ...c, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : c;
-              }),
-              textLayers: (f.textLayers ?? []).map((t) => {
-                const u = updateMap.get(t.id);
-                return u ? { ...t, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : t;
-              }),
-            };
-          }),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: f.components.map((c) => {
+              const u = updateMap.get(c.id);
+              return u ? { ...c, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : c;
+            }),
+            textLayers: (f.textLayers ?? []).map((t) => {
+              const u = updateMap.get(t.id);
+              return u ? { ...t, ...(u.x !== undefined ? { x: u.x } : {}), ...(u.y !== undefined ? { y: u.y } : {}) } : t;
+            }),
+          })),
         },
       };
     }),

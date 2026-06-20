@@ -14,6 +14,7 @@ function getCombinedFlow(frame: Frame, excludeId?: string) {
   const all = [
     ...frame.components.filter((c) => !c.absolute && c.visible),
     ...(frame.textLayers ?? []).filter((t) => !t.absolute && t.visible),
+    ...(frame.frames ?? []).filter((cf) => !cf.absolute && (cf.visible ?? true)),
   ];
   if (frame.flowOrder) {
     const order = frame.flowOrder;
@@ -26,15 +27,133 @@ function getCombinedFlow(frame: Frame, excludeId?: string) {
   return excludeId ? all.filter((item) => item.id !== excludeId) : all;
 }
 
+// ── ChildFrameNode ────────────────────────────────────────────────────────────
+
+interface ChildFrameNodeProps {
+  frame: Frame;
+  parentFrameId: string;
+  isSelected: boolean;
+  computedGeometry: { x: number; y: number; width: number; height: number } | undefined;
+  inAutoLayout: boolean;
+  onReorderDragStart: (id: string, startX: number, startY: number) => void;
+}
+
+function ChildFrameNode({
+  frame,
+  isSelected,
+  computedGeometry,
+  inAutoLayout,
+  onReorderDragStart,
+}: ChildFrameNodeProps) {
+  const { selectComponent, updateFrame, pushHistory } = useDesignStore();
+  const { viewport } = useCanvasStore();
+
+  const x = inAutoLayout ? (computedGeometry?.x ?? frame.x) : frame.x;
+  const y = inAutoLayout ? (computedGeometry?.y ?? frame.y) : frame.y;
+  const w = computedGeometry?.width ?? frame.width;
+  const h = computedGeometry?.height ?? frame.height;
+
+  const sizeRef = useRef({ x: frame.x, y: frame.y, w: frame.width, h: frame.height });
+  sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      selectComponent(frame.id);
+
+      if (inAutoLayout) {
+        onReorderDragStart(frame.id, e.clientX, e.clientY);
+        return;
+      }
+
+      // Free drag
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const origX = sizeRef.current.x;
+      const origY = sizeRef.current.y;
+      let moved = false;
+      let lockedAxis: 'x' | 'y' | null = null;
+      document.body.style.userSelect = 'none';
+
+      const onMove = (mv: MouseEvent) => {
+        const zoom = viewportRef.current.zoom;
+        const dx = (mv.clientX - startX) / zoom;
+        const dy = (mv.clientY - startY) / zoom;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          if (!moved) pushHistory();
+          moved = true;
+        }
+        if (!moved) return;
+        if (mv.shiftKey) {
+          if (!lockedAxis) lockedAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        } else {
+          lockedAxis = null;
+        }
+        updateFrame(frame.id, {
+          x: Math.round(origX + (lockedAxis === 'y' ? 0 : dx)),
+          y: Math.round(origY + (lockedAxis === 'x' ? 0 : dy)),
+        });
+      };
+
+      const onUp = () => {
+        document.body.style.userSelect = '';
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [frame.id, inAutoLayout, selectComponent, onReorderDragStart, updateFrame, pushHistory]
+  );
+
+  const getChildGeometry = useCallback(
+    () => ({ x: sizeRef.current.x, y: sizeRef.current.y, width: sizeRef.current.w, height: sizeRef.current.h }),
+    []
+  );
+
+  const handleResize = useCallback(
+    (nx: number, ny: number, nw: number, nh: number) => {
+      updateFrame(frame.id, { x: nx, y: ny, width: Math.max(20, nw), height: Math.max(20, nh) });
+    },
+    [frame.id, updateFrame]
+  );
+
+  return (
+    <div
+      data-component-node
+      style={{ position: 'absolute', left: x, top: y, width: w, height: h }}
+      onMouseDown={handleMouseDown}
+    >
+      <FrameNode frame={{ ...frame, x: 0, y: 0 }} isSelected={isSelected} isChildFrame />
+      {isSelected && !inAutoLayout && (
+        <ResizeHandles
+          getGeometry={getChildGeometry}
+          onResize={handleResize}
+          onResizeStart={pushHistory}
+          zoom={viewport.zoom}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── FrameNode ─────────────────────────────────────────────────────────────────
+
 interface FrameNodeProps {
   frame: Frame;
   isSelected: boolean;
   isMultiSelected?: boolean;
+  isChildFrame?: boolean;
 }
 
 const MIN_SIZE = 50;
 
-export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps) {
+export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: FrameNodeProps) {
   const { selectFrame, toggleFrameSelection, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
@@ -45,7 +164,6 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
 
-  // Keep frame + layout in refs so drag closures always see the latest values
   const frameRef = useRef(frame);
   frameRef.current = frame;
 
@@ -53,7 +171,6 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
 
-  // Reorder drag state
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
@@ -61,7 +178,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
 
   const innerDivRef = useRef<HTMLDivElement>(null);
 
-  const REORDER_DRAG_THRESHOLD = 6; // px — must move this far before treating as a drag
+  const REORDER_DRAG_THRESHOLD = 6;
 
   const handleReorderDragStart = useCallback(
     (compId: string, startClientX: number, startClientY: number) => {
@@ -126,6 +243,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
 
   const handleFrameClick = useCallback(
     (e: React.MouseEvent) => {
+      if (isChildFrame) return;
       e.stopPropagation();
       if (activeTool === 'text') {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -133,27 +251,25 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         const y = Math.round((e.clientY - rect.top) / viewport.zoom);
         const id = addTextLayer(frame.id, { x, y });
         setTool('select');
-        // Short delay so the node has mounted before we enter edit mode
         requestAnimationFrame(() => enterTextEditMode(id));
         return;
       }
       if (activeTool === 'select') {
-        if (e.shiftKey) return; // handled by onMouseDown — don't double-toggle
+        if (e.shiftKey) return;
         selectFrame(frame.id);
         selectComponent(null);
       }
     },
-    [activeTool, frame.id, viewport.zoom, selectFrame, selectComponent, addTextLayer, setTool, enterTextEditMode]
+    [isChildFrame, activeTool, frame.id, viewport.zoom, selectFrame, selectComponent, addTextLayer, setTool, enterTextEditMode]
   );
 
   const handleFrameMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      if (isChildFrame) return;
       if (e.button !== 0 || activeTool !== 'select') return;
-      // If the event came from a component inside this frame, stop here —
-      // the component's container already called stopPropagation, but guard
-      // defensively against edge cases (e.g. clicking during scroll or resize).
       if ((e.target as HTMLElement).closest('[data-component-node]')) return;
       e.stopPropagation();
+      e.preventDefault();
 
       if (e.shiftKey) {
         toggleFrameSelection(frame.id);
@@ -169,6 +285,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
       const origX = sizeRef.current.x;
       const origY = sizeRef.current.y;
       let moved = false;
+      let lockedAxis: 'x' | 'y' | null = null;
 
       const onMove = (mv: MouseEvent) => {
         const zoom = viewportRef.current.zoom;
@@ -179,9 +296,14 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
           moved = true;
         }
         if (!moved) return;
+        if (mv.shiftKey) {
+          if (!lockedAxis) lockedAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        } else {
+          lockedAxis = null;
+        }
         updateFrame(frame.id, {
-          x: Math.round(origX + dx),
-          y: Math.round(origY + dy),
+          x: Math.round(origX + (lockedAxis === 'y' ? 0 : dx)),
+          y: Math.round(origY + (lockedAxis === 'x' ? 0 : dy)),
         });
       };
 
@@ -194,7 +316,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [activeTool, frame.id, selectFrame, toggleFrameSelection, selectComponent, updateFrame, pushHistory]
+    [isChildFrame, activeTool, frame.id, selectFrame, toggleFrameSelection, selectComponent, updateFrame, pushHistory]
   );
 
   const getGeometry = useCallback(
@@ -230,19 +352,16 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
     [activeTool, frame.id, viewport.zoom]
   );
 
-  // Compute which resize handle directions to hide for hug-mode frames
   const hiddenDirs: Direction[] = [];
   if (frame.autoLayout?.widthMode === 'hug') {
     hiddenDirs.push('e', 'w', 'ne', 'nw', 'se', 'sw');
   }
   if (frame.autoLayout?.heightMode === 'hug') {
-    // avoid duplicates
     for (const d of ['n', 's', 'ne', 'nw', 'se', 'sw'] as Direction[]) {
       if (!hiddenDirs.includes(d)) hiddenDirs.push(d);
     }
   }
 
-  // Insertion indicator position
   const insertionLine = (() => {
     if (!frame.autoLayout || insertionIndex === null) return null;
     const al = frame.autoLayout;
@@ -298,6 +417,10 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
     }
   })();
 
+  const frameIsSelected = isChildFrame
+    ? isSelected
+    : isSelected && selectedComponentIds.length === 0;
+
   return (
     <div
       style={{
@@ -307,7 +430,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         width: layout.frameWidth,
         height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
-        outline: (isSelected && selectedComponentIds.length === 0)
+        outline: frameIsSelected
           ? '2px solid var(--sb-accent)'
           : isMultiSelected
           ? '2px solid var(--sb-accent-muted)'
@@ -318,21 +441,23 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
       onClick={handleFrameClick}
       onMouseDown={handleFrameMouseDown}
     >
-      {/* Frame label */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -24,
-          left: 0,
-          fontSize: 12,
-          color: 'var(--sb-text-3)',
-          whiteSpace: 'nowrap',
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}
-      >
-        {frame.label}
-      </div>
+      {/* Frame label — only for top-level frames */}
+      {!isChildFrame && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -24,
+            left: 0,
+            fontSize: 12,
+            color: 'var(--sb-text-3)',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          {frame.label}
+        </div>
+      )}
 
       {/* Components + comment click target */}
       <div
@@ -369,13 +494,24 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
           />
         ))}
 
+        {(frame.frames ?? []).map((childFrame) => (
+          <ChildFrameNode
+            key={childFrame.id}
+            frame={childFrame}
+            parentFrameId={frame.id}
+            isSelected={selectedComponentIds.includes(childFrame.id)}
+            computedGeometry={layout.components[childFrame.id]}
+            inAutoLayout={!!frame.autoLayout && !childFrame.absolute}
+            onReorderDragStart={handleReorderDragStart as (id: string, x: number, y: number) => void}
+          />
+        ))}
+
         {insertionLine}
 
         {comments.map((comment) => (
           <CommentPin key={comment.id} comment={comment} />
         ))}
 
-        {/* Transparent overlay that captures clicks anywhere in the frame when the text tool is active */}
         {activeTool === 'text' && (
           <div
             style={{ position: 'absolute', inset: 0, zIndex: 999, cursor: 'text' }}
@@ -384,8 +520,8 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         )}
       </div>
 
-      {/* Resize handles only when the frame itself is selected, not when a child component is */}
-      {isSelected && selectedComponentIds.length === 0 && (
+      {/* Resize handles only for top-level selected frames with no child selection */}
+      {!isChildFrame && isSelected && selectedComponentIds.length === 0 && (
         <ResizeHandles
           getGeometry={getGeometry}
           onResize={handleResize}

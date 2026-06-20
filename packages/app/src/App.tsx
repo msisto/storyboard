@@ -395,29 +395,46 @@ export default function App() {
       const worldY = (e.clientY - rect.top - viewport.y) / viewport.zoom;
 
       const frames = state.file?.frames ?? [];
-      let targetFrame = frames.find(
-        (f) => worldX >= f.x && worldX <= f.x + f.width && worldY >= f.y && worldY <= f.y + f.height
-      );
 
-      const ensureFrame = () => {
-        if (targetFrame) return targetFrame;
+      type FrameHit = { frame: Frame; absX: number; absY: number };
+      function findDeepestFrameAt(
+        list: Frame[], wx: number, wy: number, ox = 0, oy = 0
+      ): FrameHit | undefined {
+        for (const f of list) {
+          const ax = ox + f.x, ay = oy + f.y;
+          if (wx >= ax && wx <= ax + f.width && wy >= ay && wy <= ay + f.height) {
+            const child = findDeepestFrameAt(f.frames ?? [], wx, wy, ax, ay);
+            return child ?? { frame: f, absX: ax, absY: ay };
+          }
+        }
+      }
+
+      const hit = findDeepestFrameAt(frames, worldX, worldY);
+      let targetFrame = hit?.frame;
+      let targetAbsX = hit?.absX ?? 0;
+      let targetAbsY = hit?.absY ?? 0;
+
+      const ensureFrame = (): FrameHit | undefined => {
+        if (targetFrame) return { frame: targetFrame!, absX: targetAbsX, absY: targetAbsY };
         if (frames.length === 0) {
           const newId = state.addFrame(Math.round(worldX - 200), Math.round(worldY - 100), 600, 400);
-          return useDesignStore.getState().file?.frames.find((f) => f.id === newId);
+          const f = useDesignStore.getState().file?.frames.find((f) => f.id === newId);
+          return f ? { frame: f, absX: f.x, absY: f.y } : undefined;
         }
         const fallbackId = state.selectedFrameId ?? frames[0].id;
-        return frames.find((f) => f.id === fallbackId);
+        const f = frames.find((f) => f.id === fallbackId);
+        return f ? { frame: f, absX: f.x, absY: f.y } : undefined;
       };
 
       // ── Text style drop ──────────────────────────────────────────────────
       const textRaw = e.dataTransfer.getData('application/x-text-style');
       if (textRaw) {
         const { fontSize, fontWeight } = JSON.parse(textRaw) as { fontSize: string; fontWeight: string };
-        const frame = ensureFrame();
-        if (!frame) return;
-        const relX = Math.max(0, Math.round(worldX - frame.x));
-        const relY = Math.max(0, Math.round(worldY - frame.y));
-        const id = state.addTextLayer(frame.id, { x: relX, y: relY, fontSize: fontSize as never, fontWeight: fontWeight as never });
+        const result = ensureFrame();
+        if (!result) return;
+        const relX = Math.max(0, Math.round(worldX - result.absX));
+        const relY = Math.max(0, Math.round(worldY - result.absY));
+        const id = state.addTextLayer(result.frame.id, { x: relX, y: relY, fontSize: fontSize as never, fontWeight: fontWeight as never });
         requestAnimationFrame(() => useCanvasStore.getState().enterTextEditMode(id));
         return;
       }
@@ -426,10 +443,11 @@ export default function App() {
       const storyRaw = e.dataTransfer.getData('application/x-storybook-story');
       if (!storyRaw) return;
       const story: StorybookStory = JSON.parse(storyRaw);
-      const frame = ensureFrame();
-      if (!frame) return;
-      const relX = worldX - frame.x;
-      const relY = worldY - frame.y;
+      const result = ensureFrame();
+      if (!result) return;
+      const { frame, absX, absY } = result;
+      const relX = worldX - absX;
+      const relY = worldY - absY;
       addComponent(frame.id, {
         storybookId: story.id,
         title: story.title,

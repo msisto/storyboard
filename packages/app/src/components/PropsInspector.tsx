@@ -589,6 +589,19 @@ export function PropsInspector() {
     (t) => t.id === selectedComponentId
   );
 
+  function findChildFrame(frames: Frame['frames'], id: string | null): import('../types').Frame | undefined {
+    if (!id || !frames) return undefined;
+    for (const f of frames) {
+      if (f.id === id) return f;
+      const found = findChildFrame(f.frames, id);
+      if (found) return found;
+    }
+  }
+  const selectedChildFrame =
+    !selectedComponentData && !selectedTextLayer && selectedFrameData
+      ? findChildFrame(selectedFrameData.frames, selectedComponentId)
+      : undefined;
+
   if (!selectedFrameData && !selectedComponentData && !selectedTextLayer) {
     return <ThemeEditor />;
   }
@@ -768,6 +781,131 @@ export function PropsInspector() {
             </label>
           </Section>
         )}
+      </div>
+    );
+  }
+
+  // ── Child frame inspector ──────────────────────────────────────────────────
+  if (selectedChildFrame && selectedFrameData) {
+    const cf = selectedChildFrame;
+    const cfAl = cf.autoLayout;
+    const patchCF = (p: Partial<import('../types').Frame>) => updateFrame(cf.id, p);
+    const patchCFAL = (partial: Partial<AutoLayoutSettings>) =>
+      updateFrame(cf.id, { autoLayout: { ...cf.autoLayout!, ...partial } });
+
+    const enableCFAutoLayout = () => {
+      pushH();
+      const flowOrder = [
+        ...cf.components.map((c) => c.id),
+        ...(cf.textLayers ?? []).map((t) => t.id),
+      ];
+      updateFrame(cf.id, { autoLayout: { ...DEFAULT_AUTO_LAYOUT }, flowOrder });
+    };
+    const disableCFAutoLayout = () => {
+      pushH();
+      updateFrame(cf.id, { autoLayout: undefined });
+    };
+
+    return (
+      <div style={{ overflowY: 'auto', height: '100%' }}>
+        <Section title="Frame">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2 }}>LABEL</label>
+              <input
+                type="text"
+                value={cf.label}
+                onFocus={pushH}
+                onChange={(e) => patchCF({ label: e.target.value })}
+                style={{ width: '100%', padding: '3px 6px', fontSize: 12, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <NumberInput label="X" value={cf.x} onChange={(v) => patchCF({ x: v })} />
+              <NumberInput label="Y" value={cf.y} onChange={(v) => patchCF({ y: v })} />
+              <NumberInput label="W" value={cf.width} onChange={(v) => patchCF({ width: Math.max(20, v) })} />
+              <NumberInput label="H" value={cf.height} onChange={(v) => patchCF({ height: Math.max(20, v) })} />
+            </div>
+
+            {selectedFrameData.autoLayout && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <SizingSelect
+                  label="W Mode"
+                  value={cf.widthMode ?? 'fixed'}
+                  options={['fixed', 'fill', 'hug']}
+                  onChange={(v) => patchCF({ widthMode: v as SizingMode })}
+                />
+                <SizingSelect
+                  label="H Mode"
+                  value={cf.heightMode ?? 'fixed'}
+                  options={['fixed', 'fill', 'hug']}
+                  onChange={(v) => patchCF({ heightMode: v as SizingMode })}
+                />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', gridColumn: '1 / -1' }}>
+                  <input
+                    type="checkbox"
+                    checked={cf.absolute ?? false}
+                    onFocus={pushH}
+                    onChange={(e) => { pushH(); patchCF({ absolute: e.target.checked }); }}
+                  />
+                  Ignore auto layout
+                </label>
+              </div>
+            )}
+
+            <div>
+              <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4 }}>BACKGROUND</label>
+              <BackgroundColorPicker value={cf.backgroundColor} onChange={(v) => { pushH(); patchCF({ backgroundColor: v }); }} />
+            </div>
+          </div>
+        </Section>
+
+        <Section title="Auto Layout">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button
+              onClick={cfAl ? disableCFAutoLayout : enableCFAutoLayout}
+              style={{ width: '100%', padding: '5px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl ? 'var(--sb-accent)' : 'var(--sb-bg)', color: cfAl ? 'white' : 'var(--sb-text-2)', cursor: 'pointer' }}
+            >
+              {cfAl ? 'Remove Auto Layout' : 'Add Auto Layout  ⇧A'}
+            </button>
+            {cfAl && (
+              <>
+                <div>
+                  <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Direction</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {(['horizontal', 'vertical'] as const).map((dir) => (
+                      <button key={dir} onClick={() => { pushH(); patchCFAL({ direction: dir }); }}
+                        style={{ flex: 1, padding: '4px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl.direction === dir ? 'var(--sb-accent)' : 'var(--sb-bg)', color: cfAl.direction === dir ? 'white' : 'var(--sb-text-2)', cursor: 'pointer' }}>
+                        {dir === 'horizontal' ? '→ Horiz' : '↓ Vert'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <SpacingInput label="Gap" value={cfAl.gap} onChange={(v) => patchCFAL({ gap: v })} />
+                <div>
+                  <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Padding</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <SpacingInput label="Top"    value={cfAl.paddingTop}    onChange={(v) => patchCFAL({ paddingTop: v })} />
+                    <SpacingInput label="Right"  value={cfAl.paddingRight}  onChange={(v) => patchCFAL({ paddingRight: v })} />
+                    <SpacingInput label="Bottom" value={cfAl.paddingBottom} onChange={(v) => patchCFAL({ paddingBottom: v })} />
+                    <SpacingInput label="Left"   value={cfAl.paddingLeft}   onChange={(v) => patchCFAL({ paddingLeft: v })} />
+                  </div>
+                </div>
+                <AlignmentGrid
+                  primaryAlign={cfAl.primaryAlign}
+                  counterAlign={cfAl.counterAlign}
+                  direction={cfAl.direction}
+                  onChange={(pa, ca) => patchCFAL({ primaryAlign: pa, counterAlign: ca })}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <SizingSelect label="W Mode" value={cfAl.widthMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ widthMode: v as 'fixed' | 'hug' })} />
+                  <SizingSelect label="H Mode" value={cfAl.heightMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ heightMode: v as 'fixed' | 'hug' })} />
+                </div>
+              </>
+            )}
+          </div>
+        </Section>
       </div>
     );
   }

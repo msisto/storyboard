@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { Frame } from '../types';
 import { useDesignStore } from '../store/useDesignStore';
 
 export function LayersPanel() {
@@ -21,7 +22,7 @@ export function LayersPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
 
-  const toggleFrame = (id: string) => {
+  const toggleCollapse = (id: string) => {
     setCollapsedFrames((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -48,33 +49,6 @@ export function LayersPanel() {
     setEditingId(null);
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    id: string,
-    isFrame: boolean,
-    frameId?: string
-  ) => {
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (editingId) return;
-      // Guard: only act when the focused row matches store selection.
-      // Without this, a focused frame row deletes the whole frame even
-      // when the user has since clicked a component on the canvas.
-      const state = useDesignStore.getState();
-      if (isFrame) {
-        if (state.selectedFrameId !== id || state.selectedComponentIds.length > 0) return;
-      } else {
-        if (!state.selectedComponentIds.includes(id)) return;
-      }
-      e.preventDefault();
-      e.stopPropagation(); // prevent window listener from also firing after this deletes
-      if (isFrame) {
-        deleteFrame(id);
-      } else if (frameId) {
-        deleteComponent(frameId, id);
-      }
-    }
-  };
-
   if (!file) {
     return (
       <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
@@ -83,210 +57,251 @@ export function LayersPanel() {
     );
   }
 
-  return (
-    <div style={{ overflowY: 'auto', height: '100%' }}>
-      {file.frames.map((frame) => {
-        const isCollapsed = collapsedFrames.has(frame.id);
-        const isSelectedFrame = frame.id === selectedFrameId && frameIsDirectlySelected;
+  // ── Recursive frame tree node ─────────────────────────────────────────────
 
-        return (
-          <div key={frame.id}>
-            {/* Frame row */}
-            <div
+  function FrameTreeNode({ frame, depth, isTopLevel }: { frame: Frame; depth: number; isTopLevel: boolean }) {
+    const isCollapsed = collapsedFrames.has(frame.id);
+    const indent = depth * 16;
+    const isSelectedFrame = isTopLevel && frame.id === selectedFrameId && frameIsDirectlySelected;
+    const isSelectedChild = !isTopLevel && selectedComponentIds.includes(frame.id);
+    const isHighlighted = isSelectedFrame || isSelectedChild;
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (editingId) return;
+        const state = useDesignStore.getState();
+        if (isTopLevel) {
+          if (state.selectedFrameId !== frame.id || state.selectedComponentIds.length > 0) return;
+        } else {
+          if (!state.selectedComponentIds.includes(frame.id)) return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        deleteFrame(frame.id);
+      }
+    };
+
+    const handleClick = () => {
+      if (isTopLevel) {
+        selectFrame(frame.id);
+        selectComponent(null);
+      } else {
+        selectComponent(frame.id);
+      }
+    };
+
+    const hasChildren =
+      frame.components.length > 0 ||
+      (frame.textLayers ?? []).length > 0 ||
+      (frame.frames ?? []).length > 0;
+
+    return (
+      <div key={frame.id}>
+        {/* Frame row */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: `4px 8px 4px ${8 + indent}px`,
+            background: isHighlighted ? 'var(--sb-accent-bg)' : 'transparent',
+            cursor: 'pointer',
+            gap: 4,
+          }}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+        >
+          <span
+            onClick={(e) => { e.stopPropagation(); toggleCollapse(frame.id); }}
+            style={{ fontSize: 9, color: 'var(--sb-text-3)', width: 10, flexShrink: 0 }}
+          >
+            {hasChildren ? (isCollapsed ? '▶' : '▼') : ' '}
+          </span>
+
+          {editingId === frame.id ? (
+            <input
+              autoFocus
+              value={editingText}
+              onChange={(e) => setEditingText(e.target.value)}
+              onBlur={() => commitEdit(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitEdit(true);
+                if (e.key === 'Escape') setEditingId(null);
+                e.stopPropagation();
+              }}
+              style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '4px 8px',
-                background: isSelectedFrame ? 'var(--sb-accent-bg)' : 'transparent',
-                cursor: 'pointer',
-                gap: 4,
+                flex: 1,
+                fontSize: 12,
+                fontWeight: isTopLevel ? 500 : 400,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
-              onClick={() => {
-                selectFrame(frame.id);
-                selectComponent(null);
-              }}
-              onKeyDown={(e) => handleKeyDown(e, frame.id, true)}
-              tabIndex={0}
+              onDoubleClick={(e) => { e.stopPropagation(); startEdit(frame.id, frame.label); }}
             >
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFrame(frame.id);
-                }}
-                style={{ fontSize: 9, color: 'var(--sb-text-3)', width: 10, flexShrink: 0 }}
-              >
-                {isCollapsed ? '▶' : '▼'}
-              </span>
+              {frame.label}
+            </span>
+          )}
 
-              {editingId === frame.id ? (
-                <input
-                  autoFocus
-                  value={editingText}
-                  onChange={(e) => setEditingText(e.target.value)}
-                  onBlur={() => commitEdit(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitEdit(true);
-                    if (e.key === 'Escape') setEditingId(null);
-                    e.stopPropagation();
-                  }}
-                  style={{
-                    flex: 1,
-                    fontSize: 12,
-                    border: '1px solid var(--sb-accent)',
-                    borderRadius: 2,
-                    padding: '0 2px',
-                    outline: 'none',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span
-                  style={{
-                    flex: 1,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    startEdit(frame.id, frame.label);
-                  }}
-                >
-                  {frame.label}
-                </span>
-              )}
+          <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>
+            F
+          </span>
+        </div>
 
-              <span
-                style={{
-                  fontSize: 9,
-                  color: 'var(--sb-text-4)',
-                  background: 'var(--sb-bg-tertiary)',
-                  padding: '1px 4px',
-                  borderRadius: 2,
-                }}
-              >
-                F
-              </span>
-            </div>
+        {/* Children */}
+        {!isCollapsed && (
+          <>
+            {/* Nested child frames */}
+            {(frame.frames ?? []).map((childFrame) => (
+              <FrameTreeNode
+                key={childFrame.id}
+                frame={childFrame}
+                depth={depth + 1}
+                isTopLevel={false}
+              />
+            ))}
 
             {/* Component rows */}
-            {!isCollapsed &&
-              frame.components.map((component) => {
-                const isSelectedComp = selectedComponentIds.includes(component.id);
-                return (
-                  <div
-                    key={component.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '3px 8px 3px 24px',
-                      background: isSelectedComp ? 'var(--sb-accent-bg)' : 'transparent',
-                      cursor: 'pointer',
-                      gap: 4,
-                    }}
-                    onClick={(e) => selectComponent(component.id, e.shiftKey)}
-                    onKeyDown={(e) => handleKeyDown(e, component.id, false, frame.id)}
-                    tabIndex={0}
+            {frame.components.map((component) => {
+              const isSelectedComp = selectedComponentIds.includes(component.id);
+              return (
+                <div
+                  key={component.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: `3px 8px 3px ${24 + indent}px`,
+                    background: isSelectedComp ? 'var(--sb-accent-bg)' : 'transparent',
+                    cursor: 'pointer',
+                    gap: 4,
+                  }}
+                  onClick={(e) => selectComponent(component.id, e.shiftKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                      if (editingId) return;
+                      if (!selectedComponentIds.includes(component.id)) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteComponent(frame.id, component.id);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  {editingId === component.id ? (
+                    <input
+                      autoFocus
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onBlur={() => commitEdit(false, frame.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitEdit(false, frame.id);
+                        if (e.key === 'Escape') setEditingId(null);
+                        e.stopPropagation();
+                      }}
+                      style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
+                      onDoubleClick={(e) => { e.stopPropagation(); startEdit(component.id, component.label); }}
+                    >
+                      {component.label}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
+                    title={component.visible ? 'Hide' : 'Show'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
                   >
-                    {editingId === component.id ? (
-                      <input
-                        autoFocus
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onBlur={() => commitEdit(false, frame.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitEdit(false, frame.id);
-                          if (e.key === 'Escape') setEditingId(null);
-                          e.stopPropagation();
-                        }}
-                        style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span
-                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
-                        onDoubleClick={(e) => { e.stopPropagation(); startEdit(component.id, component.label); }}
-                      >
-                        {component.label}
-                      </span>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
-                      title={component.visible ? 'Hide' : 'Show'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
-                      {component.visible ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
-                      title={component.locked ? 'Unlock' : 'Lock'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
-                      {component.locked ? <LockIcon /> : <UnlockIcon />}
-                    </button>
-                  </div>
-                );
-              })}
+                    {component.visible ? <EyeIcon /> : <EyeOffIcon />}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
+                    title={component.locked ? 'Unlock' : 'Lock'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
+                  >
+                    {component.locked ? <LockIcon /> : <UnlockIcon />}
+                  </button>
+                </div>
+              );
+            })}
 
             {/* Text layer rows */}
-            {!isCollapsed &&
-              (frame.textLayers ?? []).map((tl) => {
-                const isSelectedTL = selectedComponentIds.includes(tl.id);
-                return (
-                  <div
-                    key={tl.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '3px 8px 3px 24px',
-                      background: isSelectedTL ? 'var(--sb-accent-bg)' : 'transparent',
-                      cursor: 'pointer',
-                      gap: 4,
-                    }}
-                    onClick={(e) => selectComponent(tl.id, e.shiftKey)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Delete' || e.key === 'Backspace') {
-                        if (editingId) return;
-                        if (!selectedComponentIds.includes(tl.id)) return;
-                        e.preventDefault();
+            {(frame.textLayers ?? []).map((tl) => {
+              const isSelectedTL = selectedComponentIds.includes(tl.id);
+              return (
+                <div
+                  key={tl.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: `3px 8px 3px ${24 + indent}px`,
+                    background: isSelectedTL ? 'var(--sb-accent-bg)' : 'transparent',
+                    cursor: 'pointer',
+                    gap: 4,
+                  }}
+                  onClick={(e) => selectComponent(tl.id, e.shiftKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                      if (editingId) return;
+                      if (!selectedComponentIds.includes(tl.id)) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteTextLayer(frame.id, tl.id);
+                    }
+                  }}
+                  tabIndex={0}
+                >
+                  {editingId === tl.id ? (
+                    <input
+                      autoFocus
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onBlur={() => { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }
+                        if (e.key === 'Escape') setEditingId(null);
                         e.stopPropagation();
-                        deleteTextLayer(frame.id, tl.id);
-                      }
-                    }}
-                    tabIndex={0}
+                      }}
+                      style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
+                      onDoubleClick={(e) => { e.stopPropagation(); startEdit(tl.id, tl.label); }}
+                    >
+                      {tl.label}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
+                    title={tl.visible ? 'Hide' : 'Show'}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
                   >
-                    {editingId === tl.id ? (
-                      <input
-                        autoFocus
-                        value={editingText}
-                        onChange={(e) => setEditingText(e.target.value)}
-                        onBlur={() => { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') { if (editingText.trim()) updateTextLayer(frame.id, tl.id, { label: editingText }); setEditingId(null); }
-                          if (e.key === 'Escape') setEditingId(null);
-                          e.stopPropagation();
-                        }}
-                        style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span
-                        style={{ flex: 1, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--sb-text-2)' }}
-                        onDoubleClick={(e) => { e.stopPropagation(); startEdit(tl.id, tl.label); }}
-                      >
-                        {tl.label}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
-                    <button onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
-                      title={tl.visible ? 'Hide' : 'Show'}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}>
-                      {tl.visible ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
-                  </div>
-                );
-              })}
-          </div>
-        );
-      })}
+                    {tl.visible ? <EyeIcon /> : <EyeOffIcon />}
+                  </button>
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ overflowY: 'auto', height: '100%' }}>
+      {file.frames.map((frame) => (
+        <FrameTreeNode key={frame.id} frame={frame} depth={0} isTopLevel={true} />
+      ))}
     </div>
   );
 }

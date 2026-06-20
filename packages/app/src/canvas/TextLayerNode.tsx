@@ -83,6 +83,7 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
       if (e.button !== 0) return;
       if (activeTool !== 'select') return;
       e.stopPropagation();
+      e.preventDefault();
 
       if (layer.locked) return;
 
@@ -101,6 +102,7 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
+      let lockedAxis: 'x' | 'y' | null = null;
       const origX = layer.x;
       const origY = layer.y;
 
@@ -112,9 +114,14 @@ export function TextLayerNode({ layer, frameId, isSelected, computedGeometry, in
           moved = true;
         }
         if (!moved) return;
+        if (mv.shiftKey) {
+          if (!lockedAxis) lockedAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        } else {
+          lockedAxis = null;
+        }
         updateTextLayer(frameId, layer.id, {
-          x: Math.round(origX + dx),
-          y: Math.round(origY + dy),
+          x: Math.round(origX + (lockedAxis === 'y' ? 0 : dx)),
+          y: Math.round(origY + (lockedAxis === 'x' ? 0 : dy)),
         });
       };
 

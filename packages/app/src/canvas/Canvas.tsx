@@ -13,7 +13,7 @@ interface CanvasProps {
 
 export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
   const { viewport, activeTool, pan, zoom, setTool } = useCanvasStore();
-  const { file, addFrame, selectFrame, selectComponent, selectedFrameId, selectedFrameIds } = useDesignStore();
+  const { file, addFrame, addChildFrame, selectFrame, selectComponent, selectedFrameId, selectedFrameIds } = useDesignStore();
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Middle-mouse / space pan
@@ -158,17 +158,34 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         setRubberBand(null);
         if (rubberBand.w >= 50 && rubberBand.h >= 50) {
           const world = screenToWorld(rubberBand.x, rubberBand.y);
-          addFrame(
-            Math.round(world.x),
-            Math.round(world.y),
-            Math.round(rubberBand.w / viewport.zoom),
-            Math.round(rubberBand.h / viewport.zoom)
+          const worldX = Math.round(world.x);
+          const worldY = Math.round(world.y);
+          const worldW = Math.round(rubberBand.w / viewport.zoom);
+          const worldH = Math.round(rubberBand.h / viewport.zoom);
+          const centerX = worldX + worldW / 2;
+          const centerY = worldY + worldH / 2;
+
+          const frames = file?.frames ?? [];
+          const parentFrame = frames.find(
+            (f) => centerX >= f.x && centerX <= f.x + f.width && centerY >= f.y && centerY <= f.y + f.height
           );
+
+          if (parentFrame) {
+            addChildFrame(
+              parentFrame.id,
+              Math.round(centerX - parentFrame.x - worldW / 2),
+              Math.round(centerY - parentFrame.y - worldH / 2),
+              worldW,
+              worldH
+            );
+          } else {
+            addFrame(worldX, worldY, worldW, worldH);
+          }
           setTool('select');
         }
       }
     },
-    [activeTool, rubberBand, screenToWorld, addFrame, setTool, viewport.zoom]
+    [activeTool, rubberBand, screenToWorld, addFrame, addChildFrame, setTool, viewport.zoom, file?.frames]
   );
 
   const cursor =

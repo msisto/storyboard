@@ -154,9 +154,16 @@ export interface Frame {
   backgroundColor: string;
   components: ComponentInstance[];
   textLayers?: TextLayer[];
+  frames?: Frame[];
   autoLayout?: AutoLayoutSettings;
   flowOrder?: string[];
+  visible?: boolean;
+  absolute?: boolean;
+  widthMode?: SizingMode;
+  heightMode?: SizingMode;
+  locked?: boolean;
   inTimeline?: boolean;
+  localStoryName?: string;
 }
 
 export interface CommentReply {

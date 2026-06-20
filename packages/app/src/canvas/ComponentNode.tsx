@@ -134,6 +134,7 @@ export function ComponentNode({
       if (e.button !== 0) return;
       if (activeTool !== 'select') return;
       e.stopPropagation();
+      e.preventDefault();
 
       selectComponent(instance.id, e.shiftKey);
       containerRef.current?.focus();
@@ -152,6 +153,7 @@ export function ComponentNode({
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
+      let lockedAxis: 'x' | 'y' | null = null;
       const origX = instanceRef.current.x;
       const origY = instanceRef.current.y;
 
@@ -163,16 +165,15 @@ export function ComponentNode({
           moved = true;
         }
         if (!moved) return;
-
-        let newX = origX + dx;
-        let newY = origY + dy;
-
         if (mv.shiftKey) {
-          newX = Math.round(newX / 8) * 8;
-          newY = Math.round(newY / 8) * 8;
+          if (!lockedAxis) lockedAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        } else {
+          lockedAxis = null;
         }
-
-        updateComponent(frameId, instance.id, { x: Math.round(newX), y: Math.round(newY) });
+        updateComponent(frameId, instance.id, {
+          x: Math.round(origX + (lockedAxis === 'y' ? 0 : dx)),
+          y: Math.round(origY + (lockedAxis === 'x' ? 0 : dy)),
+        });
       };
 
       const onUp = () => {

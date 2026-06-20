@@ -2,7 +2,7 @@
 
 An experience design canvas for Storybook libraries.
 
-<img width="1728" height="937" alt="Screenshot 2026-06-20 at 1 52 25 PM" src="https://github.com/user-attachments/assets/9d6ad5fd-711d-4847-b3ac-a3fbaa50e5f9" />
+<img width="1728" height="937" alt="Screenshot 2026-06-20 at 1 52 25 PM" src="https://github.com/user-attachments/assets/9d6ad5fd-711d-4847-b3ac-a3fbaa50e5f9" />
 
 
 
@@ -102,7 +102,15 @@ All spacing values (gap, padding) are constrained to the Tailwind default spacin
 
 Frame self-sizing: `widthMode: 'hug'` or `heightMode: 'hug'` makes the frame wrap its content rather than clip it.
 
-Components and text layers share a single ordered list (`flowOrder` on the frame) so they can be drag-reordered together within a flow.
+Components, text layers, and child frames share a single ordered list (`flowOrder` on the frame) so they can be drag-reordered together within a flow.
+
+### Nested frames
+
+Frames can contain child frames, enabling nested auto-layouts — for example, a horizontal row of cards inside a vertically-stacked screen. Draw the frame tool inside an existing frame to create a child frame; the new frame becomes a child of whichever frame's center it was drawn inside.
+
+Child frames participate in their parent's auto-layout as flow items (same sizing modes: fixed, fill, hug) and can have their own independent auto-layout. Groups are just child frames with a transparent background — no separate primitive is needed.
+
+The data model is recursive: `Frame.frames?: Frame[]`. All store mutations (add, move, delete, reorder) use recursive helpers so they work at any nesting depth. The layers panel shows child frames indented under their parent. Dropping a story onto a child frame adds the component to that child.
 
 ### Viewport
 
@@ -321,10 +329,12 @@ npm run dev -w packages/app & npm run dev -w packages/server
 | Action | Shortcut |
 |--------|----------|
 | Select tool | V |
+| Frame tool | F |
 | Comment tool | C |
 | Pan canvas | Space + drag, or middle mouse drag |
 | Zoom to cursor | Trackpad pinch, or Cmd/Ctrl + scroll |
 | Toggle auto-layout | Shift+A (with frame selected) |
+| Constrain drag to axis | Shift + drag |
 | Delete selected | Delete |
 | Undo | Cmd/Ctrl+Z |
 
@@ -344,6 +354,12 @@ Double-click any component to enter interact mode. The overlay is removed; the i
 
 Open the Text tab to browse the Tailwind type scale. Click a row to add a text layer to the selected frame. Drag to position. Double-click any text layer on the canvas to edit it inline.
 
+### Nested frames
+
+Select the frame tool (F) and draw inside an existing frame to create a child frame. The child frame participates in its parent's auto-layout flow. Select a child frame to see its own auto-layout controls, sizing modes, position, and background in the inspector. Child frames appear nested in the layers panel with indentation.
+
+Drag a story onto a child frame to add components directly into it. Drop handling resolves the deepest frame at the drop point, so nested frames receive drops naturally.
+
 ### Auto-layout
 
 Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel to set direction, gap, padding, alignment, and sizing modes. All spacing values snap to the Tailwind scale. Drag children within the frame to reorder. Press Shift+A again to disable; components keep their computed positions.
@@ -352,6 +368,10 @@ Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel
 
 Select two or more items to see alignment controls in the Inspect panel. Align edges or centers, distribute with equal spacing, or tidy up into a grid.
 
+### Constrained dragging
+
+Hold Shift while dragging any item (component, text layer, frame, or child frame) to lock movement to a single axis. The axis is determined by whichever direction you move first. Release Shift mid-drag to resume free movement.
+
 ### Timeline management
 
 Frames shown in the timeline represent your demo flow. To remove a frame from the timeline without deleting it (e.g. a utility or reference frame), select it and toggle **Timeline → Hidden** in the inspector. Hidden frames stay on the canvas but don't appear in the timeline strip.
@@ -359,6 +379,16 @@ Frames shown in the timeline represent your demo flow. To remove a frame from th
 ### JSX export
 
 Menu (≡) → Export JSX generates a React component for any frame. Auto-layout frames produce a `className` string using Tailwind utility classes for all spacing and flex properties (e.g. `flex flex-col gap-4 p-4 items-start`). Width, height, and background stay as inline `style`. Semantic background tokens (`hsl(var(--background))` etc.) are preserved as-is so the exported code already uses the correct theme variables. Use it as handoff scaffolding.
+
+---
+
+## Component library
+
+`packages/storybook` ships stories for the complete [shadcn/ui](https://ui.shadcn.com/docs/components) component set — 45+ components with multiple story variants each, giving the canvas a full design vocabulary out of the box:
+
+Accordion, Alert, AlertDialog, AspectRatio, Avatar, Badge, Breadcrumb, Button, Calendar, Card, Carousel, Checkbox, Collapsible, Command, ContextMenu, Dialog, Drawer, DropdownMenu, EmptyState, Form, HoverCard, Input, InputOTP, Label, Menubar, NavigationMenu, Pagination, Popover, Progress, RadioGroup, Resizable, ScrollArea, Select, Separator, Sheet, Skeleton, Slider, Sonner, Switch, Table, Tabs, Textarea, Toggle, ToggleGroup, Tooltip
+
+All stories use the `args` pattern so every component's props are editable live from the canvas inspector.
 
 ---
 
@@ -389,7 +419,7 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
         "widthMode": "fixed", "heightMode": "hug",
         "wrap": false
       },
-      "flowOrder": ["<text-layer-id>", "<component-id>"],
+      "flowOrder": ["<text-layer-id>", "<component-id>", "<child-frame-id>"],
       "components": [
         {
           "id": "<uuid>",
@@ -414,6 +444,16 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
           "widthMode": "hug", "heightMode": "hug",
           "visible": true, "locked": false
         }
+      ],
+      "frames": [
+        {
+          "id": "<child-frame-id>",
+          "label": "Row",
+          "x": 16, "y": 200, "width": 343, "height": 80,
+          "backgroundColor": "transparent",
+          "components": [],
+          "autoLayout": { "direction": "horizontal", "gap": 8, ... }
+        }
       ]
     }
   ],
@@ -422,6 +462,8 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
 ```
 
 `storybookId` is the only coupling to Storybook. It's the story ID from `/index.json` — the same string in the `id` query param of `iframe.html`. If a story is renamed or moved, instances referencing the old ID will show a broken iframe until updated.
+
+`frames` on a frame is optional and recursive — child frames can themselves contain child frames at any depth.
 
 ---
 
@@ -433,8 +475,8 @@ packages/app/src/
   types.ts                   all shared TypeScript interfaces + Tailwind spacing scale
 
   canvas/
-    Canvas.tsx               pan/zoom/rubber-band, renders FrameNodes
-    FrameNode.tsx            frame resize, auto-layout reorder drag, text tool overlay
+    Canvas.tsx               pan/zoom/rubber-band, frame tool (detects parent frame for nesting)
+    FrameNode.tsx            frame resize, auto-layout reorder drag, text tool overlay, child frames
     ComponentNode.tsx        iframe wrapper, interact mode, resize handles, arg sync
     TextLayerNode.tsx        inline text editing, hug-size via ResizeObserver
     ResizeHandles.tsx        8-direction resize handles used by frames + components
@@ -442,17 +484,17 @@ packages/app/src/
 
   components/
     Toolbar.tsx              tool switcher, zoom controls, file menu, registry refresh
-    LayersPanel.tsx          frame/component/text layer tree, visibility toggles
+    LayersPanel.tsx          recursive frame/component/text layer tree, visibility toggles
     ComponentPalette.tsx     searchable story list from Storybook index
     TextPalette.tsx          Tailwind type scale browser, draggable rows
-    PropsInspector.tsx       context-sensitive inspector (frame / component / text layer)
+    PropsInspector.tsx       context-sensitive inspector (frame / child frame / component / text layer)
     FilePicker.tsx           file list, create/open/delete
 
   timeline/
     StoryboardTimeline.tsx   bottom frame strip, wireframe thumbnails, drag reorder
 
   store/
-    useDesignStore.ts        all design state + 50-step undo history
+    useDesignStore.ts        all design state + 50-step undo; recursive frame helpers
     useCanvasStore.ts        viewport, active tool, interact mode, text edit mode
     useAutoSave.ts           debounced save (1s) on state change
     api.ts                   REST client for /api/files
@@ -474,7 +516,8 @@ packages/server/src/
   index.ts                   Express REST API (/api/files CRUD) + WebSocket room server
 
 packages/storybook/
-  src/stories/               example stories using Radix UI + Tailwind (all using args)
+  src/stories/               45+ shadcn/ui component stories (all using args pattern)
+  src/components/ui/         full shadcn/ui component library
   .storybook/
     preview.ts               SizeReporter + ArgsReporter decorators — copy to your Storybook
     main.ts                  Storybook config (stories glob, addons)
@@ -488,6 +531,6 @@ designs/
 ## Known limitations
 
 - **No component library abstraction** — each frame has its own independent component list. There's no concept of reusable symbols or shared instances across frames.
-- **JSX export doesn't handle nested auto-layout** — the exporter generates correct flexbox JSX for top-level auto-layout frames but does not recurse into nested frames.
+- **JSX export is flat** — the exporter generates correct flexbox JSX for top-level auto-layout frames but does not recurse into nested child frames.
 - **Hardcoded story renders** — stories that use `render: () => (...)` with no `args` won't show editable props. Migrate content to `args` to make it editable.
 - **Box shadows are clipped at iframe boundaries** — each component renders inside an iframe sized to its natural dimensions. CSS `box-shadow` that bleeds outside the component's bounding box is clipped by the iframe viewport. A future fix would add a transparent padding buffer around each story so shadows have room to render without affecting the reported component size.

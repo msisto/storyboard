@@ -59,6 +59,9 @@ export function computeAutoLayout(frame: Frame): ComputedLayout {
         height: t.height ?? textLayerNaturalHeight(t.fontSize),
       };
     }
+    for (const cf of frame.frames ?? []) {
+      components[cf.id] = { x: cf.x, y: cf.y, width: cf.width, height: cf.height };
+    }
     return { components, frameWidth: frame.width, frameHeight: frame.height };
   }
 
@@ -68,6 +71,7 @@ export function computeAutoLayout(frame: Frame): ComputedLayout {
   const allItems: FlowItem[] = [
     ...frame.components.map((c) => toFlowItem(c)),
     ...(frame.textLayers ?? []).map((t) => toFlowItem(t)),
+    ...(frame.frames ?? []).map((cf) => toFlowItem({ ...cf, visible: cf.visible ?? true })),
   ];
   if (frame.flowOrder) {
     const order = frame.flowOrder;
