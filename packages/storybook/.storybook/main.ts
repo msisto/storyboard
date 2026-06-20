@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+import path from 'path';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
@@ -9,6 +10,14 @@ const config: StorybookConfig = {
   framework: {
     name: '@storybook/react-vite',
     options: {},
+  },
+  viteFinal: async (config) => {
+    const { mergeConfig } = await import('vite');
+    return mergeConfig(config, {
+      resolve: {
+        alias: { '@': path.resolve(__dirname, '../src') },
+      },
+    });
   },
 };
 
