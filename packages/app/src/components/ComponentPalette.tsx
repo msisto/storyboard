@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { buildIframeUrl } from '../registry/buildIframeUrl';
 import type { StorybookStory } from '../types';
@@ -137,25 +138,26 @@ interface VariantPopoverProps {
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  x: number;
+  y: number;
 }
 
-function VariantPopover({ componentName, stories, onDragStart, onMouseEnter, onMouseLeave }: VariantPopoverProps) {
-  return (
+function VariantPopover({ componentName, stories, onDragStart, onMouseEnter, onMouseLeave, x, y }: VariantPopoverProps) {
+  return createPortal(
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        position: 'absolute',
-        left: '100%',
-        top: 0,
-        marginLeft: 8,
+        position: 'fixed',
+        left: x,
+        top: y,
         width: 280,
         maxHeight: 340,
         background: 'var(--sb-bg)',
         border: '1px solid var(--sb-border)',
         borderRadius: 8,
         boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-        zIndex: 1000,
+        zIndex: 9999,
         overflowY: 'auto',
         overflowX: 'hidden',
       }}
@@ -165,23 +167,19 @@ function VariantPopover({ componentName, stories, onDragStart, onMouseEnter, onM
         fontSize: 11,
         fontWeight: 600,
         color: 'var(--sb-text-3)',
-        textTransform: 'uppercase',
+        textTransform: 'uppercase' as const,
         letterSpacing: '0.05em',
         borderBottom: '1px solid var(--sb-border)',
       }}>
         {componentName}
       </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 6,
-        padding: 8,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 8 }}>
         {stories.map((story) => (
           <VariantThumbnail key={story.id} story={story} onDragStart={onDragStart} />
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -195,14 +193,23 @@ function ComponentRow({
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const rowRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
-  const show = useCallback(() => { clearTimeout(timer.current); setOpen(true); }, []);
+  const show = useCallback(() => {
+    clearTimeout(timer.current);
+    if (rowRef.current) {
+      const r = rowRef.current.getBoundingClientRect();
+      setPos({ x: r.right + 8, y: r.top });
+    }
+    setOpen(true);
+  }, []);
   const hide = useCallback(() => { timer.current = setTimeout(() => setOpen(false), 100); }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
-    <div style={{ position: 'relative' }} onMouseEnter={show} onMouseLeave={hide}>
+    <div ref={rowRef} onMouseEnter={show} onMouseLeave={hide}>
       <div
         draggable
         onDragStart={(e) => onDragStart(e, entry.defaultStory)}
@@ -226,12 +233,8 @@ function ComponentRow({
         </span>
         {entry.stories.length > 1 && (
           <span style={{
-            fontSize: 9,
-            color: 'var(--sb-text-3)',
-            flexShrink: 0,
-            background: 'var(--sb-border)',
-            borderRadius: 3,
-            padding: '1px 3px',
+            fontSize: 9, color: 'var(--sb-text-3)', flexShrink: 0,
+            background: 'var(--sb-border)', borderRadius: 3, padding: '1px 3px',
           }}>
             {entry.stories.length}
           </span>
@@ -244,6 +247,8 @@ function ComponentRow({
           onDragStart={onDragStart}
           onMouseEnter={show}
           onMouseLeave={hide}
+          x={pos.x}
+          y={pos.y}
         />
       )}
     </div>
@@ -260,14 +265,23 @@ function LocalStoryRow({
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const rowRef = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
-  const show = useCallback(() => { clearTimeout(timer.current); setOpen(true); }, []);
+  const show = useCallback(() => {
+    clearTimeout(timer.current);
+    if (rowRef.current) {
+      const r = rowRef.current.getBoundingClientRect();
+      setPos({ x: r.right + 8, y: r.top });
+    }
+    setOpen(true);
+  }, []);
   const hide = useCallback(() => { timer.current = setTimeout(() => setOpen(false), 100); }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   return (
-    <div style={{ position: 'relative' }} onMouseEnter={show} onMouseLeave={hide}>
+    <div ref={rowRef} onMouseEnter={show} onMouseLeave={hide}>
       <div
         draggable
         onDragStart={(e) => onDragStart(e, story)}
@@ -298,6 +312,8 @@ function LocalStoryRow({
           onDragStart={onDragStart}
           onMouseEnter={show}
           onMouseLeave={hide}
+          x={pos.x}
+          y={pos.y}
         />
       )}
     </div>

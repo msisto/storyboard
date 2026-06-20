@@ -1,19 +1,39 @@
 import type { AutoLayoutSettings, ComponentInstance, Frame, StorybookStory, TextLayer } from '../types';
 
+// Legacy maps kept for any internal size/weight lookups
 const FONT_SIZE_MAP: Record<string, string> = {
-  xs: '0.75rem',
-  sm: '0.875rem',
-  base: '1rem',
-  lg: '1.125rem',
-  xl: '1.25rem',
-  '2xl': '1.5rem',
-  '3xl': '1.875rem',
-  '4xl': '2.25rem',
+  xs: '0.75rem', sm: '0.875rem', base: '1rem', lg: '1.125rem',
+  xl: '1.25rem', '2xl': '1.5rem', '3xl': '1.875rem', '4xl': '2.25rem',
 };
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
   thin: 100, extralight: 200, light: 300, normal: 400,
   medium: 500, semibold: 600, bold: 700, extrabold: 800, black: 900,
+};
+
+// Tailwind class equivalents — used in JSX export output
+const FONT_SIZE_TW: Record<string, string> = {
+  xs: 'text-xs', sm: 'text-sm', base: 'text-base', lg: 'text-lg',
+  xl: 'text-xl', '2xl': 'text-2xl', '3xl': 'text-3xl', '4xl': 'text-4xl',
+};
+
+const FONT_WEIGHT_TW: Record<string, string> = {
+  thin: 'font-thin', extralight: 'font-extralight', light: 'font-light',
+  normal: 'font-normal', medium: 'font-medium', semibold: 'font-semibold',
+  bold: 'font-bold', extrabold: 'font-extrabold', black: 'font-black',
+};
+
+// Semantic color token → Tailwind text class
+const SEMANTIC_COLOR_TW: Record<string, string> = {
+  'hsl(var(--foreground))': 'text-foreground',
+  'hsl(var(--muted-foreground))': 'text-muted-foreground',
+  'hsl(var(--card-foreground))': 'text-card-foreground',
+  'hsl(var(--primary))': 'text-primary',
+  'hsl(var(--primary-foreground))': 'text-primary-foreground',
+  'hsl(var(--secondary-foreground))': 'text-secondary-foreground',
+  'hsl(var(--accent-foreground))': 'text-accent-foreground',
+  'hsl(var(--destructive))': 'text-destructive',
+  'hsl(var(--destructive-foreground))': 'text-destructive-foreground',
 };
 
 // Maps pixel values (from the Tailwind spacing scale) to Tailwind token strings
@@ -83,12 +103,22 @@ function propsString(instance: ComponentInstance): string {
 }
 
 function textSpan(t: TextLayer, absolute: boolean): string {
-  const fs = FONT_SIZE_MAP[t.fontSize ?? 'base'] ?? '1rem';
-  const fw = FONT_WEIGHT_MAP[t.fontWeight ?? 'normal'] ?? 400;
-  const posStyle = absolute
-    ? `position: 'absolute', left: ${t.x}, top: ${t.y}, `
-    : '';
-  return `    <span style={{ ${posStyle}fontSize: '${fs}', fontWeight: ${fw}, color: '${t.color ?? '#111827'}' }}>${t.content}</span>`;
+  const fsTw = FONT_SIZE_TW[t.fontSize ?? 'base'] ?? 'text-base';
+  const fwTw = FONT_WEIGHT_TW[t.fontWeight ?? 'normal'] ?? 'font-normal';
+  const colorTw = t.color ? SEMANTIC_COLOR_TW[t.color] : null;
+  const colorStyle = !colorTw && t.color ? `, color: '${t.color}'` : '';
+
+  if (absolute) {
+    const posStyle = `position: 'absolute', left: ${t.x}, top: ${t.y}${colorStyle}`;
+    const cls = [fsTw, fwTw, colorTw].filter(Boolean).join(' ');
+    return `    <span className="${cls}" style={{ ${posStyle} }}>${t.content}</span>`;
+  } else {
+    const cls = [fsTw, fwTw, colorTw].filter(Boolean).join(' ');
+    if (colorStyle) {
+      return `    <span className="${cls}" style={{ color: '${t.color}' }}>${t.content}</span>`;
+    }
+    return `    <span className="${cls}">${t.content}</span>`;
+  }
 }
 
 function toPascal(name: string): string {
