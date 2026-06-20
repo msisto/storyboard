@@ -5,9 +5,6 @@ import { FrameNode } from './FrameNode';
 import { PeerCursors } from './PeerCursors';
 import type { PeerCursor } from '../comments/useCommentSync';
 
-const CHECKERBOARD = `
-  repeating-conic-gradient(var(--sb-canvas-a) 0% 25%, var(--sb-canvas-b) 0% 50%) 0 0 / 20px 20px
-`;
 
 interface CanvasProps {
   sendCursor?: (x: number, y: number) => void;
@@ -192,7 +189,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         height: '100%',
         overflow: 'hidden',
         overscrollBehavior: 'none',
-        background: CHECKERBOARD,
+        background: 'var(--sb-canvas-bg)',
         cursor,
       }}
       onMouseDown={handleMouseDown}

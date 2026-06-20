@@ -13,6 +13,7 @@
   --sb-accent-muted:  #60a5fa;
   --sb-canvas-a:      #e5e7eb;
   --sb-canvas-b:      #f9fafb;
+  --sb-canvas-bg:     #e8e8e8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +32,7 @@
     --sb-accent-muted:  #5ac8fa;
     --sb-canvas-a:      #2a2a2c;
     --sb-canvas-b:      #1c1c1e;
+    --sb-canvas-bg:     #2a2a2c;
   }
 }
 
