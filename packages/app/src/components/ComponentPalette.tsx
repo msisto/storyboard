@@ -74,6 +74,7 @@ function VariantThumbnail({
 }) {
   const url = buildIframeUrl(story.id, {});
   const { ref, src } = useLazyIframe(url);
+  const [loaded, setLoaded] = useState(false);
 
   return (
     <div
@@ -85,26 +86,29 @@ function VariantThumbnail({
       style={{ cursor: 'grab', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--sb-border)' }}
     >
       <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'transparent' }}>
-        {src ? (
+        {/* Placeholder — visible until iframe has painted */}
+        {!loaded && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ width: 20, height: 20, borderRadius: 3, background: 'var(--sb-border)' }} />
+          </div>
+        )}
+        {src && (
           <iframe
             src={src}
+            onLoad={() => setLoaded(true)}
             style={{
               width: 258, height: 144, border: 'none',
               transform: 'scale(0.5)', transformOrigin: '0 0',
               pointerEvents: 'none', position: 'absolute', top: 0, left: 0,
-              background: 'transparent',
+              opacity: loaded ? 1 : 0,
             }}
             title={story.name}
             tabIndex={-1}
             sandbox="allow-scripts allow-same-origin"
           />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{ width: 20, height: 20, borderRadius: 3, background: 'var(--sb-border)' }} />
-          </div>
         )}
       </div>
       <div style={{
