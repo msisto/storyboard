@@ -3,6 +3,7 @@ import * as MenubarPrimitive from "@radix-ui/react-menubar"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useFramePortal } from "@/components/ui/portal-context"
 
 function MenubarMenu({
   ...props
@@ -19,7 +20,8 @@ function MenubarGroup({
 function MenubarPortal({
   ...props
 }: React.ComponentProps<typeof MenubarPrimitive.Portal>) {
-  return <MenubarPrimitive.Portal {...props} />
+  const container = useFramePortal();
+  return <MenubarPrimitive.Portal container={container} {...props} />
 }
 
 function MenubarRadioGroup({
@@ -108,7 +110,7 @@ const MenubarContent = React.forwardRef<
     { className, align = "start", alignOffset = -4, sideOffset = 8, ...props },
     ref
   ) => (
-    <MenubarPrimitive.Portal>
+    <MenubarPortal>
       <MenubarPrimitive.Content
         ref={ref}
         align={align}
@@ -120,7 +122,7 @@ const MenubarContent = React.forwardRef<
         )}
         {...props}
       />
-    </MenubarPrimitive.Portal>
+    </MenubarPortal>
   )
 )
 MenubarContent.displayName = MenubarPrimitive.Content.displayName

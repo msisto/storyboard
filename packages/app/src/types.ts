@@ -164,6 +164,7 @@ export interface Frame {
   locked?: boolean;
   inTimeline?: boolean;
   localStoryName?: string;
+  clipContent?: boolean;
 }
 
 export interface CommentReply {

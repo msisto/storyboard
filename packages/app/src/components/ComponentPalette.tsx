@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useRegistryStore } from '../registry/useRegistryStore';
-import { buildIframeUrl } from '../registry/buildIframeUrl';
+import { getStoryEntry } from '../registry/storyRegistry';
 import type { StorybookStory } from '../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,25 +42,22 @@ function fuzzyMatch(text: string, query: string): boolean {
   return qi === q.length;
 }
 
-// ── useLazyIframe ─────────────────────────────────────────────────────────────
+// ── useLazyVisible ────────────────────────────────────────────────────────────
 
-function useLazyIframe(url: string) {
+function useLazyVisible() {
   const ref = useRef<HTMLDivElement>(null);
-  const [src, setSrc] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
+  const [visible, setVisible] = useState(false);
+  React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setSrc(url); },
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) setVisible(true); },
       { rootMargin: '80px' }
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
-
-  return { ref, src };
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
 }
 
 // ── VariantThumbnail ──────────────────────────────────────────────────────────
@@ -72,9 +69,8 @@ function VariantThumbnail({
   story: StorybookStory;
   onDragStart: (e: React.DragEvent, story: StorybookStory) => void;
 }) {
-  const url = buildIframeUrl(story.id, {});
-  const { ref, src } = useLazyIframe(url);
-  const [loaded, setLoaded] = useState(false);
+  const { ref, visible } = useLazyVisible();
+  const entry = getStoryEntry(story.id);
 
   return (
     <div
@@ -85,30 +81,27 @@ function VariantThumbnail({
       className="palette-story-item"
       style={{ cursor: 'grab', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--sb-border)' }}
     >
-      <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'transparent' }}>
-        {/* Placeholder — visible until iframe has painted */}
-        {!loaded && (
+      <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'var(--sb-bg-secondary)' }}>
+        {visible && entry ? (
+          <div
+            style={{
+              transform: 'scale(0.5)',
+              transformOrigin: '0 0',
+              width: '200%',
+              height: '200%',
+              pointerEvents: 'none',
+              overflow: 'hidden',
+            }}
+          >
+            {entry.render(entry.defaultArgs)}
+          </div>
+        ) : (
           <div style={{
             position: 'absolute', inset: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{ width: 20, height: 20, borderRadius: 3, background: 'var(--sb-border)' }} />
           </div>
-        )}
-        {src && (
-          <iframe
-            src={src}
-            onLoad={() => setLoaded(true)}
-            style={{
-              width: 258, height: 144, border: 'none',
-              transform: 'scale(0.5)', transformOrigin: '0 0',
-              pointerEvents: 'none', position: 'absolute', top: 0, left: 0,
-              opacity: loaded ? 1 : 0,
-            }}
-            title={story.name}
-            tabIndex={-1}
-            sandbox="allow-scripts allow-same-origin"
-          />
         )}
       </div>
       <div style={{
@@ -241,7 +234,7 @@ interface ComponentPaletteProps {
 }
 
 export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
-  const { stories, status } = useRegistryStore();
+  const { stories } = useRegistryStore();
   const [search, setSearch] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set());
@@ -295,13 +288,6 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
     }
     return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)));
   }, [filteredEntries]);
-
-  if (status === 'loading') {
-    return <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-3)' }}>Loading components...</div>;
-  }
-  if (status === 'error') {
-    return <div style={{ padding: 16, fontSize: 12, color: '#ef4444' }}>Storybook not connected</div>;
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

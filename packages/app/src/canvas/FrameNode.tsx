@@ -7,6 +7,7 @@ import { ResizeHandles } from './ResizeHandles';
 import { CommentPin } from '../comments/CommentPin';
 import { computeAutoLayout } from './autoLayout';
 import { TextLayerNode } from './TextLayerNode';
+import { FramePortalContext } from '@/components/ui/portal-context';
 
 type Direction = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
@@ -232,6 +233,8 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
+
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   const sizeRef = useRef({ x: frame.x, y: frame.y, w: frame.width, h: frame.height });
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
@@ -499,6 +502,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
     : isSelected && selectedComponentIds.length === 0;
 
   return (
+    <FramePortalContext.Provider value={portalContainer}>
     <div
       style={{
         position: 'absolute',
@@ -507,6 +511,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
         width: layout.frameWidth,
         height: layout.frameHeight,
         backgroundColor: frame.backgroundColor,
+        overflow: (!isChildFrame || frame.clipContent) ? 'hidden' : undefined,
         outline: frameIsSelected
           ? '2px solid var(--sb-accent)'
           : isMultiSelected
@@ -514,6 +519,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
           : 'none',
         boxSizing: 'border-box',
         cursor: activeTool === 'text' ? 'text' : undefined,
+        transform: 'translateZ(0)',
       }}
       onClick={handleFrameClick}
       onMouseDown={handleFrameMouseDown}
@@ -607,6 +613,13 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
           hiddenDirections={hiddenDirs.length > 0 ? hiddenDirs : undefined}
         />
       )}
+
+      {/* Portal container — dialogs/drawers/menus render here, scoped to the frame */}
+      <div
+        ref={setPortalContainer}
+        style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}
+      />
     </div>
+    </FramePortalContext.Provider>
   );
 }

@@ -4,6 +4,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { useFramePortal } from "@/components/ui/portal-context"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -18,7 +19,10 @@ Drawer.displayName = "Drawer"
 
 const DrawerTrigger = DrawerPrimitive.Trigger
 
-const DrawerPortal = DrawerPrimitive.Portal
+function DrawerPortal({ children, ...props }: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
+  const container = useFramePortal();
+  return <DrawerPrimitive.Portal container={container} {...props}>{children}</DrawerPrimitive.Portal>;
+}
 
 const DrawerClose = DrawerPrimitive.Close
 

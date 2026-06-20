@@ -3,11 +3,8 @@ import type { ComponentInstance } from '../types';
 import type { ChildGeometry } from './autoLayout';
 import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
-import { buildIframeUrl } from '../registry/buildIframeUrl';
 import { ResizeHandles } from './ResizeHandles';
-import { useRegistryStore } from '../registry/useRegistryStore';
-import { parseArgTypes } from '../registry/argTypes';
-import type { RawArgType } from '../registry/loader';
+import { getStoryEntry } from '../registry/storyRegistry';
 
 interface ComponentNodeProps {
   instance: ComponentInstance;
@@ -28,97 +25,49 @@ export function ComponentNode({
   inAutoLayout,
   onReorderDragStart,
 }: ComponentNodeProps) {
-  const { selectComponent, updateComponent, deleteComponent, pushHistory } = useDesignStore();
+  const { selectComponent, updateComponent, pushHistory } = useDesignStore();
   const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool, globalInteractMode } =
     useCanvasStore();
-  const { updateArgDefinitions } = useRegistryStore();
 
   const isInteracting = interactingComponentId === instance.id;
   const instanceRef = useRef(instance);
   instanceRef.current = instance;
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Keep computedGeometry in a ref so getGeometry stays stable
   const computedGeometryRef = useRef(computedGeometry);
   computedGeometryRef.current = computedGeometry;
 
-  // Track last accepted size so we only update when the component actually
-  // changes dimensions. This lets height re-measure when width changes (e.g.
-  // fill mode reflows text) while avoiding update loops when size is stable.
   const lastSizeRef = useRef<{ w: number; h: number } | null>(null);
   useEffect(() => {
     lastSizeRef.current = null;
   }, [instance.storybookId]);
 
+  // Auto-size via ResizeObserver — measures natural content dimensions
   useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (!e.data || typeof e.data !== 'object') return;
-
-      if (e.data.type === 'storyboard:story-size' && e.data.instanceId === instance.id) {
-        const w = Math.round(e.data.width as number);
-        const h = Math.round(e.data.height as number);
-        if (w > 0 && h > 0) {
-          const last = lastSizeRef.current;
-          if (last && last.w === w && last.h === h) return;
-          lastSizeRef.current = { w, h };
-          updateComponent(frameId, instance.id, { width: w, height: h });
-        }
+    const el = contentRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const w = Math.round(entry.contentRect.width);
+      const h = Math.round(entry.contentRect.height);
+      if (w > 0 && h > 0) {
+        const last = lastSizeRef.current;
+        if (last?.w === w && last?.h === h) return;
+        lastSizeRef.current = { w, h };
+        updateComponent(frameId, instanceRef.current.id, { width: w, height: h });
       }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [frameId, instance.storybookId, updateComponent]);
 
-      if (e.data.type === 'storyboard:story-args' && e.data.instanceId === instance.id) {
-        const rawArgTypes = e.data.argTypes as Record<string, RawArgType> | undefined;
-        const defaultArgs = e.data.args as Record<string, unknown> | undefined;
-        if (rawArgTypes && Object.keys(rawArgTypes).length > 0) {
-          updateArgDefinitions(instance.storybookId, parseArgTypes(rawArgTypes));
-        } else if (defaultArgs && Object.keys(defaultArgs).length > 0) {
-          // Infer types from default arg values when argTypes is empty
-          const inferred: Record<string, RawArgType> = {};
-          for (const [k, v] of Object.entries(defaultArgs)) {
-            const t = typeof v;
-            inferred[k] = { control: t === 'boolean' ? 'boolean' : t === 'number' ? 'number' : 'text', defaultValue: v };
-          }
-          updateArgDefinitions(instance.storybookId, parseArgTypes(inferred));
-        }
-      }
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [instance.id, instance.storybookId, frameId, updateComponent, updateArgDefinitions]);
-
-  // ── Arg updates via postMessage ──────────────────────────────────────────────
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const pushArgs = useCallback((args: Record<string, unknown>) => {
-    iframeRef.current?.contentWindow?.postMessage(
-      { type: 'storyboard:update-args', instanceId: instance.id, args },
-      '*'
-    );
-  }, [instance.id]);
-
-  // Push args to the iframe whenever they change
-  const prevArgsRef = useRef<Record<string, unknown>>(instance.args);
-  useEffect(() => {
-    if (prevArgsRef.current === instance.args) return;
-    prevArgsRef.current = instance.args;
-    pushArgs(instance.args);
-  }, [instance.args, pushArgs]);
-
-  // Stable src — snapshot args at mount/story-change, don't update on arg edits
-  const [iframeUrl, setIframeUrl] = React.useState(
-    () => buildIframeUrl(instance.storybookId, instance.args, instance.id)
-  );
-  useEffect(() => {
-    setIframeUrl(buildIframeUrl(instance.storybookId, instance.args, instance.id));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instance.storybookId, instance.id]);
-
-  // Effective rendering geometry: computed by layout engine or stored values
   const effectiveX = computedGeometry?.x ?? instance.x;
   const effectiveY = computedGeometry?.y ?? instance.y;
   const effectiveWidth = computedGeometry?.width ?? instance.width;
   const effectiveHeight = computedGeometry?.height ?? instance.height;
 
-  // Stable getGeometry reads from refs — no stale closure issues
   const getGeometry = useCallback(() => {
     const geo = computedGeometryRef.current;
     return {
@@ -139,16 +88,13 @@ export function ComponentNode({
       selectComponent(instance.id, e.shiftKey);
       containerRef.current?.focus();
 
-      // Shift-click is purely for adding to the selection — don't start a drag.
       if (e.shiftKey) return;
 
-      // In auto layout flow: hand off drag to FrameNode for reorder
       if (inAutoLayout && !instance.absolute) {
         onReorderDragStart?.(instance.id, e.clientX, e.clientY);
         return;
       }
 
-      // Free-position drag (existing behaviour)
       document.body.style.userSelect = 'none';
       const startX = e.clientX;
       const startY = e.clientY;
@@ -200,7 +146,7 @@ export function ComponentNode({
 
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation(); // prevent mousedown from reaching the parent frame
+      e.stopPropagation();
       if (isInteracting && e.target === e.currentTarget) {
         exitInteractMode();
       }
@@ -213,7 +159,6 @@ export function ComponentNode({
       const w = Math.max(MIN_SIZE, width);
       const h = Math.max(MIN_SIZE, height);
       if (inAutoLayout && !instance.absolute) {
-        // Layout engine computes x/y — only store the explicit size
         updateComponent(frameId, instance.id, { width: w, height: h });
       } else {
         updateComponent(frameId, instance.id, { x, y, width: w, height: h });
@@ -224,9 +169,6 @@ export function ComponentNode({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Delete is handled by the global window listener in App.tsx.
-      // Handling it here too causes a double-fire: this fires first (clearing
-      // selectedComponentId), then the window listener fires and deletes the frame.
       if (e.key === 'Escape' && isInteracting) {
         exitInteractMode();
       }
@@ -244,6 +186,9 @@ export function ComponentNode({
 
   if (!instance.visible) return null;
 
+  const entry = getStoryEntry(instance.storybookId);
+  const showOverlay = !isInteracting && !globalInteractMode;
+
   return (
     <div
       data-component-node="true"
@@ -256,6 +201,7 @@ export function ComponentNode({
         opacity: instance.locked ? 0.6 : 1,
         outline: isSelected && !isInteracting ? '2px solid var(--sb-accent)' : 'none',
         outlineOffset: -2,
+        overflow: 'hidden',
       }}
       ref={containerRef}
       tabIndex={-1}
@@ -263,40 +209,45 @@ export function ComponentNode({
       onMouseDown={handleContainerMouseDown}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Overlay — sits above iframe to capture pointer events when not interacting.
-          Hidden in global interact mode so all iframes receive events directly. */}
-      {!isInteracting && !globalInteractMode && (
+      {/* Selection/drag overlay — removed in interact mode so component receives events */}
+      {showOverlay && (
         <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 2,
-            cursor: overlayCursor,
-          }}
+          style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: overlayCursor }}
           onMouseDown={handleOverlayMouseDown}
           onDoubleClick={handleDoubleClick}
           onClick={(e) => e.stopPropagation()}
         />
       )}
 
-      {/* Live Storybook iframe */}
-      <iframe
-        ref={iframeRef}
-        src={iframeUrl}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          background: 'transparent',
-          pointerEvents: isInteracting || globalInteractMode ? 'auto' : 'none',
-        }}
-        title={instance.label}
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-      />
+      {/* Native component render */}
+      <div
+        ref={contentRef}
+        style={{ width: '100%', minHeight: '100%' }}
+        onPointerDown={showOverlay ? (e) => e.stopPropagation() : undefined}
+      >
+        {entry ? (
+          entry.render(instance.args)
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'hsl(var(--muted))',
+              color: 'hsl(var(--muted-foreground))',
+              fontSize: 12,
+              padding: 8,
+              textAlign: 'center',
+              fontFamily: 'inherit',
+            }}
+          >
+            {instance.storybookId}
+          </div>
+        )}
+      </div>
 
-      {/* Selection resize handles */}
       {isSelected && !isInteracting && (
         <ResizeHandles
           getGeometry={getGeometry}
@@ -306,7 +257,6 @@ export function ComponentNode({
         />
       )}
 
-      {/* Per-component interact badge — hidden in global interact mode (canvas shows its own) */}
       {isInteracting && !globalInteractMode && (
         <div
           style={{

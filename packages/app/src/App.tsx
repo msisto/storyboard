@@ -8,6 +8,7 @@ import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
 import { useRegistryStore } from './registry/useRegistryStore';
+import { getStoryEntry } from './registry/storyRegistry';
 import { useDesignStore, findFrame } from './store/useDesignStore';
 import { useCanvasStore } from './store/useCanvasStore';
 import { useCommentSync } from './comments/useCommentSync';
@@ -189,7 +190,7 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame } = useDesignStore();
+  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame, selectComponent } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, toggleGlobalInteractMode, exitGlobalInteractMode, globalInteractMode } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
@@ -287,7 +288,10 @@ export default function App() {
         if (e.key === 't' || e.key === 'T') setTool('text');
         if (e.key === 'c' || e.key === 'C') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
-        if (e.key === 'i' || e.key === 'I') toggleGlobalInteractMode();
+        if (e.key === 'i' || e.key === 'I') {
+          if (!globalInteractMode) selectComponent(null);
+          toggleGlobalInteractMode();
+        }
         if (e.key === 'Escape') {
           if (globalInteractMode) { exitGlobalInteractMode(); return; }
           exitInteractMode();
@@ -515,6 +519,7 @@ export default function App() {
       const { frame, absX, absY } = result;
       const relX = worldX - absX;
       const relY = worldY - absY;
+      const storyEntry = getStoryEntry(story.id);
       addComponent(frame.id, {
         storybookId: story.id,
         title: story.title,
@@ -523,7 +528,7 @@ export default function App() {
         y: Math.max(0, Math.round(relY - 40)),
         width: 200,
         height: 80,
-        args: {},
+        args: storyEntry?.defaultArgs ?? {},
         locked: false,
         visible: true,
         label: `${story.title.split('/').pop()} · ${story.name}`,

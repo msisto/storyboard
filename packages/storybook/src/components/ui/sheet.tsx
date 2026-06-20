@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useFramePortal } from "@/components/ui/portal-context"
 
 const Sheet = SheetPrimitive.Root
 
@@ -13,7 +14,10 @@ const SheetTrigger = SheetPrimitive.Trigger
 
 const SheetClose = SheetPrimitive.Close
 
-const SheetPortal = SheetPrimitive.Portal
+function SheetPortal({ children, ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
+  const container = useFramePortal();
+  return <SheetPrimitive.Portal container={container} {...props}>{children}</SheetPrimitive.Portal>;
+}
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,

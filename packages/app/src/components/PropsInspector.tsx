@@ -858,6 +858,22 @@ export function PropsInspector() {
               <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4 }}>BACKGROUND</label>
               <BackgroundColorPicker value={cf.backgroundColor} onChange={(v) => { pushH(); patchCF({ backgroundColor: v }); }} />
             </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>Clip Content</span>
+              <button
+                onClick={() => { pushH(); patchCF({ clipContent: !cf.clipContent }); }}
+                style={{
+                  padding: '2px 8px', fontSize: 11, borderRadius: 4,
+                  border: '1px solid var(--sb-border)',
+                  background: cf.clipContent ? 'var(--sb-accent-bg)' : 'var(--sb-bg-secondary)',
+                  color: cf.clipContent ? 'var(--sb-accent)' : 'var(--sb-text-3)',
+                  cursor: 'pointer',
+                }}
+              >
+                {cf.clipContent ? 'On' : 'Off'}
+              </button>
+            </div>
           </div>
         </Section>
 

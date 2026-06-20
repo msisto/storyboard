@@ -38,6 +38,40 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
+      const { interactingComponentId, globalInteractMode } = useCanvasStore.getState();
+      const inInteractMode = interactingComponentId || globalInteractMode;
+      if (inInteractMode && !(e.ctrlKey || e.metaKey)) {
+        // Walk up from event target looking for a scrollable element.
+        // Check the Radix viewport data attribute directly to avoid relying on
+        // computed overflowY, which starts as "hidden" until Radix's internal
+        // scrollbarYEnabled measurement fires (causing getComputedStyle to miss it).
+        const stop = rootRef.current;
+        let el: Element | null = e.target as Element;
+        const scale = e.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? 1 : e.deltaMode === WheelEvent.DOM_DELTA_LINE ? 20 : 300;
+        while (el && el !== stop) {
+          const h = el as HTMLElement;
+          const isRadixViewport = el.hasAttribute('data-radix-scroll-area-viewport');
+          if (isRadixViewport) {
+            if (e.deltaY !== 0) h.scrollTop += e.deltaY * scale;
+            if (e.deltaX !== 0) h.scrollLeft += e.deltaX * scale;
+            e.preventDefault();
+            return;
+          }
+          // Also handle plain native scroll containers
+          const s = window.getComputedStyle(el);
+          if (e.deltaY !== 0 && (s.overflowY === 'scroll' || s.overflowY === 'auto') && el.scrollHeight > el.clientHeight) {
+            h.scrollTop += e.deltaY * scale;
+            e.preventDefault();
+            return;
+          }
+          if (e.deltaX !== 0 && (s.overflowX === 'scroll' || s.overflowX === 'auto') && el.scrollWidth > el.clientWidth) {
+            h.scrollLeft += e.deltaX * scale;
+            e.preventDefault();
+            return;
+          }
+          el = el.parentElement;
+        }
+      }
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
         const rect = rootRef.current?.getBoundingClientRect();

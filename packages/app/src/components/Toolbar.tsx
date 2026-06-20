@@ -123,7 +123,7 @@ function ExportModal({ onClose }: ExportModalProps) {
 
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
-  const { file, newFile, loadFile, selectedFrameId } = useDesignStore();
+  const { file, newFile, loadFile, selectedFrameId, selectComponent } = useDesignStore();
   const { status, loadRegistry } = useRegistryStore();
   const [showExport, setShowExport] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -253,7 +253,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         ))}
 
         <button
-          onClick={toggleGlobalInteractMode}
+          onClick={() => { if (!globalInteractMode) selectComponent(null); toggleGlobalInteractMode(); }}
           title="Global interact mode (I) — all iframes receive pointer events"
           style={{
             padding: '5px 9px',
