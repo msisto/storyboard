@@ -10,9 +10,7 @@ An experience design canvas for Storybook libraries.
 
 ## What it does
 
-Storybook is excellent at developing components in isolation. Figma is good at composing those components into screens. The problem: Figma mockups are static pictures of your components, not the components themselves. Storyboard sits in the middle — it's a canvas that renders your actual Storybook stories as live iframes, so you're composing real, interactive components rather than approximations.
-
-Each canvas frame is a "board" — a screen in a user flow. Boards are arranged in a timeline at the bottom of the UI. The idea is to lay out a journey left-to-right, the way designers already think about flows, while keeping every component in sync with the actual codebase.
+Storyboard is a design environment for Storybook component libraries. Instead of maintaining a design system in two places, Storyboard lets you design experiences using your actual app's production components — rendered as live iframes, not static mockups. Each frame on the canvas is a screen; frames are sequenced in a timeline at the bottom.
 
 Concretely this means:
 
@@ -114,11 +112,11 @@ The canvas supports pinch-to-zoom centered on the cursor position. On load the v
 
 The horizontal strip at the bottom shows frames in sequence order as wireframe thumbnail cards. Frames can be drag-reordered. Clicking a card selects the frame and fits the viewport to it.
 
-Frames can be **hidden from the timeline** (Inspect panel → Timeline → Hidden) while staying on the canvas — useful for keeping utility or reference boards that aren't part of the demo flow. Hidden frames show a hover × button in the timeline to restore them, and can be toggled back from the inspector.
+Frames can be **hidden from the timeline** (Inspect panel → Timeline → Hidden) while staying on the canvas — useful for keeping utility or reference frames that aren't part of the demo flow. Hidden frames show a hover × button in the timeline to restore them, and can be toggled back from the inspector.
 
 ### Dark / light mode
 
-The canvas UI responds to the system `prefers-color-scheme` setting. All colors are CSS custom properties — switching your OS between light and dark mode updates the toolbar, panels, inspector, and canvas checkerboard instantly with no reload.
+The canvas UI responds to the system `prefers-color-scheme` setting. All colors are CSS custom properties — switching your OS between light and dark mode updates the toolbar, panels, inspector, and canvas background instantly with no reload.
 
 Frame backgrounds automatically follow the theme too: the background color picker offers shadcn/ui semantic tokens (`background`, `card`, `muted`, `secondary`, `accent`, etc.) rather than raw hex values. A frame set to `card` renders with the correct card color in both modes. Values are stored as `hsl(var(--card))` in the design file, which the canvas resolves using the same token definitions as the component library.
 
@@ -356,7 +354,7 @@ Select two or more items to see alignment controls in the Inspect panel. Align e
 
 ### Timeline management
 
-Frames shown in the timeline represent your demo flow. To remove a frame from the timeline without deleting it (e.g. a utility or reference board), select it and toggle **Timeline → Hidden** in the inspector. Hidden frames stay on the canvas but don't appear in the timeline strip.
+Frames shown in the timeline represent your demo flow. To remove a frame from the timeline without deleting it (e.g. a utility or reference frame), select it and toggle **Timeline → Hidden** in the inspector. Hidden frames stay on the canvas but don't appear in the timeline strip.
 
 ### JSX export
 
@@ -451,7 +449,7 @@ packages/app/src/
     FilePicker.tsx           file list, create/open/delete
 
   timeline/
-    StoryboardTimeline.tsx   bottom board strip, wireframe thumbnails, drag reorder
+    StoryboardTimeline.tsx   bottom frame strip, wireframe thumbnails, drag reorder
 
   store/
     useDesignStore.ts        all design state + 50-step undo history
