@@ -131,8 +131,8 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
   const zoomPercent = Math.round(viewport.zoom * 100);
 
   const tools: { id: Tool; icon: React.ReactNode; label: string; key: string }[] = [
-    { id: 'select',  icon: <SelectIcon />,  label: 'Select',  key: 'V' },
-    { id: 'comment', icon: <CommentIcon />, label: 'Comment', key: 'C' },
+    { id: 'select',  icon: <SelectIcon />,  label: 'Select',  key: '1' },
+    { id: 'comment', icon: <CommentIcon />, label: 'Comment', key: '2' },
   ];
 
   const handleSave = async () => {
@@ -254,7 +254,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
 
         <button
           onClick={toggleGlobalInteractMode}
-          title="Global interact mode (I) — all iframes receive pointer events"
+          title="Global interact mode (3) — all iframes receive pointer events"
           style={{
             padding: '5px 9px',
             border: globalInteractMode ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
@@ -267,7 +267,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           }}
         >
           <InteractIcon />
-          <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>I</span>
+          <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>3</span>
         </button>
 
         <div style={{ flex: 1 }} />

@@ -282,12 +282,12 @@ export default function App() {
 
       // Tools
       if (!e.metaKey && !e.ctrlKey) {
-        if (e.key === 'v' || e.key === 'V') setTool('select');
+        if (e.key === '1') setTool('select');
         if (e.key === 'f' || e.key === 'F') setTool('frame');
         if (e.key === 't' || e.key === 'T') setTool('text');
-        if (e.key === 'c' || e.key === 'C') setTool('comment');
+        if (e.key === '2') setTool('comment');
         if (e.key === 'h' || e.key === 'H') setTool('pan');
-        if (e.key === 'i' || e.key === 'I') toggleGlobalInteractMode();
+        if (e.key === '3') toggleGlobalInteractMode();
         if (e.key === 'Escape') {
           if (globalInteractMode) { exitGlobalInteractMode(); return; }
           exitInteractMode();

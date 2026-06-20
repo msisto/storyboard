@@ -260,7 +260,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
             letterSpacing: '0.01em',
           }}
         >
-          Interact mode · I to exit
+          Interact mode · 3 to exit
         </div>
       )}
 
