@@ -40,7 +40,7 @@ export function TextPalette() {
               alignItems: 'baseline',
               gap: 6,
               padding: '8px 12px 4px',
-              borderBottom: '1px solid #f3f4f6',
+              borderBottom: '1px solid var(--sb-border)',
               position: 'sticky',
               top: 0,
               background: 'var(--sb-bg)',
@@ -70,7 +70,7 @@ export function TextPalette() {
                 padding: '4px 12px',
                 gap: 8,
                 cursor: 'grab',
-                borderBottom: '1px solid #f9fafb',
+                borderBottom: '1px solid var(--sb-border)',
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = 'var(--sb-bg-secondary)';
