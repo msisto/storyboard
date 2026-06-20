@@ -310,8 +310,8 @@ export function FrameNode({ frame, isSelected, isMultiSelected }: FrameNodeProps
         outline: (isSelected && selectedComponentIds.length === 0)
           ? '2px solid var(--sb-accent)'
           : isMultiSelected
-          ? '2px solid #60a5fa'
-          : '1px solid #D1D5DB',
+          ? '2px solid var(--sb-accent-muted)'
+          : 'none',
         boxSizing: 'border-box',
         cursor: activeTool === 'text' ? 'text' : undefined,
       }}

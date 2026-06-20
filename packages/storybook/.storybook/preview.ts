@@ -11,6 +11,15 @@ const SizeReporter: Decorator = (Story) => {
     () => new URLSearchParams(window.location.search).get('instanceId'),
     []
   );
+  // Always sync dark class so sidebar thumbnails (no instanceId) also respect system preference
+  React.useLayoutEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => document.documentElement.classList.toggle('dark', mq.matches);
+    applyTheme();
+    mq.addEventListener('change', applyTheme);
+    return () => mq.removeEventListener('change', applyTheme);
+  }, []);
+
   React.useLayoutEffect(() => {
     if (!instanceId) return;
     const style = document.createElement('style');
@@ -25,17 +34,7 @@ const SizeReporter: Decorator = (Story) => {
       'flex-direction:unset!important;' +
       'background:transparent!important}';
     document.head.appendChild(style);
-
-    // Sync dark class with system preference so shadcn/ui dark mode works
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyTheme = () => document.documentElement.classList.toggle('dark', mq.matches);
-    applyTheme();
-    mq.addEventListener('change', applyTheme);
-
-    return () => {
-      style.remove();
-      mq.removeEventListener('change', applyTheme);
-    };
+    return () => style.remove();
   }, [instanceId]);
 
   React.useEffect(() => {

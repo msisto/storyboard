@@ -947,8 +947,8 @@ export function PropsInspector() {
                   fontSize: 11,
                   borderRadius: 4,
                   border: '1px solid var(--sb-border)',
-                  background: selectedFrameData.inTimeline !== false ? '#ecfdf5' : 'var(--sb-bg-secondary)',
-                  color: selectedFrameData.inTimeline !== false ? '#059669' : 'var(--sb-text-3)',
+                  background: selectedFrameData.inTimeline !== false ? 'var(--sb-success-bg)' : 'var(--sb-bg-secondary)',
+                  color: selectedFrameData.inTimeline !== false ? 'var(--sb-success)' : 'var(--sb-text-3)',
                   cursor: 'pointer',
                 }}
               >
@@ -1129,8 +1129,8 @@ export function PropsInspector() {
                 fontSize: 12,
                 borderRadius: 4,
                 border: '1px solid var(--sb-border)',
-                background: saveStatus === 'saved' ? '#ecfdf5' : saveStatus === 'error' ? '#fef2f2' : 'var(--sb-bg)',
-                color: saveStatus === 'saved' ? '#059669' : saveStatus === 'error' ? '#dc2626' : 'var(--sb-text-2)',
+                background: saveStatus === 'saved' ? 'var(--sb-success-bg)' : saveStatus === 'error' ? 'var(--sb-error-bg)' : 'var(--sb-bg)',
+                color: saveStatus === 'saved' ? 'var(--sb-success)' : saveStatus === 'error' ? 'var(--sb-error)' : 'var(--sb-text-2)',
                 cursor: saveStatus === 'saving' ? 'default' : 'pointer',
               }}
             >
@@ -1269,9 +1269,9 @@ export function PropsInspector() {
 function AlignLeftIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
-      <rect x="4" y="4" width="5" height="3" fill="#374151" rx="0.5" />
-      <rect x="4" y="9" width="8" height="3" fill="#374151" rx="0.5" />
+      <rect x="2" y="2" width="1.5" height="12" fill="currentColor" rx="0.5" />
+      <rect x="4" y="4" width="5" height="3" fill="currentColor" rx="0.5" />
+      <rect x="4" y="9" width="8" height="3" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1279,9 +1279,9 @@ function AlignLeftIcon() {
 function AlignCenterHIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="7.25" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
-      <rect x="3.5" y="4" width="9" height="3" fill="#374151" rx="0.5" />
-      <rect x="5.5" y="9" width="5" height="3" fill="#374151" rx="0.5" />
+      <rect x="7.25" y="2" width="1.5" height="12" fill="currentColor" rx="0.5" />
+      <rect x="3.5" y="4" width="9" height="3" fill="currentColor" rx="0.5" />
+      <rect x="5.5" y="9" width="5" height="3" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1289,9 +1289,9 @@ function AlignCenterHIcon() {
 function AlignRightIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="12.5" y="2" width="1.5" height="12" fill="#374151" rx="0.5" />
-      <rect x="7" y="4" width="5" height="3" fill="#374151" rx="0.5" />
-      <rect x="4" y="9" width="8" height="3" fill="#374151" rx="0.5" />
+      <rect x="12.5" y="2" width="1.5" height="12" fill="currentColor" rx="0.5" />
+      <rect x="7" y="4" width="5" height="3" fill="currentColor" rx="0.5" />
+      <rect x="4" y="9" width="8" height="3" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1299,9 +1299,9 @@ function AlignRightIcon() {
 function AlignTopIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="12" height="1.5" fill="#374151" rx="0.5" />
-      <rect x="4" y="4" width="3" height="5" fill="#374151" rx="0.5" />
-      <rect x="9" y="4" width="3" height="8" fill="#374151" rx="0.5" />
+      <rect x="2" y="2" width="12" height="1.5" fill="currentColor" rx="0.5" />
+      <rect x="4" y="4" width="3" height="5" fill="currentColor" rx="0.5" />
+      <rect x="9" y="4" width="3" height="8" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1309,9 +1309,9 @@ function AlignTopIcon() {
 function AlignCenterVIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="7.25" width="12" height="1.5" fill="#374151" rx="0.5" />
-      <rect x="4" y="3.5" width="3" height="9" fill="#374151" rx="0.5" />
-      <rect x="9" y="5.5" width="3" height="5" fill="#374151" rx="0.5" />
+      <rect x="2" y="7.25" width="12" height="1.5" fill="currentColor" rx="0.5" />
+      <rect x="4" y="3.5" width="3" height="9" fill="currentColor" rx="0.5" />
+      <rect x="9" y="5.5" width="3" height="5" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1319,9 +1319,9 @@ function AlignCenterVIcon() {
 function AlignBottomIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="12.5" width="12" height="1.5" fill="#374151" rx="0.5" />
-      <rect x="4" y="7" width="3" height="5" fill="#374151" rx="0.5" />
-      <rect x="9" y="4" width="3" height="8" fill="#374151" rx="0.5" />
+      <rect x="2" y="12.5" width="12" height="1.5" fill="currentColor" rx="0.5" />
+      <rect x="4" y="7" width="3" height="5" fill="currentColor" rx="0.5" />
+      <rect x="9" y="4" width="3" height="8" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1329,9 +1329,9 @@ function AlignBottomIcon() {
 function DistributeHIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="1.5" y="3" width="1.5" height="10" fill="#374151" rx="0.5" />
-      <rect x="13" y="3" width="1.5" height="10" fill="#374151" rx="0.5" />
-      <rect x="6" y="5" width="4" height="6" fill="#374151" rx="0.5" />
+      <rect x="1.5" y="3" width="1.5" height="10" fill="currentColor" rx="0.5" />
+      <rect x="13" y="3" width="1.5" height="10" fill="currentColor" rx="0.5" />
+      <rect x="6" y="5" width="4" height="6" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1339,9 +1339,9 @@ function DistributeHIcon() {
 function DistributeVIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="3" y="1.5" width="10" height="1.5" fill="#374151" rx="0.5" />
-      <rect x="3" y="13" width="10" height="1.5" fill="#374151" rx="0.5" />
-      <rect x="5" y="6" width="6" height="4" fill="#374151" rx="0.5" />
+      <rect x="3" y="1.5" width="10" height="1.5" fill="currentColor" rx="0.5" />
+      <rect x="3" y="13" width="10" height="1.5" fill="currentColor" rx="0.5" />
+      <rect x="5" y="6" width="6" height="4" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1349,10 +1349,10 @@ function DistributeVIcon() {
 function TidyUpIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="5" height="5" fill="#374151" rx="0.5" />
-      <rect x="9" y="2" width="5" height="5" fill="#374151" rx="0.5" />
-      <rect x="2" y="9" width="5" height="5" fill="#374151" rx="0.5" />
-      <rect x="9" y="9" width="5" height="5" fill="#374151" rx="0.5" />
+      <rect x="2" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
+      <rect x="9" y="2" width="5" height="5" fill="currentColor" rx="0.5" />
+      <rect x="2" y="9" width="5" height="5" fill="currentColor" rx="0.5" />
+      <rect x="9" y="9" width="5" height="5" fill="currentColor" rx="0.5" />
     </svg>
   );
 }
@@ -1361,7 +1361,7 @@ function TidyUpIcon() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ borderBottom: '1px solid #f3f4f6' }}>
+    <div style={{ borderBottom: '1px solid var(--sb-border)' }}>
       <div
         style={{
           padding: '10px 12px 6px',

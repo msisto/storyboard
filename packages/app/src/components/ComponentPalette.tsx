@@ -84,7 +84,7 @@ function VariantThumbnail({
       className="palette-story-item"
       style={{ cursor: 'grab', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--sb-border)' }}
     >
-      <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'var(--sb-canvas-b)' }}>
+      <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'transparent' }}>
         {src ? (
           <iframe
             src={src}
@@ -92,6 +92,7 @@ function VariantThumbnail({
               width: 258, height: 144, border: 'none',
               transform: 'scale(0.5)', transformOrigin: '0 0',
               pointerEvents: 'none', position: 'absolute', top: 0, left: 0,
+              background: 'transparent',
             }}
             title={story.name}
             tabIndex={-1}
@@ -110,7 +111,8 @@ function VariantThumbnail({
         fontSize: 10, color: 'var(--sb-text-2)', textAlign: 'center',
         padding: '3px 4px 4px', whiteSpace: 'nowrap',
         overflow: 'hidden', textOverflow: 'ellipsis',
-        background: 'var(--sb-bg)',
+        background: 'var(--sb-bg-secondary)',
+        borderTop: '1px solid var(--sb-border)',
       }}>
         {story.name}
       </div>

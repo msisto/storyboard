@@ -71,7 +71,7 @@ function ExportModal({ onClose }: ExportModalProps) {
         <select
           value={selectedFrame}
           onChange={(e) => setSelectedFrame(e.target.value)}
-          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, outline: 'none' }}
+          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none' }}
         >
           {file?.frames.map((f) => (
             <option key={f.id} value={f.id}>{f.label}</option>
@@ -85,7 +85,7 @@ function ExportModal({ onClose }: ExportModalProps) {
           style={{
             fontFamily: 'monospace',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             padding: 10,
             resize: 'vertical',
@@ -111,7 +111,7 @@ function ExportModal({ onClose }: ExportModalProps) {
           </button>
           <button
             onClick={onClose}
-            style={{ padding: '6px 16px', fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
+            style={{ padding: '6px 16px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
           >
             Close
           </button>
@@ -167,7 +167,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           alignItems: 'center',
           padding: '0 12px',
           gap: 8,
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: '1px solid var(--sb-border)',
           background: 'var(--sb-bg)',
           flexShrink: 0,
           zIndex: 10,
@@ -177,7 +177,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowMenu((v) => !v)}
-            style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}
+            style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}
           >
             <MenuIcon />
           </button>
@@ -189,7 +189,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
                 left: 0,
                 marginTop: 4,
                 background: 'var(--sb-bg)',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--sb-border)',
                 borderRadius: 6,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                 zIndex: 100,
@@ -214,7 +214,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
                     border: 'none',
                     cursor: 'pointer',
                     fontSize: 13,
-                    borderBottom: '1px solid #f3f4f6',
+                    borderBottom: '1px solid var(--sb-border)',
                   }}
                 >
                   {item.label}
@@ -238,7 +238,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             title={`${tool.label} (${tool.key})`}
             style={{
               padding: '5px 9px',
-              border: activeTool === tool.id ? '1px solid #0066FF' : '1px solid #e5e7eb',
+              border: activeTool === tool.id ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
               borderRadius: 4,
               cursor: 'pointer',
               background: activeTool === tool.id ? 'var(--sb-accent-bg)' : 'var(--sb-bg)',
@@ -264,7 +264,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             width: 120,
             padding: '3px 7px',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             outline: 'none',
             color: 'var(--sb-text-2)',
@@ -283,7 +283,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
             width: 56,
             padding: '3px 6px',
             fontSize: 12,
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             textAlign: 'right',
             outline: 'none',
@@ -292,13 +292,13 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         <span style={{ fontSize: 12, color: 'var(--sb-text-3)' }}>%</span>
         <button
           onClick={fitAll}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
         >
           Fit
         </button>
         <button
           onClick={() => zoomTo(1)}
-          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
+          style={{ padding: '3px 8px', fontSize: 11, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
         >
           1:1
         </button>
@@ -307,15 +307,15 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
 
         {/* Save / Open / Export */}
         <button onClick={handleSave} title="Save (⌘S)"
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
+          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
           <SaveIcon />
         </button>
         <button onClick={handleOpen} title="Open (⌘O)"
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
+          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
           <OpenIcon />
         </button>
         <button onClick={() => setShowExport(true)} title="Export JSX" disabled={!file?.frames.length}
-          style={{ padding: '5px 7px', border: '1px solid #e5e7eb', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
+          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
           <ExportIcon />
           <span style={{ fontSize: 11, color: 'var(--sb-text-2)' }}>JSX</span>
         </button>
@@ -328,7 +328,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           title="Refresh component library"
           style={{
             padding: '5px 7px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 4,
             cursor: 'pointer',
             background: 'var(--sb-bg)',
@@ -375,9 +375,9 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
 function MenuIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="2.5" width="12" height="1.5" rx="0.75" fill="#374151" />
-      <rect x="1" y="6.25" width="12" height="1.5" rx="0.75" fill="#374151" />
-      <rect x="1" y="10" width="12" height="1.5" rx="0.75" fill="#374151" />
+      <rect x="1" y="2.5" width="12" height="1.5" rx="0.75" fill="currentColor" />
+      <rect x="1" y="6.25" width="12" height="1.5" rx="0.75" fill="currentColor" />
+      <rect x="1" y="10" width="12" height="1.5" rx="0.75" fill="currentColor" />
     </svg>
   );
 }
@@ -387,7 +387,7 @@ function SelectIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
       <path
         d="M5 3L5 18.5L9.5 14L12.5 21L14.5 20.2L11.5 13.2L18 13.2L5 3Z"
-        fill="#374151"
+        fill="currentColor"
         stroke="white"
         strokeWidth="1"
         strokeLinejoin="round"
@@ -399,7 +399,7 @@ function SelectIcon() {
 function CommentIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M2 2.5C2 1.67 2.67 1 3.5 1H10.5C11.33 1 12 1.67 12 2.5V8.5C12 9.33 11.33 10 10.5 10H5L2 13V2.5Z" stroke="#374151" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+      <path d="M2 2.5C2 1.67 2.67 1 3.5 1H10.5C11.33 1 12 1.67 12 2.5V8.5C12 9.33 11.33 10 10.5 10H5L2 13V2.5Z" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -407,9 +407,9 @@ function CommentIcon() {
 function SaveIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="#374151" strokeWidth="1.3" fill="none" />
-      <rect x="4" y="1.5" width="6" height="4" rx="0.5" fill="#374151" />
-      <rect x="3" y="7.5" width="8" height="4" rx="0.5" stroke="#374151" strokeWidth="1.2" fill="none" />
+      <rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.3" fill="none" />
+      <rect x="4" y="1.5" width="6" height="4" rx="0.5" fill="currentColor" />
+      <rect x="3" y="7.5" width="8" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
       <rect x="5.5" y="2" width="1.5" height="2.5" rx="0.5" fill="white" />
     </svg>
   );
@@ -418,7 +418,7 @@ function SaveIcon() {
 function OpenIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M1.5 4.5C1.5 3.67 2.17 3 3 3H5.5L7 5H11C11.83 5 12.5 5.67 12.5 6.5V10.5C12.5 11.33 11.83 12 11 12H3C2.17 12 1.5 11.33 1.5 10.5V4.5Z" stroke="#374151" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+      <path d="M1.5 4.5C1.5 3.67 2.17 3 3 3H5.5L7 5H11C11.83 5 12.5 5.67 12.5 6.5V10.5C12.5 11.33 11.83 12 11 12H3C2.17 12 1.5 11.33 1.5 10.5V4.5Z" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -430,8 +430,8 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
       style={spinning ? { animation: 'spin 0.8s linear infinite' } : undefined}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <path d="M12 7A5 5 0 1 1 9.5 2.5" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-      <path d="M9.5 1V3.5H12" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 7A5 5 0 1 1 9.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <path d="M9.5 1V3.5H12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -439,9 +439,9 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
 function ExportIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1.5V9" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M4.5 4L7 1.5L9.5 4" stroke="#374151" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 9.5V11.5C2 12.05 2.45 12.5 3 12.5H11C11.55 12.5 12 12.05 12 11.5V9.5" stroke="#374151" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M7 1.5V9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M4.5 4L7 1.5L9.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 9.5V11.5C2 12.05 2.45 12.5 3 12.5H11C11.55 12.5 12 12.05 12 11.5V9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }

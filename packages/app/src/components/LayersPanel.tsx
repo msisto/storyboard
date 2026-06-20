@@ -132,7 +132,7 @@ export function LayersPanel() {
                   style={{
                     flex: 1,
                     fontSize: 12,
-                    border: '1px solid #0066FF',
+                    border: '1px solid var(--sb-accent)',
                     borderRadius: 2,
                     padding: '0 2px',
                     outline: 'none',
@@ -201,7 +201,7 @@ export function LayersPanel() {
                           if (e.key === 'Escape') setEditingId(null);
                           e.stopPropagation();
                         }}
-                        style={{ flex: 1, fontSize: 12, border: '1px solid #0066FF', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+                        style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
@@ -264,7 +264,7 @@ export function LayersPanel() {
                           if (e.key === 'Escape') setEditingId(null);
                           e.stopPropagation();
                         }}
-                        style={{ flex: 1, fontSize: 12, border: '1px solid #0066FF', borderRadius: 2, padding: '0 2px', outline: 'none' }}
+                        style={{ flex: 1, fontSize: 12, border: '1px solid var(--sb-accent)', borderRadius: 2, padding: '0 2px', outline: 'none' }}
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (

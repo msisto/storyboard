@@ -53,7 +53,7 @@ export function CommentPin({ comment }: CommentPinProps) {
             left: 0,
             width: 260,
             background: 'var(--sb-bg)',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--sb-border)',
             borderRadius: 8,
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
             zIndex: 200,
@@ -62,7 +62,7 @@ export function CommentPin({ comment }: CommentPinProps) {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Original comment */}
-          <div style={{ padding: '10px 12px', borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--sb-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sb-text-2)' }}>
                 {comment.author}
@@ -78,7 +78,7 @@ export function CommentPin({ comment }: CommentPinProps) {
           {comment.replies.map((reply) => (
             <div
               key={reply.id}
-              style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', background: 'var(--sb-bg-secondary)' }}
+              style={{ padding: '8px 12px', borderBottom: '1px solid var(--sb-border)', background: 'var(--sb-bg-secondary)' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-3)' }}>{reply.author}</span>
@@ -100,7 +100,7 @@ export function CommentPin({ comment }: CommentPinProps) {
               style={{
                 fontSize: 11,
                 padding: '3px 6px',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--sb-border)',
                 borderRadius: 4,
                 outline: 'none',
               }}
@@ -113,7 +113,7 @@ export function CommentPin({ comment }: CommentPinProps) {
               style={{
                 fontSize: 12,
                 padding: '4px 6px',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--sb-border)',
                 borderRadius: 4,
                 resize: 'none',
                 outline: 'none',
@@ -151,7 +151,7 @@ export function CommentPin({ comment }: CommentPinProps) {
                     fontSize: 11,
                     padding: '4px 8px',
                     background: 'var(--sb-bg-tertiary)',
-                    border: '1px solid #e5e7eb',
+                    border: '1px solid var(--sb-border)',
                     borderRadius: 4,
                     cursor: 'pointer',
                   }}
@@ -165,7 +165,7 @@ export function CommentPin({ comment }: CommentPinProps) {
                   fontSize: 11,
                   padding: '4px 8px',
                   background: 'var(--sb-bg-tertiary)',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--sb-border)',
                   borderRadius: 4,
                   cursor: 'pointer',
                 }}

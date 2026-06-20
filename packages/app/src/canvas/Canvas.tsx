@@ -231,7 +231,7 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
             top: rubberBand.y,
             width: rubberBand.w,
             height: rubberBand.h,
-            border: '2px solid #0066FF',
+            border: '2px solid var(--sb-accent)',
             background: 'rgba(0, 102, 255, 0.08)',
             pointerEvents: 'none',
           }}

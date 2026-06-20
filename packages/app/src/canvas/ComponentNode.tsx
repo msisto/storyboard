@@ -253,7 +253,7 @@ export function ComponentNode({
         width: effectiveWidth,
         height: effectiveHeight,
         opacity: instance.locked ? 0.6 : 1,
-        outline: isSelected && !isInteracting ? '2px solid #0066FF' : 'none',
+        outline: isSelected && !isInteracting ? '2px solid var(--sb-accent)' : 'none',
         outlineOffset: -2,
       }}
       ref={containerRef}
@@ -311,7 +311,7 @@ export function ComponentNode({
             position: 'absolute',
             top: -28,
             left: 0,
-            background: '#0066FF',
+            background: 'var(--sb-accent)',
             color: '#fff',
             fontSize: 11,
             padding: '2px 8px',

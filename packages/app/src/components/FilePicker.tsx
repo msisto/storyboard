@@ -63,7 +63,7 @@ export function FilePicker({ onFileOpened }: FilePickerProps) {
         </div>
 
         {error && (
-          <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+          <p style={{ color: 'var(--sb-error)', fontSize: 13, marginBottom: 12, padding: '8px 12px', background: 'var(--sb-error-bg)', borderRadius: 6 }}>
             {error}
           </p>
         )}
@@ -131,7 +131,7 @@ const fileRow: React.CSSProperties = {
   padding: '12px 16px',
   background: 'var(--sb-bg)',
   borderRadius: 8,
-  border: '1px solid #e5e7eb',
+  border: '1px solid var(--sb-border)',
   cursor: 'pointer',
   transition: 'border-color 0.1s',
 };
