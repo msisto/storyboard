@@ -550,7 +550,8 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
                 onMouseDown={(e) => {
                   e.preventDefault();
                   onChange(s.px);
-                  setDraft(null);
+                  setEditing(false);
+                  setDraft('');
                   setOpen(false);
                 }}
                 style={{
