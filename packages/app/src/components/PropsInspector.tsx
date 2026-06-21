@@ -455,7 +455,22 @@ function ArgControl({
   );
 }
 
-function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function PaddingIcon({ side }: { side: 'top' | 'right' | 'bottom' | 'left' }) {
+  const s = 14;
+  const outer = { x: 1, y: 1, w: s - 2, h: s - 2 };
+  const t = side === 'top' ? 2 : 0.75;
+  return (
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} fill="none" style={{ flexShrink: 0 }}>
+      <rect x={outer.x} y={outer.y} width={outer.w} height={outer.h} rx="1.5" stroke="var(--sb-text-4)" strokeWidth="0.75" />
+      {side === 'top'    && <line x1={outer.x} y1={outer.y} x2={outer.x + outer.w} y2={outer.y} stroke="currentColor" strokeWidth={t} strokeLinecap="round" />}
+      {side === 'right'  && <line x1={outer.x + outer.w} y1={outer.y} x2={outer.x + outer.w} y2={outer.y + outer.h} stroke="currentColor" strokeWidth={t} strokeLinecap="round" />}
+      {side === 'bottom' && <line x1={outer.x} y1={outer.y + outer.h} x2={outer.x + outer.w} y2={outer.y + outer.h} stroke="currentColor" strokeWidth={t} strokeLinecap="round" />}
+      {side === 'left'   && <line x1={outer.x} y1={outer.y} x2={outer.x} y2={outer.y + outer.h} stroke="currentColor" strokeWidth={t} strokeLinecap="round" />}
+    </svg>
+  );
+}
+
+function SpacingInput({ label, value, onChange }: { label: React.ReactNode; value: number; onChange: (v: number) => void }) {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState('');
   const [open, setOpen] = React.useState(false);
@@ -488,7 +503,7 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
 
   return (
     <div ref={wrapRef} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, position: 'relative' }}>
-      {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 28 }}>{label}</span>}
+      {label && <span style={{ color: 'var(--sb-text-3)', flexShrink: 0, width: 16, display: 'flex', alignItems: 'center' }}>{label}</span>}
 
       {editing ? (
         <input
@@ -1148,10 +1163,10 @@ export function PropsInspector() {
                 <div>
                   <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Padding</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    <SpacingInput label="Top"    value={cfAl.paddingTop}    onChange={(v) => patchCFAL({ paddingTop: v })} />
-                    <SpacingInput label="Right"  value={cfAl.paddingRight}  onChange={(v) => patchCFAL({ paddingRight: v })} />
-                    <SpacingInput label="Left"   value={cfAl.paddingLeft}   onChange={(v) => patchCFAL({ paddingLeft: v })} />
-                    <SpacingInput label="Bottom" value={cfAl.paddingBottom} onChange={(v) => patchCFAL({ paddingBottom: v })} />
+                    <SpacingInput label={<PaddingIcon side="top" />}    value={cfAl.paddingTop}    onChange={(v) => patchCFAL({ paddingTop: v })} />
+                    <SpacingInput label={<PaddingIcon side="right" />}  value={cfAl.paddingRight}  onChange={(v) => patchCFAL({ paddingRight: v })} />
+                    <SpacingInput label={<PaddingIcon side="left" />}   value={cfAl.paddingLeft}   onChange={(v) => patchCFAL({ paddingLeft: v })} />
+                    <SpacingInput label={<PaddingIcon side="bottom" />} value={cfAl.paddingBottom} onChange={(v) => patchCFAL({ paddingBottom: v })} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1554,10 +1569,10 @@ export function PropsInspector() {
                     Padding
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    <SpacingInput label="Top"    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: v })} />
-                    <SpacingInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: v })} />
-                    <SpacingInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: v })} />
-                    <SpacingInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
+                    <SpacingInput label={<PaddingIcon side="top" />}    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: v })} />
+                    <SpacingInput label={<PaddingIcon side="right" />}  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: v })} />
+                    <SpacingInput label={<PaddingIcon side="left" />}   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: v })} />
+                    <SpacingInput label={<PaddingIcon side="bottom" />} value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
                   </div>
                 </div>
 
