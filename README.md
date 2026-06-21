@@ -2,9 +2,9 @@
 
 An experience design environment for Storybook component libraries.
 
-<img width="989" height="646" alt="Screenshot 2026-06-20 at 11 23 04 PM" src="https://github.com/user-attachments/assets/3de36df7-e3e7-48c4-a4de-cf4cdf3dd2ba" />
+<img width="991" height="650" alt="Screenshot 2026-06-21 at 7 33 32 PM" src="https://github.com/user-attachments/assets/4771d51a-837d-4ad6-a57e-5f06e7df0def" />
 
-<img width="1356" height="736" alt="Screenshot 2026-06-21 at 10 36 51 AM" src="https://github.com/user-attachments/assets/3ae41d21-967f-48cb-94cf-f430740f2b1d" />
+<img width="1728" height="936" alt="Screenshot 2026-06-21 at 7 35 08 PM" src="https://github.com/user-attachments/assets/d90337d1-8d2c-4e4c-b2af-b1304b45f96d" />
 
 
 
@@ -21,6 +21,7 @@ Concretely:
 - A component with a hover state actually hovers when you mouse over it in interact mode
 - The layout you see is the layout your production code produces
 - Portals (dialogs, drawers, sheets) render inside the frame boundary, clipped to its edges
+
 - Each frame auto-saves as a `.tsx` story file in your Storybook package; files are git-committed and produce meaningful diffs
 - Design files are JSON checked into the repo alongside the components they reference
 
