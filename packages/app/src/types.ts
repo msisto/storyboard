@@ -194,6 +194,7 @@ export interface Comment {
   text: string;
   author: string;
   timestamp: number;
+  read: boolean;
   resolved: boolean;
   replies: CommentReply[];
 }

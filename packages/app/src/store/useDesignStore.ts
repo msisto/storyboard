@@ -112,8 +112,9 @@ interface DesignStore {
   reorderFrame: (fromId: string, beforeId: string | null) => void;
   reorderComponent: (frameId: string, fromIndex: number, toIndex: number) => void;
   reorderFlowItem: (frameId: string, itemId: string, toIndex: number) => void;
-  addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'replies'>) => void;
+  addComment: (comment: Omit<Comment, 'id' | 'timestamp' | 'read' | 'replies'>) => void;
   resolveComment: (id: string) => void;
+  markCommentRead: (id: string) => void;
   addReply: (commentId: string, reply: Omit<CommentReply, 'id' | 'timestamp'>) => void;
   addTextLayer: (frameId: string, partial: { x: number; y: number; fontSize?: TailwindFontSize; fontWeight?: TailwindFontWeight; content?: string; label?: string }) => string;
   updateTextLayer: (frameId: string, layerId: string, patch: Partial<TextLayer>) => void;
@@ -486,7 +487,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           updatedAt: Date.now(),
           comments: [
             ...state.file.comments,
-            { ...comment, id: uid(), timestamp: Date.now(), replies: [] },
+            { ...comment, id: uid(), timestamp: Date.now(), read: false, replies: [] },
           ],
         },
       };
@@ -501,7 +502,20 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           ...state.file,
           updatedAt: Date.now(),
           comments: state.file.comments.map((c) =>
-            c.id === id ? { ...c, resolved: true } : c
+            c.id === id ? { ...c, resolved: true, read: true } : c
+          ),
+        },
+      };
+    }),
+
+  markCommentRead: (id) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        file: {
+          ...state.file,
+          comments: state.file.comments.map((c) =>
+            c.id === id ? { ...c, read: true } : c
           ),
         },
       };

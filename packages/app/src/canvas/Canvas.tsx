@@ -313,8 +313,10 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
           />
         ))}
 
-        {/* Comment pins rendered in world space, outside any clipping frame */}
-        {file && placedComments(file.frames, file.comments).map(({ comment, wx, wy }) => (
+        {/* Comment pins: unread in any mode, all unresolved in comment mode */}
+        {file && placedComments(file.frames, file.comments.filter((c) =>
+          !c.resolved && (activeTool === 'comment' || !c.read)
+        )).map(({ comment, wx, wy }) => (
           <div key={comment.id} style={{ position: 'absolute', left: wx, top: wy, zIndex: 9999 }}>
             <CommentPin comment={comment} />
           </div>

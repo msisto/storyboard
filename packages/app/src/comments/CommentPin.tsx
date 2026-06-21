@@ -10,7 +10,7 @@ export function CommentPin({ comment }: CommentPinProps) {
   const [open, setOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [replyAuthor, setReplyAuthor] = useState('');
-  const { resolveComment, addReply } = useDesignStore();
+  const { resolveComment, markCommentRead, addReply } = useDesignStore();
 
   return (
     <div
@@ -23,13 +23,14 @@ export function CommentPin({ comment }: CommentPinProps) {
       <button
         onClick={(e) => {
           e.stopPropagation();
+          if (!open && !comment.read) markCommentRead(comment.id);
           setOpen((v) => !v);
         }}
         style={{
           width: 24,
           height: 24,
           borderRadius: '50%',
-          background: comment.resolved ? '#9CA3AF' : '#F59E0B',
+          background: comment.read ? '#9CA3AF' : '#F59E0B',
           border: '2px solid white',
           cursor: 'pointer',
           fontSize: 12,
@@ -39,9 +40,9 @@ export function CommentPin({ comment }: CommentPinProps) {
           padding: 0,
           boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
         }}
-        title={comment.resolved ? 'Resolved' : 'Open comment'}
+        title="Open comment"
       >
-        {comment.resolved ? '✓' : '💬'}
+        💬
       </button>
 
       {open && (

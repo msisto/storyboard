@@ -746,6 +746,7 @@ export default function App() {
       {panelsVisible && (
         <StoryboardTimeline
           frames={file?.frames.filter((f) => f.inTimeline !== false) ?? []}
+          comments={file?.comments ?? []}
           selectedFrameId={selectedFrameId}
           selectedFrameIds={selectedFrameIds}
           onSelectFrame={handleSelectFrame}

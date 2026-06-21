@@ -1,10 +1,11 @@
 import React, { useCallback, useRef, useState } from 'react';
-import type { Frame } from '../types';
+import type { Comment, Frame } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 import { getStoryEntry } from '../registry/storyRegistry';
 
 interface StoryboardTimelineProps {
   frames: Frame[];
+  comments: Comment[];
   selectedFrameId: string | null;
   selectedFrameIds: string[];
   onSelectFrame: (frame: Frame) => void;
@@ -119,6 +120,7 @@ const FrameThumbnail = React.memo(function FrameThumbnail({ frame }: { frame: Fr
 
 export function StoryboardTimeline({
   frames,
+  comments,
   selectedFrameId,
   selectedFrameIds,
   onSelectFrame,
@@ -129,6 +131,7 @@ export function StoryboardTimeline({
 }: StoryboardTimelineProps) {
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const draggingIdRef = useRef<string | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
   insertionIndexRef.current = insertionIndex;
@@ -183,6 +186,9 @@ export function StoryboardTimeline({
     [frames, onReorderFrame]
   );
 
+  const sortedComments = [...comments].sort((a, b) => b.timestamp - a.timestamp);
+  const unreadCount = comments.filter((c) => !c.read && !c.resolved).length;
+
   return (
     <div
       style={{
@@ -192,9 +198,78 @@ export function StoryboardTimeline({
         background: 'var(--sb-bg-secondary)',
         display: 'flex',
         alignItems: 'center',
-        overflow: 'hidden',
+        overflow: 'visible',
+        position: 'relative',
       }}
     >
+      {/* Comment history panel */}
+      {showHistory && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 94,
+            right: 0,
+            width: 300,
+            maxHeight: 400,
+            overflowY: 'auto',
+            background: 'var(--sb-bg)',
+            border: '1px solid var(--sb-border)',
+            borderRadius: 8,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+            zIndex: 200,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{
+            padding: '10px 12px 8px',
+            fontWeight: 600,
+            fontSize: 12,
+            color: 'var(--sb-text-2)',
+            borderBottom: '1px solid var(--sb-border)',
+          }}>
+            Comments
+          </div>
+          {sortedComments.length === 0 ? (
+            <div style={{ padding: '16px 12px', fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
+              No comments yet
+            </div>
+          ) : sortedComments.map((c) => (
+            <div
+              key={c.id}
+              style={{
+                padding: '8px 12px',
+                borderBottom: '1px solid var(--sb-border)',
+                opacity: c.resolved ? 0.45 : 1,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)' }}>
+                  {c.author}
+                  {!c.read && !c.resolved && (
+                    <span style={{
+                      display: 'inline-block',
+                      width: 6, height: 6,
+                      borderRadius: '50%',
+                      background: '#F59E0B',
+                      marginLeft: 5,
+                      verticalAlign: 'middle',
+                    }} />
+                  )}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>
+                  {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--sb-text-2)', margin: 0, lineHeight: 1.4 }}>{c.text}</p>
+              {c.replies.length > 0 && (
+                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--sb-text-4)' }}>
+                  {c.replies.length} {c.replies.length === 1 ? 'reply' : 'replies'}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {/* Label */}
       <div
         style={{
@@ -359,7 +434,7 @@ export function StoryboardTimeline({
           );
         })}
 
-        {/* Add board button */}
+        {/* Add frame button */}
         <button
           onClick={onAddFrame}
           style={{
@@ -393,6 +468,50 @@ export function StoryboardTimeline({
           <span>Add Frame</span>
         </button>
       </div>
+
+      {/* Comment history button — far right */}
+      <button
+        onClick={() => setShowHistory((v) => !v)}
+        title="Comment history"
+        style={{
+          flexShrink: 0,
+          width: 48,
+          height: '100%',
+          borderLeft: '1px solid var(--sb-border)',
+          background: showHistory ? 'var(--sb-bg-tertiary)' : 'transparent',
+          cursor: 'pointer',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 3,
+          color: showHistory ? 'var(--sb-text)' : 'var(--sb-text-4)',
+          position: 'relative',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2C4.686 2 2 4.462 2 7.5c0 1.48.607 2.82 1.593 3.8L3 14l2.857-1.143A6.14 6.14 0 0 0 8 13c3.314 0 6-2.462 6-5.5S11.314 2 8 2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+        </svg>
+        {unreadCount > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: 16,
+            right: 8,
+            width: 14,
+            height: 14,
+            borderRadius: '50%',
+            background: '#F59E0B',
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {unreadCount}
+          </div>
+        )}
+      </button>
     </div>
   );
 }
