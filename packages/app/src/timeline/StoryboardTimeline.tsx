@@ -195,7 +195,7 @@ export function StoryboardTimeline({
         height: 90,
         flexShrink: 0,
         borderTop: '1px solid var(--sb-border)',
-        background: 'var(--sb-bg-secondary)',
+        background: 'var(--sb-bg)',
         display: 'flex',
         alignItems: 'center',
         overflow: 'visible',
