@@ -88,6 +88,7 @@ export function LayersPanel() {
   const [collapsedFrames, setCollapsedFrames] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const toggleCollapse = (id: string) => {
     setCollapsedFrames((prev) => {
@@ -248,6 +249,8 @@ export function LayersPanel() {
                     gap: 4,
                   }}
                   onClick={(e) => selectComponent(component.id, e.shiftKey)}
+                  onMouseEnter={() => setHoveredId(component.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   onKeyDown={(e) => {
                     if (e.key === 'Delete' || e.key === 'Backspace') {
                       if (editingId) return;
@@ -284,14 +287,18 @@ export function LayersPanel() {
                   <button
                     onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { visible: !component.visible }); }}
                     title={component.visible ? 'Hide' : 'Show'}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center',
+                      color: 'var(--sb-text-1)',
+                      opacity: !component.visible ? 1 : hoveredId === component.id ? 0.35 : 0 }}
                   >
                     {component.visible ? <EyeIcon /> : <EyeOffIcon />}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); updateComponent(frame.id, component.id, { locked: !component.locked }); }}
                     title={component.locked ? 'Unlock' : 'Lock'}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: component.locked ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center',
+                      color: 'var(--sb-text-1)',
+                      opacity: component.locked ? 1 : hoveredId === component.id ? 0.35 : 0 }}
                   >
                     {component.locked ? <LockIcon /> : <UnlockIcon />}
                   </button>
@@ -323,6 +330,8 @@ export function LayersPanel() {
                     gap: 4,
                   }}
                   onClick={(e) => selectComponent(tl.id, e.shiftKey)}
+                  onMouseEnter={() => setHoveredId(tl.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   onKeyDown={(e) => {
                     if (e.key === 'Delete' || e.key === 'Backspace') {
                       if (editingId) return;
@@ -360,7 +369,9 @@ export function LayersPanel() {
                   <button
                     onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
                     title={tl.visible ? 'Hide' : 'Show'}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: tl.visible ? 'var(--sb-text-2)' : 'var(--sb-border-strong)' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center',
+                      color: 'var(--sb-text-1)',
+                      opacity: !tl.visible ? 1 : hoveredId === tl.id ? 0.35 : 0 }}
                   >
                     {tl.visible ? <EyeIcon /> : <EyeOffIcon />}
                   </button>
