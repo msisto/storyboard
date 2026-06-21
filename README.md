@@ -4,7 +4,7 @@ An experience design environment for Storybook component libraries.
 
 <img width="989" height="646" alt="Screenshot 2026-06-20 at 11 23 04 PM" src="https://github.com/user-attachments/assets/3de36df7-e3e7-48c4-a4de-cf4cdf3dd2ba" />
 
-<img width="1728" height="937" alt="Screenshot 2026-06-20 at 1 52 25 PM" src="https://github.com/user-attachments/assets/9d6ad5fd-711d-4847-b3ac-a3fbaa50e5f9" />
+<img width="1356" height="736" alt="Screenshot 2026-06-21 at 10 36 51 AM" src="https://github.com/user-attachments/assets/3ae41d21-967f-48cb-94cf-f430740f2b1d" />
 
 
 
