@@ -235,7 +235,10 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
       if (activeTool === 'frame' && rbStart.current && rubberBand) {
         rbStart.current = null;
         setRubberBand(null);
-        if (rubberBand.w >= 50 && rubberBand.h >= 50) {
+        const frames = file?.frames ?? [];
+        const drawn = rubberBand.w >= 50 && rubberBand.h >= 50;
+
+        if (drawn) {
           const world = screenToWorld(rubberBand.x, rubberBand.y);
           const worldX = Math.round(world.x);
           const worldY = Math.round(world.y);
@@ -244,7 +247,6 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
           const centerX = worldX + worldW / 2;
           const centerY = worldY + worldH / 2;
 
-          const frames = file?.frames ?? [];
           const parentFrame = frames.find(
             (f) => centerX >= f.x && centerX <= f.x + f.width && centerY >= f.y && centerY <= f.y + f.height
           );
@@ -260,8 +262,16 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
           } else {
             addFrame(worldX, worldY, worldW, worldH);
           }
-          setTool('select');
+        } else {
+          // Click without drawing — use last timeline frame's dimensions
+          const timelineFrames = frames.filter((f) => f.inTimeline !== false);
+          const ref = timelineFrames[timelineFrames.length - 1];
+          const w = ref?.width ?? 390;
+          const h = ref?.height ?? 844;
+          const world = screenToWorld(rubberBand.x, rubberBand.y);
+          addFrame(Math.round(world.x), Math.round(world.y), w, h);
         }
+        setTool('select');
       }
     },
     [activeTool, rubberBand, screenToWorld, addFrame, addChildFrame, setTool, viewport.zoom, file?.frames]

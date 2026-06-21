@@ -655,10 +655,14 @@ export default function App() {
 
   const handleAddFrame = useCallback(() => {
     const frames = useDesignStore.getState().file?.frames ?? [];
+    const timelineFrames = frames.filter((f) => f.inTimeline !== false);
     const last = frames[frames.length - 1];
+    const ref = timelineFrames[timelineFrames.length - 1];
+    const w = ref?.width ?? 390;
+    const h = ref?.height ?? 844;
     const x = last ? last.x + last.width + 80 : 100;
     const y = last?.y ?? 100;
-    const id = addFrame(x, y, 400, 300);
+    const id = addFrame(x, y, w, h);
     requestAnimationFrame(() => {
       const newFrame = useDesignStore.getState().file?.frames.find((f) => f.id === id);
       if (newFrame) handleSelectFrame(newFrame);
