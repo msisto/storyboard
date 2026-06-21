@@ -93,6 +93,7 @@ interface DesignStore {
   selectedComponentId: string | null;     // primary (last clicked) — kept for single-select consumers
   selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
+  renameFile: (name: string) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
   pushHistory: () => void;
   undo: () => void;
@@ -150,6 +151,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       selectedComponentId: null,
       selectedComponentIds: [],
     }),
+
+  renameFile: (name) =>
+    set((state) => state.file ? { file: { ...state.file, name, updatedAt: Date.now() } } : state),
 
   loadFile: (file) =>
     set({

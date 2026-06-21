@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
 import { saveDesignFile, openDesignFile } from '../store/fileSystem';
@@ -13,8 +13,11 @@ interface ToolbarProps {
 
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
-  const { file, newFile, loadFile, selectComponent } = useDesignStore();
+  const { file, newFile, loadFile, renameFile, selectComponent } = useDesignStore();
   const [showMenu, setShowMenu] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const zoomPercent = Math.round(viewport.zoom * 100);
 
@@ -50,6 +53,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
     <>
       <div
         style={{
+          position: 'relative',
           height: 44,
           display: 'flex',
           alignItems: 'center',
@@ -156,6 +160,59 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           <InteractIcon />
           <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>I</span>
         </button>
+
+        {/* Centered file title */}
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={() => {
+                const trimmed = titleDraft.trim();
+                if (trimmed) renameFile(trimmed);
+                setEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                if (e.key === 'Escape') setEditingTitle(false);
+              }}
+              style={{
+                pointerEvents: 'all',
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--sb-text-1)',
+                background: 'var(--sb-bg)',
+                border: '1px solid var(--sb-border)',
+                borderRadius: 4,
+                padding: '2px 8px',
+                outline: 'none',
+                textAlign: 'center',
+                width: 200,
+              }}
+            />
+          ) : (
+            <span
+              onClick={() => {
+                setTitleDraft(file?.name ?? '');
+                setEditingTitle(true);
+                setTimeout(() => titleInputRef.current?.select(), 0);
+              }}
+              style={{
+                pointerEvents: file ? 'all' : 'none',
+                fontSize: 13,
+                fontWeight: 500,
+                color: file ? 'var(--sb-text-1)' : 'var(--sb-text-4)',
+                cursor: 'text',
+                padding: '2px 6px',
+                borderRadius: 4,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {file?.name ?? 'Untitled'}
+            </span>
+          )}
+        </div>
 
         <div style={{ flex: 1 }} />
 
