@@ -455,6 +455,18 @@ function ArgControl({
   );
 }
 
+function GapIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+      <rect x="1" y="2" width="4" height="10" rx="1" fill="currentColor" opacity="0.4" />
+      <rect x="9" y="2" width="4" height="10" rx="1" fill="currentColor" opacity="0.4" />
+      <line x1="5.5" y1="7" x2="8.5" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="5.5" y1="4.5" x2="5.5" y2="9.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <line x1="8.5" y1="4.5" x2="8.5" y2="9.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function PaddingIcon({ side }: { side: 'top' | 'right' | 'bottom' | 'left' }) {
   const s = 14;
   const outer = { x: 1, y: 1, w: s - 2, h: s - 2 };
@@ -533,13 +545,14 @@ function SpacingInput({ label, value, onChange }: { label: React.ReactNode; valu
             width: '100%', padding: '3px 8px', fontSize: 12,
             border: '1px solid var(--sb-border)', borderRadius: 4,
             background: 'var(--sb-bg)', cursor: 'text', minWidth: 0,
-            display: 'flex', alignItems: 'baseline', gap: 2,
+            display: 'flex', alignItems: 'baseline', gap: 3,
+            justifyContent: 'flex-end',
           }}
         >
           <span style={{ color: 'var(--sb-text-1)', fontWeight: 500 }}>
             {TAILWIND_SPACING.find((s) => s.px === value)?.token ?? value}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>{value}px</span>
+          <span style={{ fontSize: 11, color: 'var(--sb-text-4)' }}>{value}px</span>
         </div>
       )}
       {open && (
@@ -1154,12 +1167,12 @@ export function PropsInspector() {
                     {(['horizontal', 'vertical'] as const).map((dir) => (
                       <button key={dir} onClick={() => { pushH(); patchCFAL({ direction: dir }); }}
                         style={{ flex: 1, padding: '4px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl.direction === dir ? 'var(--sb-control-active)' : 'var(--sb-bg)', color: 'var(--sb-text-2)', cursor: 'pointer' }}>
-                        {dir === 'horizontal' ? '→ Horiz' : '↓ Vert'}
+                        {dir === 'horizontal' ? '→ Row' : '↓ Col'}
                       </button>
                     ))}
                   </div>
                 </div>
-                <SpacingInput label="Gap" value={cfAl.gap} onChange={(v) => patchCFAL({ gap: v })} />
+                <SpacingInput label={<GapIcon />} value={cfAl.gap} onChange={(v) => patchCFAL({ gap: v })} />
                 <div>
                   <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Padding</label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
@@ -1537,7 +1550,7 @@ export function PropsInspector() {
                           cursor: 'pointer',
                         }}
                       >
-                        {dir === 'horizontal' ? '→ Horiz' : '↓ Vert'}
+                        {dir === 'horizontal' ? '→ Row' : '↓ Col'}
                       </button>
                     ))}
                   </div>
@@ -1558,7 +1571,7 @@ export function PropsInspector() {
 
                 {/* Gap */}
                 <SpacingInput
-                  label="Gap"
+                  label={<GapIcon />}
                   value={al.gap}
                   onChange={(v) => patchAL({ gap: v })}
                 />
