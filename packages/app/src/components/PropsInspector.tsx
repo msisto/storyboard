@@ -542,10 +542,10 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
                 onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--sb-text-1)' : 'var(--sb-text-2)' }}>
-                  {s.px}px
+                  {s.token}
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--sb-text-4)' }}>
-                  {s.token}
+                  {s.px}px
                 </span>
               </div>
             );
