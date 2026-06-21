@@ -3,6 +3,7 @@ export interface StorybookStory {
   title: string;
   name: string;
   importPath?: string;
+  componentName?: string;
 }
 
 export interface StorybookIndex {

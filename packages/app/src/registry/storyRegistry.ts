@@ -34,6 +34,8 @@ export interface StoryEntry {
   id: string;
   title: string;
   name: string;
+  componentName?: string;
+  importPath?: string;
   render: (args: Record<string, unknown>) => React.ReactElement;
   defaultArgs: Record<string, unknown>;
   argDefs: ArgDefinition[];
@@ -62,10 +64,17 @@ function toStoryId(title: string, exportName: string, storyName?: string): strin
   return `${sanitize(title)}--${sanitize(nameStr)}`;
 }
 
+function storyFileToImportPath(moduleKey: string): string {
+  // e.g. '../../../storybook/src/stories/Button.stories.tsx' → '../../components/ui/button'
+  const filename = moduleKey.split('/').pop()?.replace(/\.stories\.tsx$/, '') ?? '';
+  const kebab = filename.replace(/([A-Z])/g, (c, ch, i) => (i > 0 ? '-' : '') + ch.toLowerCase());
+  return `../../components/ui/${kebab}`;
+}
+
 function buildEntries(): StoryEntry[] {
   const entries: StoryEntry[] = [];
 
-  for (const [, raw] of Object.entries(storyModules)) {
+  for (const [moduleKey, raw] of Object.entries(storyModules)) {
     const m = raw as StoryModule;
     const meta = m.default;
     if (!meta?.title) continue;
@@ -124,6 +133,9 @@ function buildEntries(): StoryEntry[] {
         id,
         title: meta.title,
         name,
+        componentName: (meta.component as { displayName?: string; name?: string } | undefined)?.displayName
+          || (meta.component as { name?: string } | undefined)?.name,
+        importPath: moduleKey.includes('/stories/local/') ? undefined : storyFileToImportPath(moduleKey),
         render: renderFn,
         defaultArgs,
         argDefs: parseArgTypes(mergedArgTypes),

@@ -19,6 +19,8 @@ function buildInitialState() {
     id: e.id,
     title: e.title,
     name: e.name,
+    componentName: e.componentName,
+    importPath: e.importPath,
   }));
   const argDefinitions: Record<string, ArgDefinition[]> = {};
   for (const e of entries) {
