@@ -158,14 +158,11 @@ The filename is derived from the frame label: `Frame 1` → `Frame1.stories.tsx`
 // @storyboard {"id":"abc123","label":"Hero Section","width":390,"height":844,...}
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { composeStories } from '@storybook/react';
-import * as CardStories from '../Card.stories';
-
-const { Default: CardDefault } = composeStories(CardStories);
+import { Card } from '@/components/ui/card';
 
 const HeroSection = () => (
   <div style={{ width: 390, height: 844, ... }}>
-    <CardDefault title="Hello" />
+    <Card title="Hello" />
   </div>
 );
 

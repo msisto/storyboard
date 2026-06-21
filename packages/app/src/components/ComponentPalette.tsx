@@ -83,12 +83,12 @@ function VariantThumbnail({
     >
       <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'var(--sb-bg-secondary)' }}>
         {visible && entry ? (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
             <div
               style={{
                 flexShrink: 0,
-                transform: 'scale(0.5)',
-                transformOrigin: 'top center',
+                transform: 'scale(0.5) translateY(-50%)',
+                transformOrigin: 'center center',
                 pointerEvents: 'none',
               }}
             >

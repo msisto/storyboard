@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
@@ -44,8 +44,8 @@ function TextColorPicker({ value, onChange }: { value: string; onChange: (v: str
               padding: '4px 6px',
               borderRadius: 5,
               cursor: 'pointer',
-              background: selected ? 'var(--sb-accent-bg)' : 'transparent',
-              border: selected ? '1px solid var(--sb-accent)' : '1px solid transparent',
+              background: selected ? 'var(--sb-control-active)' : 'transparent',
+              border: selected ? '1px solid var(--sb-border-strong)' : '1px solid transparent',
             }}
           >
             <div style={{
@@ -60,11 +60,6 @@ function TextColorPicker({ value, onChange }: { value: string; onChange: (v: str
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{label}</div>
               <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
             </div>
-            {selected && (
-              <svg style={{ marginLeft: 'auto' }} width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="var(--sb-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
           </div>
         );
       })}
@@ -89,46 +84,81 @@ function tokenValue(token: string) {
 }
 
 function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const selected = SEMANTIC_BG_TOKENS.find((t) => tokenValue(t.token) === value) ?? SEMANTIC_BG_TOKENS[0];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {SEMANTIC_BG_TOKENS.map(({ token, label, desc }) => {
-        const tv = tokenValue(token);
-        const selected = value === tv;
-        return (
-          <div
-            key={token}
-            onClick={() => onChange(tv)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '4px 6px',
-              borderRadius: 5,
-              cursor: 'pointer',
-              background: selected ? 'var(--sb-accent-bg)' : 'transparent',
-              border: selected ? '1px solid var(--sb-accent)' : '1px solid transparent',
-            }}
-          >
-            <div style={{
-              width: 24,
-              height: 24,
-              borderRadius: 4,
-              background: tv,
-              border: '1px solid var(--sb-border)',
-              flexShrink: 0,
-            }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{label}</div>
-              <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
-            </div>
-            {selected && (
-              <svg style={{ marginLeft: 'auto' }} width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6l3 3 5-5" stroke="var(--sb-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-          </div>
-        );
-      })}
+    <div ref={ref} style={{ position: 'relative' }}>
+      {/* Trigger */}
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '4px 6px', borderRadius: 5, cursor: 'pointer',
+          border: '1px solid var(--sb-border)',
+          background: 'var(--sb-bg)',
+        }}
+      >
+        <div style={{
+          width: 20, height: 20, borderRadius: 3,
+          background: tokenValue(selected.token),
+          border: '1px solid var(--sb-border)',
+          flexShrink: 0,
+        }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{selected.label}</div>
+          <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{selected.desc}</div>
+        </div>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
+          <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 100,
+          background: 'var(--sb-bg-secondary)', border: '1px solid var(--sb-border)',
+          borderRadius: 6, padding: 4,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+        }}>
+          {SEMANTIC_BG_TOKENS.map(({ token, label, desc }) => {
+            const tv = tokenValue(token);
+            const isSelected = value === tv;
+            return (
+              <div
+                key={token}
+                onClick={() => { onChange(tv); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '4px 6px', borderRadius: 4, cursor: 'pointer',
+                  background: isSelected ? 'var(--sb-control-active)' : 'transparent',
+                }}
+              >
+                <div style={{
+                  width: 20, height: 20, borderRadius: 3,
+                  background: tv, border: '1px solid var(--sb-border)', flexShrink: 0,
+                }} />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: isSelected ? 500 : 400, color: 'var(--sb-text-2)' }}>{label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -994,7 +1024,7 @@ export function PropsInspector() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={cfAl ? disableCFAutoLayout : enableCFAutoLayout}
-              style={{ width: '100%', padding: '5px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl ? 'var(--sb-accent)' : 'var(--sb-bg)', color: cfAl ? 'white' : 'var(--sb-text-2)', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '5px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl ? 'var(--sb-control-active)' : 'var(--sb-bg)', color: 'var(--sb-text-2)', cursor: 'pointer' }}
             >
               {cfAl ? 'Remove Auto Layout' : 'Add Auto Layout  ⇧A'}
             </button>
@@ -1005,7 +1035,7 @@ export function PropsInspector() {
                   <div style={{ display: 'flex', gap: 4 }}>
                     {(['horizontal', 'vertical'] as const).map((dir) => (
                       <button key={dir} onClick={() => { pushH(); patchCFAL({ direction: dir }); }}
-                        style={{ flex: 1, padding: '4px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl.direction === dir ? 'var(--sb-accent)' : 'var(--sb-bg)', color: cfAl.direction === dir ? 'white' : 'var(--sb-text-2)', cursor: 'pointer' }}>
+                        style={{ flex: 1, padding: '4px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl.direction === dir ? 'var(--sb-control-active)' : 'var(--sb-bg)', color: 'var(--sb-text-2)', cursor: 'pointer' }}>
                         {dir === 'horizontal' ? '→ Horiz' : '↓ Vert'}
                       </button>
                     ))}
@@ -1306,9 +1336,9 @@ export function PropsInspector() {
                       fontSize: 10,
                       padding: '2px 6px',
                       borderRadius: 4,
-                      border: `1px solid ${active ? 'var(--sb-accent)' : 'var(--sb-border-strong)'}`,
-                      background: active ? 'var(--sb-accent-bg)' : 'transparent',
-                      color: active ? 'var(--sb-accent)' : 'var(--sb-text-3)',
+                      border: `1px solid ${active ? 'var(--sb-border-strong)' : 'var(--sb-border)'}`,
+                      background: active ? 'var(--sb-control-active)' : 'transparent',
+                      color: 'var(--sb-text-2)',
                       cursor: 'pointer',
                       fontWeight: active ? 600 : 400,
                     }}
@@ -1356,8 +1386,8 @@ export function PropsInspector() {
                 fontSize: 12,
                 borderRadius: 4,
                 border: '1px solid var(--sb-border)',
-                background: al ? 'var(--sb-accent)' : 'var(--sb-bg)',
-                color: al ? 'white' : 'var(--sb-text-2)',
+                background: al ? 'var(--sb-control-active)' : 'var(--sb-bg)',
+                color: 'var(--sb-text-2)',
                 cursor: 'pointer',
               }}
             >
@@ -1382,8 +1412,8 @@ export function PropsInspector() {
                           fontSize: 12,
                           borderRadius: 4,
                           border: '1px solid var(--sb-border)',
-                          background: al.direction === dir ? 'var(--sb-accent)' : 'var(--sb-bg)',
-                          color: al.direction === dir ? 'white' : 'var(--sb-text-2)',
+                          background: al.direction === dir ? 'var(--sb-control-active)' : 'var(--sb-bg)',
+                          color: 'var(--sb-text-2)',
                           cursor: 'pointer',
                         }}
                       >
@@ -1786,9 +1816,9 @@ function AlignmentGrid({
                     padding: '4px 0',
                     fontSize: 11,
                     borderRadius: 3,
-                    border: '1px solid var(--sb-border)',
-                    background: active ? 'var(--sb-accent)' : 'var(--sb-bg-secondary)',
-                    color: active ? 'white' : 'var(--sb-text-2)',
+                    border: active ? '1px solid var(--sb-border-strong)' : '1px solid var(--sb-border)',
+                    background: active ? 'var(--sb-control-active)' : 'transparent',
+                    color: 'var(--sb-text-2)',
                     cursor: 'pointer',
                     lineHeight: 1,
                   }}

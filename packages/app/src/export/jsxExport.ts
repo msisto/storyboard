@@ -235,124 +235,32 @@ ${body}
 }`;
 }
 
-// Generates a complete .stories.tsx file using composeStories so each child
-// component renders with its actual render function and decorators.
+// Generates a complete .stories.tsx file. Uses the same import strategy as
+// exportFrameAsJsx: direct @/components/ui/ imports with args passed as props.
 export function buildLocalStoryFile(frame: Frame, name: string, stories: StorybookStory[]): string {
   const pascal = toPascal(name) || 'LocalComponent';
 
-  interface InstanceInfo {
-    varName: string;
-    exportName: string;
-    moduleAlias: string;
-    relPath: string;
-  }
-  const infoMap = new Map<string, InstanceInfo>();
-
-  // Walk the full slot tree to register all instances
-  const registerInstance = (instance: ComponentInstance) => {
-    if (!infoMap.has(instance.storybookId)) {
-      const story = stories.find((s) => s.id === instance.storybookId);
-      if (story?.importPath) {
-        const componentName = (story.title.split('/').pop() ?? 'Component').replace(/\s+/g, '');
-        const exportName = toPascal(story.name) || 'Default';
-        const varName = componentName + exportName;
-        const moduleAlias = componentName + 'Stories';
-        const relPath = story.importPath
-          .replace(/^\.\/src\/stories\//, '../')
-          .replace(/\.tsx?$/, '');
-        infoMap.set(instance.storybookId, { varName, exportName, moduleAlias, relPath });
-      }
-    }
-    for (const children of Object.values(instance.slots ?? {})) {
-      for (const child of children) registerInstance(child);
-    }
-  };
-  frame.components.filter((c) => c.visible).forEach(registerInstance);
-
-  // Group by module alias for import + compose lines
-  const moduleGroups = new Map<string, { relPath: string; entries: { exportName: string; varName: string }[] }>();
-  infoMap.forEach(({ moduleAlias, relPath, exportName, varName }) => {
-    if (!moduleGroups.has(moduleAlias)) {
-      moduleGroups.set(moduleAlias, { relPath, entries: [] });
-    }
-    const group = moduleGroups.get(moduleAlias)!;
-    if (!group.entries.find((e) => e.exportName === exportName)) {
-      group.entries.push({ exportName, varName });
-    }
+  const imports = new Set<string>();
+  frame.components.filter((c) => c.visible).forEach((instance) => {
+    const ids = new Set<string>();
+    collectIds(instance, ids);
+    ids.forEach((id) => {
+      const story = stories.find((s) => s.id === id);
+      if (story) imports.add(story.title.split('/').pop()!);
+    });
   });
 
-  const hasModules = moduleGroups.size > 0;
-  const importLines: string[] = [];
-  const composeLines: string[] = [];
-
-  if (hasModules) {
-    importLines.push(`import { composeStories } from '@storybook/react';`);
-    moduleGroups.forEach(({ relPath, entries }, alias) => {
-      importLines.push(`import * as ${alias} from '${relPath}';`);
-      const destructure = entries
-        .map(({ exportName, varName }) =>
-          exportName === varName ? exportName : `${exportName}: ${varName}`
-        )
-        .join(', ');
-      composeLines.push(`const { ${destructure} } = composeStories(${alias});`);
-    });
-  }
-
-  // Recursive emitter using composed var names
-  const localTagName = (id: string): string | null => {
-    const info = infoMap.get(id);
-    return info ? info.varName : null;
-  };
-
-  const body = (() => {
-    if (frame.autoLayout) {
-      const al = frame.autoLayout;
-      const allItems: Array<ComponentInstance | TextLayer> = [
-        ...frame.components.filter((c) => c.visible),
-        ...(frame.textLayers ?? []).filter((t) => t.visible !== false),
-      ];
-      if (frame.flowOrder) {
-        const order = frame.flowOrder;
-        allItems.sort((a, b) => {
-          const ai = order.indexOf(a.id);
-          const bi = order.indexOf(b.id);
-          return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-        });
-      }
-      const children = allItems
-        .map((item) =>
-          (item as TextLayer).type === 'text'
-            ? textSpan(item as TextLayer, false)
-            : renderInstanceString(item as ComponentInstance, localTagName, 2)
-        )
-        .join('\n');
-      const className = buildAutoLayoutClassName(al);
-      return `  <div className="${className}" style={{ width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
-${children}
-  </div>`;
-    }
-
-    const children = [
-      ...frame.components.filter((c) => c.visible).map((instance) => {
-        const inner = renderInstanceString(instance, localTagName, 3);
-        return `    <div style={{ position: 'absolute', left: ${instance.x}, top: ${instance.y}, width: ${instance.width}, height: ${instance.height} }}>
-${inner}
-    </div>`;
-      }),
-      ...(frame.textLayers ?? []).filter((t) => t.visible !== false).map((t) => textSpan(t, true)),
-    ].join('\n');
-    return `  <div style={{ position: 'relative', width: ${frame.width}, height: ${frame.height}, background: '${frame.backgroundColor}' }}>
-${children}
-  </div>`;
-  })();
+  const body = buildFrameJsx(frame, stories);
+  const importBlock = [...imports]
+    .map((compName) => `import { ${compName} } from '@/components/ui/${compName.toLowerCase()}';`)
+    .join('\n');
 
   const storyboardMeta = JSON.stringify(frame);
 
   return `// @storyboard ${storyboardMeta}
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-${importLines.join('\n')}
-${composeLines.length > 0 ? '\n' + composeLines.join('\n') + '\n' : ''}
+${importBlock ? importBlock + '\n' : ''}
 // Generated by Storyboard — edit the @storyboard comment above to sync changes back to the canvas.
 const ${pascal} = () => (
 ${body}

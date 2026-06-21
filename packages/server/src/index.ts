@@ -105,6 +105,7 @@ function parseThemeTokens(css: string): { light: Record<string, string>; dark: R
     const m = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*;/);
     if (!m) continue;
     const [, name, value] = m;
+    if (name.startsWith('--sb-')) continue; // UI chrome vars — not design system tokens
     counts[name] = (counts[name] ?? 0) + 1;
     if (counts[name] === 1) light[name] = value;
     else if (counts[name] === 2) dark[name] = value;
@@ -140,9 +141,11 @@ app.put('/api/theme', (req, res) => {
     for (const filePath of [APP_THEME, SB_GLOBALS]) {
       let css = fs.readFileSync(filePath, 'utf8');
       for (const [name, value] of Object.entries(light)) {
+        if (name.startsWith('--sb-')) continue;
         css = setOccurrence(css, name, value, 1);
       }
       for (const [name, value] of Object.entries(dark)) {
+        if (name.startsWith('--sb-')) continue;
         css = setOccurrence(css, name, value, 2);
       }
       fs.writeFileSync(filePath, css, 'utf8');
