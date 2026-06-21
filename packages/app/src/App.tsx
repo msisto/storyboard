@@ -387,6 +387,30 @@ export default function App() {
             .then((loaded) => useDesignStore.getState().loadFile(loaded))
             .catch(() => {});
         }
+        if (e.key === 'c') {
+          e.preventDefault();
+          const state = useDesignStore.getState();
+          if (state.selectedComponentId && state.file) {
+            const comp = state.file.frames
+              .flatMap((f) => f.components)
+              .find((c) => c.id === state.selectedComponentId);
+            if (comp) useCanvasStore.getState().setClipboard(comp);
+          }
+        }
+
+        if (e.key === 'v') {
+          e.preventDefault();
+          const { clipboard } = useCanvasStore.getState();
+          const state = useDesignStore.getState();
+          if (clipboard && state.selectedFrameId) {
+            state.addComponent(state.selectedFrameId, {
+              ...clipboard,
+              x: clipboard.x + 20,
+              y: clipboard.y + 20,
+            });
+          }
+        }
+
         if (e.key === 'g' || e.key === 'G') {
           e.preventDefault();
           useDesignStore.getState().groupSelectedItems();
