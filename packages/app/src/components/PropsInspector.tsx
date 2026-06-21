@@ -1761,7 +1761,7 @@ function SizingSelect({
               fontWeight: value === o ? 600 : 400,
             }}
           >
-            {o === 'fixed' ? '—' : o === 'hug' ? '⇔' : '↔'}
+            {o === 'fixed' ? 'Fixed' : o === 'hug' ? 'Hug' : 'Fill'}
           </button>
         ))}
       </div>
