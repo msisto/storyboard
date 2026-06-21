@@ -4,7 +4,10 @@ import type { RawArgType } from './loader';
 import { parseArgTypes } from './argTypes';
 
 const storyModules = import.meta.glob(
-  '../../../storybook/src/stories/*.stories.tsx',
+  [
+    '../../../storybook/src/stories/*.stories.tsx',
+    '../../../storybook/src/stories/local/*.stories.tsx',
+  ],
   { eager: true }
 );
 

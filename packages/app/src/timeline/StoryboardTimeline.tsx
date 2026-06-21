@@ -1,5 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import type { Frame } from '../types';
+import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
+import { getStoryEntry } from '../registry/storyRegistry';
 
 interface StoryboardTimelineProps {
   frames: Frame[];
@@ -13,16 +15,82 @@ interface StoryboardTimelineProps {
 }
 
 const CARD_WIDTH = 84;
+const THUMB_W = 52;
+const THUMB_H = 38;
 const DRAG_THRESHOLD = 6;
 
-function FrameThumbnail({ frame }: { frame: Frame }) {
-  const scaleX = 52 / Math.max(1, frame.width);
-  const scaleY = 38 / Math.max(1, frame.height);
+function ThumbnailFrame({ frame, x = 0, y = 0 }: { frame: Frame; x?: number; y?: number }) {
   return (
     <div
       style={{
-        width: 52,
-        height: 38,
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: frame.width,
+        height: frame.height,
+        background: frame.backgroundColor,
+        overflow: 'hidden',
+      }}
+    >
+      {frame.textLayers?.map((t) => {
+        const fs = TAILWIND_FONT_SIZES.find((s) => s.key === t.fontSize)?.px ?? 14;
+        const fw = TAILWIND_FONT_WEIGHTS.find((w) => w.key === t.fontWeight)?.value ?? 400;
+        return (
+          <div
+            key={t.id}
+            style={{
+              position: 'absolute',
+              left: t.x,
+              top: t.y,
+              color: t.color,
+              fontSize: fs,
+              fontWeight: fw,
+              lineHeight: 1.3,
+              whiteSpace: 'pre',
+              overflow: 'hidden',
+              width: t.width,
+            }}
+          >
+            {t.content}
+          </div>
+        );
+      })}
+      {frame.components.map((c) => {
+        const entry = getStoryEntry(c.storybookId);
+        return (
+          <div
+            key={c.id}
+            style={{
+              position: 'absolute',
+              left: c.x,
+              top: c.y,
+              width: c.width,
+              height: c.height,
+              overflow: 'hidden',
+            }}
+          >
+            {entry ? entry.render({ ...entry.defaultArgs, ...c.args }) : (
+              <div style={{ width: '100%', height: '100%', background: 'var(--sb-border-strong)', borderRadius: 2 }} />
+            )}
+          </div>
+        );
+      })}
+      {frame.frames?.map((cf) => (
+        <ThumbnailFrame key={cf.id} frame={cf} x={cf.x} y={cf.y} />
+      ))}
+    </div>
+  );
+}
+
+const FrameThumbnail = React.memo(function FrameThumbnail({ frame }: { frame: Frame }) {
+  const scale = Math.min(THUMB_W / Math.max(1, frame.width), THUMB_H / Math.max(1, frame.height));
+  const offsetX = (THUMB_W - frame.width * scale) / 2;
+  const offsetY = (THUMB_H - frame.height * scale) / 2;
+  return (
+    <div
+      style={{
+        width: THUMB_W,
+        height: THUMB_H,
         overflow: 'hidden',
         position: 'relative',
         borderRadius: 3,
@@ -33,48 +101,21 @@ function FrameThumbnail({ frame }: { frame: Frame }) {
       <div
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
+          top: offsetY,
+          left: offsetX,
           width: frame.width,
           height: frame.height,
-          background: frame.backgroundColor,
-          transform: `scale(${scaleX}, ${scaleY})`,
+          transform: `scale(${scale})`,
           transformOrigin: '0 0',
+          pointerEvents: 'none',
+          userSelect: 'none',
         }}
       >
-        {frame.components.map((c) => (
-          <div
-            key={c.id}
-            style={{
-              position: 'absolute',
-              left: c.x,
-              top: c.y,
-              width: c.width,
-              height: c.height,
-              background: 'var(--sb-border-strong)',
-              border: '0.5px solid var(--sb-text-4)',
-              borderRadius: 1,
-            }}
-          />
-        ))}
-        {frame.textLayers?.map((t) => (
-          <div
-            key={t.id}
-            style={{
-              position: 'absolute',
-              left: t.x,
-              top: t.y,
-              width: t.width ?? 60,
-              height: 3,
-              background: 'var(--sb-text-4)',
-              borderRadius: 2,
-            }}
-          />
-        ))}
+        <ThumbnailFrame frame={frame} />
       </div>
     </div>
   );
-}
+});
 
 export function StoryboardTimeline({
   frames,

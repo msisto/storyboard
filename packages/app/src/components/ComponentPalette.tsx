@@ -83,17 +83,17 @@ function VariantThumbnail({
     >
       <div style={{ width: '100%', height: 72, overflow: 'hidden', position: 'relative', background: 'var(--sb-bg-secondary)' }}>
         {visible && entry ? (
-          <div
-            style={{
-              transform: 'scale(0.5)',
-              transformOrigin: '0 0',
-              width: '200%',
-              height: '200%',
-              pointerEvents: 'none',
-              overflow: 'hidden',
-            }}
-          >
-            {entry.render(entry.defaultArgs)}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
+            <div
+              style={{
+                flexShrink: 0,
+                transform: 'scale(0.5)',
+                transformOrigin: 'top center',
+                pointerEvents: 'none',
+              }}
+            >
+              {entry.render(entry.defaultArgs)}
+            </div>
           </div>
         ) : (
           <div style={{
@@ -306,39 +306,6 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* ── Local stories ──────────────────────────────────────────── */}
-        {filteredLocal.length > 0 && (
-          <div>
-            <div style={{
-              padding: '5px 8px', fontSize: 11, fontWeight: 600,
-              color: 'var(--sb-accent)', textTransform: 'uppercase',
-              letterSpacing: '0.05em', display: 'flex', alignItems: 'center',
-              gap: 5, userSelect: 'none',
-            }}>
-              <span>Local</span>
-              <span style={{
-                fontSize: 9, padding: '1px 4px', borderRadius: 3,
-                background: 'var(--sb-accent-bg)', color: 'var(--sb-accent)', fontWeight: 500,
-              }}>
-                {filteredLocal.length}
-              </span>
-            </div>
-            {filteredLocal.map((story) => {
-              const key = `local/${story.id}`;
-              return (
-                <LocalStoryRow
-                  key={story.id}
-                  story={story}
-                  expanded={expandedComponents.has(key)}
-                  onToggle={() => toggleComponent(key)}
-                  onDragStart={handleDragStart}
-                />
-              );
-            })}
-            <div style={{ height: 1, background: 'var(--sb-border)', margin: '4px 0' }} />
-          </div>
-        )}
-
         {/* ── Storybook library ──────────────────────────────────────── */}
         {[...groupedEntries.entries()].map(([group, entries]) => {
           const groupKey = `g:${group}`;
@@ -373,6 +340,39 @@ export function ComponentPalette({ onDrop: _onDrop }: ComponentPaletteProps) {
             </div>
           );
         })}
+
+        {/* ── Local stories ──────────────────────────────────────────── */}
+        {filteredLocal.length > 0 && (
+          <div>
+            <div style={{ height: 1, background: 'var(--sb-border)', margin: '4px 0' }} />
+            <div style={{
+              padding: '5px 8px', fontSize: 11, fontWeight: 600,
+              color: 'var(--sb-accent)', textTransform: 'uppercase',
+              letterSpacing: '0.05em', display: 'flex', alignItems: 'center',
+              gap: 5, userSelect: 'none',
+            }}>
+              <span>Local</span>
+              <span style={{
+                fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                background: 'var(--sb-accent-bg)', color: 'var(--sb-accent)', fontWeight: 500,
+              }}>
+                {filteredLocal.length}
+              </span>
+            </div>
+            {filteredLocal.map((story) => {
+              const key = `local/${story.id}`;
+              return (
+                <LocalStoryRow
+                  key={story.id}
+                  story={story}
+                  expanded={expandedComponents.has(key)}
+                  onToggle={() => toggleComponent(key)}
+                  onDragStart={handleDragStart}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

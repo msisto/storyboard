@@ -161,25 +161,72 @@ app.put('/api/theme', (req, res) => {
 // __dirname is packages/server/src — go up 2 to packages/, then into storybook/
 const LOCAL_STORIES_DIR = path.join(__dirname, '../../storybook/src/stories/local');
 
-function toSlug(name: string): string {
-  return name.trim().replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'component';
+function toPascal(name: string): string {
+  return name.trim().replace(/[^a-zA-Z0-9]+/g, ' ').trim()
+    .split(' ').filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join('') || 'Component';
 }
 
 app.post('/api/local-stories', async (req, res) => {
   const { name, content } = req.body as { name?: string; content?: string };
   if (!name || !content) return res.status(400).json({ error: 'name and content required' });
 
-  const slug = toSlug(name);
-  const storyId = `local-${slug.toLowerCase()}--default`;
-  const filePath = path.join(LOCAL_STORIES_DIR, `${slug}.stories.tsx`);
+  const pascal = toPascal(name);
+  const storyId = `local-${pascal.toLowerCase()}--default`;
+  const filePath = path.join(LOCAL_STORIES_DIR, `${pascal}.stories.tsx`);
 
   try {
     if (!fs.existsSync(LOCAL_STORIES_DIR)) fs.mkdirSync(LOCAL_STORIES_DIR, { recursive: true });
     fs.writeFileSync(filePath, content, 'utf-8');
-    return res.json({ id: storyId, slug, file: filePath });
+    return res.json({ id: storyId, pascal, file: filePath });
   } catch (err) {
     console.error('Failed to write local story:', err);
     return res.status(500).json({ error: 'Failed to write story file' });
+  }
+});
+
+app.post('/api/local-stories/batch', (req, res) => {
+  const { frames } = req.body as { frames?: { name: string; content: string }[] };
+  if (!Array.isArray(frames)) return res.status(400).json({ error: 'frames array required' });
+
+  try {
+    if (!fs.existsSync(LOCAL_STORIES_DIR)) fs.mkdirSync(LOCAL_STORIES_DIR, { recursive: true });
+
+    // Build a map of frameId → current filename from existing files so we can
+    // delete stale files when a frame is renamed.
+    const existingById = new Map<string, string>(); // id → filename
+    for (const f of fs.readdirSync(LOCAL_STORIES_DIR).filter((f) => f.endsWith('.stories.tsx'))) {
+      try {
+        const text = fs.readFileSync(path.join(LOCAL_STORIES_DIR, f), 'utf-8');
+        const m = text.match(/^\/\/ @storyboard (.+)$/m);
+        if (!m) continue;
+        const id = (JSON.parse(m[1]) as { id?: string }).id;
+        if (id) existingById.set(id, f);
+      } catch { /* skip unreadable files */ }
+    }
+
+    for (const { name, content } of frames) {
+      if (!name || !content) continue;
+      const pascal = toPascal(name);
+      const newFilename = `${pascal}.stories.tsx`;
+
+      // Extract the frame id from the content being written.
+      const m = content.match(/^\/\/ @storyboard (.+)$/m);
+      const frameId = m ? (JSON.parse(m[1]) as { id?: string }).id : undefined;
+
+      // Delete any existing file for this frame id if the name changed.
+      if (frameId) {
+        const oldFilename = existingById.get(frameId);
+        if (oldFilename && oldFilename !== newFilename) {
+          fs.unlinkSync(path.join(LOCAL_STORIES_DIR, oldFilename));
+        }
+      }
+
+      fs.writeFileSync(path.join(LOCAL_STORIES_DIR, newFilename), content, 'utf-8');
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Failed to write frame stories:', err);
+    return res.status(500).json({ error: 'Failed to write story files' });
   }
 });
 
@@ -189,6 +236,13 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const rooms = new Map<string, Set<WebSocket>>();
+
+function broadcastAll(msg: unknown) {
+  const payload = JSON.stringify(msg);
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(payload);
+  });
+}
 
 function broadcastPeers(fileId: string) {
   const count = rooms.get(fileId)?.size ?? 0;
@@ -248,4 +302,33 @@ wss.on('connection', (ws) => {
 const PORT = 3333;
 server.listen(PORT, () => {
   console.log(`Storyboard server listening on :${PORT} — designs: ${DESIGNS_DIR}`);
+});
+
+// Watch local story files for external edits. When a developer edits the
+// @storyboard comment in a frame file, the canvas reloads that frame via WS.
+if (!fs.existsSync(LOCAL_STORIES_DIR)) fs.mkdirSync(LOCAL_STORIES_DIR, { recursive: true });
+
+// Debounce map to avoid double-firing on rapid writes (e.g. from our own batch save)
+const watchDebounce = new Map<string, ReturnType<typeof setTimeout>>();
+
+fs.watch(LOCAL_STORIES_DIR, { persistent: false }, (_, filename) => {
+  if (!filename?.endsWith('.stories.tsx')) return;
+  const filePath = path.join(LOCAL_STORIES_DIR, filename);
+
+  const existing = watchDebounce.get(filename);
+  if (existing) clearTimeout(existing);
+
+  watchDebounce.set(filename, setTimeout(() => {
+    watchDebounce.delete(filename);
+    if (!fs.existsSync(filePath)) return;
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const match = content.match(/^\/\/ @storyboard (.+)$/m);
+      if (!match) return;
+      const frame = JSON.parse(match[1]);
+      broadcastAll({ type: 'frame-updated', frame });
+    } catch {
+      // ignore malformed files
+    }
+  }, 300));
 });

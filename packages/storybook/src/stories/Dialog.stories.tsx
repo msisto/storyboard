@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import {
   Dialog,
@@ -11,7 +12,7 @@ import {
 } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
 
-type DialogArgs = { title: string; description: string; triggerLabel: string };
+type DialogArgs = { title: string; description: string; triggerLabel: string; children?: React.ReactNode };
 
 const meta: Meta<DialogArgs> = {
   title: 'UI/Dialog',
@@ -28,7 +29,10 @@ export const Default: Story = {
     description: 'Make changes to your profile here. Click save when you\'re done.',
     triggerLabel: 'Open Dialog',
   },
-  render: ({ title, description, triggerLabel }) => (
+  argTypes: {
+    children: { control: false, description: 'Slot: components rendered inside the dialog body' },
+  },
+  render: ({ title, description, triggerLabel, children }) => (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">{triggerLabel}</Button>
@@ -38,16 +42,18 @@ export const Default: Story = {
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="name" className="text-right text-sm font-medium">Name</label>
-            <input id="name" defaultValue="Jane Doe" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+        {children ?? (
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="name" className="text-right text-sm font-medium">Name</label>
+              <input id="name" defaultValue="Jane Doe" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="username" className="text-right text-sm font-medium">Username</label>
+              <input id="username" defaultValue="@jane" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="username" className="text-right text-sm font-medium">Username</label>
-            <input id="username" defaultValue="@jane" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
-          </div>
-        </div>
+        )}
         <DialogFooter>
           <DialogClose asChild>
             <Button type="button" variant="outline">Cancel</Button>

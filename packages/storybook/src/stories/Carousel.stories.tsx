@@ -58,7 +58,7 @@ export const MultipleItems: Story = {
 
 export const Vertical: Story = {
   render: () => (
-    <Carousel orientation="vertical" className="w-full max-w-xs" opts={{ align: 'start' }}>
+    <Carousel orientation="vertical" className="w-full" opts={{ align: 'start' }}>
       <CarouselContent className="-mt-1 h-[200px]">
         {Array.from({ length: 5 }).map((_, i) => (
           <CarouselItem key={i} className="pt-1 md:basis-1/2">

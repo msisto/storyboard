@@ -12,7 +12,7 @@ export async function fetchStorybookIndex(): Promise<StorybookStory[]> {
 }
 
 export interface RawArgType {
-  control?: string | { type: string };
+  control?: false | string | { type: string };
   options?: string[];
   description?: string;
   defaultValue?: unknown;

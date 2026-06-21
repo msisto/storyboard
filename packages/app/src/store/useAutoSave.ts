@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDesignStore } from './useDesignStore';
+import { useRegistryStore } from '../registry/useRegistryStore';
+import { buildLocalStoryFile } from '../export/jsxExport';
 import { api } from './api';
 
 export function useAutoSave() {
@@ -24,6 +26,16 @@ export function useAutoSave() {
         try {
           await api.updateFile(current.id, current);
           lastSavedAtRef.current = current.updatedAt;
+
+          // Also write each frame as a .tsx story file for git-diffable output.
+          const stories = useRegistryStore.getState().stories;
+          const framePayloads = current.frames.map((frame) => ({
+            name: frame.label,
+            content: buildLocalStoryFile(frame, frame.label, stories),
+          }));
+          api.saveFrameStories(framePayloads).catch((err) => {
+            console.warn('[auto-save] frame story write failed:', err);
+          });
         } catch (err) {
           console.warn('[auto-save] failed:', err);
         }

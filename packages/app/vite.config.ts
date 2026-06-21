@@ -17,5 +17,10 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    watch: {
+      // Auto-save writes frame .tsx files here every second — ignore so Vite
+      // doesn't HMR-reload the app on every canvas change.
+      ignored: ['**/stories/local/**'],
+    },
   },
 });

@@ -190,7 +190,7 @@ function CommentModal({
 
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
-  const { file, loadFile, addComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame, selectComponent } = useDesignStore();
+  const { file, loadFile, addComponent, addSlottedComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame, selectComponent } = useDesignStore();
   const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, toggleGlobalInteractMode, exitGlobalInteractMode, globalInteractMode } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
@@ -203,6 +203,7 @@ export default function App() {
   const [view, setView] = useState<AppView>('loading');
   const [leftTab, setLeftTab] = useState<LeftTab>('layers');
   const [leftPanelWidth, setLeftPanelWidth] = useState(280);
+  const [panelsVisible, setPanelsVisible] = useState(true);
 
   const handleLeftPanelResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -349,6 +350,12 @@ export default function App() {
         e.preventDefault();
         useDesignStore.getState().undo();
         return;
+      }
+
+      // Toggle panels
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        setPanelsVisible((v) => !v);
       }
 
       // Zoom
@@ -517,24 +524,39 @@ export default function App() {
       const result = ensureFrame();
       if (!result) return;
       const { frame, absX, absY } = result;
-      const relX = worldX - absX;
-      const relY = worldY - absY;
       const storyEntry = getStoryEntry(story.id);
-      addComponent(frame.id, {
+      const slotData = {
         storybookId: story.id,
         title: story.title,
         name: story.name,
-        x: Math.max(0, Math.round(relX - 100)),
-        y: Math.max(0, Math.round(relY - 40)),
-        width: 200,
-        height: 80,
+        x: 0, y: 0, width: 0, height: 0,
         args: storyEntry?.defaultArgs ?? {},
         locked: false,
         visible: true,
         label: `${story.title.split('/').pop()} · ${story.name}`,
+      };
+
+      // Check if the drop lands on an existing component — if so, slot into it
+      const parentComp = frame.components.find((c) => {
+        return worldX >= absX + c.x && worldX <= absX + c.x + c.width
+            && worldY >= absY + c.y && worldY <= absY + c.y + c.height;
+      });
+      if (parentComp) {
+        addSlottedComponent(frame.id, parentComp.id, 'children', slotData);
+        return;
+      }
+
+      const relX = worldX - absX;
+      const relY = worldY - absY;
+      addComponent(frame.id, {
+        ...slotData,
+        x: Math.max(0, Math.round(relX - 100)),
+        y: Math.max(0, Math.round(relY - 40)),
+        width: 200,
+        height: 80,
       });
     },
-    [addComponent]
+    [addComponent, addSlottedComponent]
   );
 
   const fitFrame = useCallback((frame: Frame) => {
@@ -615,62 +637,68 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <Toolbar connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange} />
+      {panelsVisible && (
+        <Toolbar connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange} />
+      )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left panel */}
-        <div
-          style={{
-            width: leftPanelWidth,
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            background: 'var(--sb-bg)',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)' }}>
-            {(['layers', 'components', 'text'] as LeftTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setLeftTab(tab)}
-                style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  fontSize: 11,
-                  fontWeight: leftTab === tab ? 600 : 400,
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: leftTab === tab ? '2px solid var(--sb-accent)' : '2px solid transparent',
-                  cursor: 'pointer',
-                  color: leftTab === tab ? 'var(--sb-accent)' : 'var(--sb-text-3)',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+        {panelsVisible && (
+          <>
+            <div
+              style={{
+                width: leftPanelWidth,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'var(--sb-bg)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Tabs */}
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)' }}>
+                {(['layers', 'components', 'text'] as LeftTab[]).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setLeftTab(tab)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 0',
+                      fontSize: 11,
+                      fontWeight: leftTab === tab ? 600 : 400,
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: leftTab === tab ? '2px solid var(--sb-accent)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      color: leftTab === tab ? 'var(--sb-accent)' : 'var(--sb-text-3)',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
 
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            {leftTab === 'layers' ? <LayersPanel /> : leftTab === 'components' ? <ComponentPalette /> : <TextPalette />}
-          </div>
-        </div>
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                {leftTab === 'layers' ? <LayersPanel /> : leftTab === 'components' ? <ComponentPalette /> : <TextPalette />}
+              </div>
+            </div>
 
-        {/* Left panel resize handle */}
-        <div
-          onMouseDown={handleLeftPanelResize}
-          style={{
-            width: 4,
-            flexShrink: 0,
-            cursor: 'col-resize',
-            background: 'var(--sb-border)',
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sb-accent)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sb-border)')}
-        />
+            {/* Left panel resize handle */}
+            <div
+              onMouseDown={handleLeftPanelResize}
+              style={{
+                width: 4,
+                flexShrink: 0,
+                cursor: 'col-resize',
+                background: 'var(--sb-border)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sb-accent)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--sb-border)')}
+            />
+          </>
+        )}
 
         {/* Canvas */}
         <div
@@ -683,49 +711,53 @@ export default function App() {
         </div>
 
         {/* Right panel */}
-        <div
-          style={{
-            width: 240,
-            flexShrink: 0,
-            borderLeft: '1px solid var(--sb-border)',
-            background: 'var(--sb-bg)',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
+        {panelsVisible && (
           <div
             style={{
-              padding: '8px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--sb-text-3)',
-              borderBottom: '1px solid var(--sb-border)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+              width: 240,
+              flexShrink: 0,
+              borderLeft: '1px solid var(--sb-border)',
+              background: 'var(--sb-bg)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            {selectedFrameId || selectedComponentId || selectedFrameIds.length > 0 ? 'Inspect' : 'Theme'}
+            <div
+              style={{
+                padding: '8px 12px',
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'var(--sb-text-3)',
+                borderBottom: '1px solid var(--sb-border)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {selectedFrameId || selectedComponentId || selectedFrameIds.length > 0 ? 'Inspect' : 'Theme'}
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <PropsInspector />
+            </div>
           </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <PropsInspector />
-          </div>
-        </div>
+        )}
       </div>
 
-      <StoryboardTimeline
-        frames={file?.frames.filter((f) => f.inTimeline !== false) ?? []}
-        selectedFrameId={selectedFrameId}
-        selectedFrameIds={selectedFrameIds}
-        onSelectFrame={handleSelectFrame}
-        onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
-        onReorderFrame={reorderFrame}
-        onRemoveFromTimeline={(id) => {
-          const { updateFrame } = useDesignStore.getState();
-          updateFrame(id, { inTimeline: false });
-        }}
-        onAddFrame={handleAddFrame}
-      />
+      {panelsVisible && (
+        <StoryboardTimeline
+          frames={file?.frames.filter((f) => f.inTimeline !== false) ?? []}
+          selectedFrameId={selectedFrameId}
+          selectedFrameIds={selectedFrameIds}
+          onSelectFrame={handleSelectFrame}
+          onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
+          onReorderFrame={reorderFrame}
+          onRemoveFromTimeline={(id) => {
+            const { updateFrame } = useDesignStore.getState();
+            updateFrame(id, { inTimeline: false });
+          }}
+          onAddFrame={handleAddFrame}
+        />
+      )}
 
       {/* Comment placement modal */}
       {pendingComment && (

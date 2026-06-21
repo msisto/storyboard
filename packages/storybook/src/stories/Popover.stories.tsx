@@ -1,9 +1,10 @@
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 
-type PopoverArgs = { triggerLabel: string };
+type PopoverArgs = { triggerLabel: string; children?: React.ReactNode };
 
 const meta: Meta<PopoverArgs> = {
   title: 'UI/Popover',
@@ -16,32 +17,37 @@ type Story = StoryObj<PopoverArgs>;
 
 export const Default: Story = {
   args: { triggerLabel: 'Open Popover' },
-  render: ({ triggerLabel }) => (
+  argTypes: {
+    children: { control: false, description: 'Slot: components rendered inside the popover' },
+  },
+  render: ({ triggerLabel, children }) => (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline">{triggerLabel}</Button>
       </PopoverTrigger>
       <PopoverContent className="w-80">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">Dimensions</h4>
-            <p className="text-sm text-muted-foreground">Set the dimensions for the layer.</p>
+        {children ?? (
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium leading-none">Dimensions</h4>
+              <p className="text-sm text-muted-foreground">Set the dimensions for the layer.</p>
+            </div>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="width">Width</Label>
+                <input id="width" defaultValue="100%" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
+              </div>
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="maxWidth">Max. width</Label>
+                <input id="maxWidth" defaultValue="300px" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
+              </div>
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="height">Height</Label>
+                <input id="height" defaultValue="25px" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
+              </div>
+            </div>
           </div>
-          <div className="grid gap-2">
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="width">Width</Label>
-              <input id="width" defaultValue="100%" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="maxWidth">Max. width</Label>
-              <input id="maxWidth" defaultValue="300px" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="height">Height</Label>
-              <input id="height" defaultValue="25px" className="col-span-2 h-8 rounded-md border px-2 text-sm" />
-            </div>
-          </div>
-        </div>
+        )}
       </PopoverContent>
     </Popover>
   ),

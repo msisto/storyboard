@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import {
   Sheet,
@@ -12,7 +13,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 
-type SheetArgs = { side: 'top' | 'bottom' | 'left' | 'right'; triggerLabel: string };
+type SheetArgs = { side: 'top' | 'bottom' | 'left' | 'right'; triggerLabel: string; children?: React.ReactNode };
 
 const meta: Meta<SheetArgs> = {
   title: 'UI/Sheet',
@@ -25,28 +26,34 @@ type Story = StoryObj<SheetArgs>;
 
 export const Default: Story = {
   args: { side: 'right', triggerLabel: 'Open Sheet' },
-  render: ({ side, triggerLabel }) => (
+  argTypes: {
+    side: { control: 'select', options: ['top', 'bottom', 'left', 'right'] },
+    children: { control: false, description: 'Slot: components rendered inside the sheet body' },
+  },
+  render: ({ side, triggerLabel, children }) => (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="outline">{triggerLabel}</Button>
       </SheetTrigger>
-      <SheetContent side={side}>
+      <SheetContent side={side as 'top' | 'bottom' | 'left' | 'right'}>
         <SheetHeader>
           <SheetTitle>Edit profile</SheetTitle>
           <SheetDescription>
             Make changes to your profile here. Click save when you're done.
           </SheetDescription>
         </SheetHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="sheet-name" className="text-right">Name</Label>
-            <input id="sheet-name" defaultValue="Jane Doe" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+        {children ?? (
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="sheet-name" className="text-right">Name</Label>
+              <input id="sheet-name" defaultValue="Jane Doe" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="sheet-username" className="text-right">Username</Label>
+              <input id="sheet-username" defaultValue="@jane" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="sheet-username" className="text-right">Username</Label>
-            <input id="sheet-username" defaultValue="@jane" className="col-span-3 h-9 rounded-md border px-3 text-sm" />
-          </div>
-        </div>
+        )}
         <SheetFooter>
           <SheetClose asChild>
             <Button type="submit">Save changes</Button>

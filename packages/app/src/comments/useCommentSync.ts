@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDesignStore } from '../store/useDesignStore';
-import type { Comment, CommentReply, DesignFile } from '../types';
+import type { Comment, CommentReply, DesignFile, Frame } from '../types';
 
 const WS_URL = 'ws://localhost:3333';
 
@@ -33,7 +33,8 @@ type WsInbound =
   | { type: 'comment_resolved'; commentId: string }
   | { type: 'peers'; count: number }
   | { type: 'canvas_patch'; file: DesignFile }
-  | { type: 'cursor_move'; x: number; y: number; author: string; sessionId: string };
+  | { type: 'cursor_move'; x: number; y: number; author: string; sessionId: string }
+  | { type: 'frame-updated'; frame: Frame };
 
 export function useCommentSync(author: string) {
   const [connected, setConnected] = useState(false);
@@ -100,6 +101,15 @@ export function useCommentSync(author: string) {
               next.set(msg.sessionId, { x: msg.x, y: msg.y, author: msg.author, color, updatedAt: Date.now() });
               return next;
             });
+          } else if (msg.type === 'frame-updated') {
+            const store = useDesignStore.getState();
+            const existing = store.file?.frames.find((f) => f.id === msg.frame.id);
+            // Only apply if this frame belongs to our current design.
+            // Use loadFrame (not updateFrame) so updatedAt is NOT bumped,
+            // preventing the write from triggering another auto-save cycle.
+            if (existing) {
+              store.loadFrame(msg.frame.id, msg.frame);
+            }
           }
         } catch {
           // ignore

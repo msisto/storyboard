@@ -1,6 +1,72 @@
 import React, { useState } from 'react';
-import type { Frame } from '../types';
+import type { ComponentInstance, Frame } from '../types';
 import { useDesignStore } from '../store/useDesignStore';
+
+function SlotRows({
+  frameId,
+  component,
+  depth,
+  selectedComponentIds,
+  onSelect,
+  onRemove,
+}: {
+  frameId: string;
+  component: ComponentInstance;
+  depth: number;
+  selectedComponentIds: string[];
+  onSelect: (id: string) => void;
+  onRemove: (frameId: string, parentId: string, slotName: string, childId: string) => void;
+}) {
+  if (!component.slots || Object.keys(component.slots).length === 0) return null;
+  const indent = depth * 12;
+  return (
+    <>
+      {Object.entries(component.slots).map(([slotName, children]) =>
+        children.map((child) => (
+          <React.Fragment key={child.id}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: `2px 8px 2px ${24 + indent}px`,
+                background: selectedComponentIds.includes(child.id) ? 'var(--sb-accent-bg)' : 'transparent',
+                cursor: 'pointer',
+                gap: 4,
+              }}
+              onClick={() => onSelect(child.id)}
+            >
+              <span style={{ fontSize: 9, color: 'var(--sb-text-4)', flexShrink: 0 }}>└</span>
+              <span style={{
+                flex: 1, fontSize: 11,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                color: selectedComponentIds.includes(child.id) ? 'var(--sb-accent)' : 'var(--sb-text-3)',
+              }}>
+                {child.label}
+              </span>
+              <span style={{ fontSize: 9, color: 'var(--sb-text-4)', flexShrink: 0, fontStyle: 'italic' }}>
+                {slotName}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove(frameId, component.id, slotName, child.id); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontSize: 11, color: 'var(--sb-text-4)', lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+            <SlotRows
+              frameId={frameId}
+              component={child}
+              depth={depth + 1}
+              selectedComponentIds={selectedComponentIds}
+              onSelect={onSelect}
+              onRemove={onRemove}
+            />
+          </React.Fragment>
+        ))
+      )}
+    </>
+  );
+}
 
 export function LayersPanel() {
   const {
@@ -15,6 +81,7 @@ export function LayersPanel() {
     deleteComponent,
     updateTextLayer,
     deleteTextLayer,
+    removeSlottedComponent,
   } = useDesignStore();
   const frameIsDirectlySelected = selectedComponentIds.length === 0;
 
@@ -170,8 +237,8 @@ export function LayersPanel() {
             {frame.components.map((component) => {
               const isSelectedComp = selectedComponentIds.includes(component.id);
               return (
+                <React.Fragment key={component.id}>
                 <div
-                  key={component.id}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -229,6 +296,15 @@ export function LayersPanel() {
                     {component.locked ? <LockIcon /> : <UnlockIcon />}
                   </button>
                 </div>
+                <SlotRows
+                  frameId={frame.id}
+                  component={component}
+                  depth={1}
+                  selectedComponentIds={selectedComponentIds}
+                  onSelect={(id) => selectComponent(id)}
+                  onRemove={removeSlottedComponent}
+                />
+                </React.Fragment>
               );
             })}
 

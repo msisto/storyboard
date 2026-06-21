@@ -5,6 +5,7 @@ import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { ResizeHandles } from './ResizeHandles';
 import { getStoryEntry } from '../registry/storyRegistry';
+import { renderInstanceTree } from './renderInstance';
 
 interface ComponentNodeProps {
   instance: ComponentInstance;
@@ -226,7 +227,7 @@ export function ComponentNode({
         onPointerDown={showOverlay ? (e) => e.stopPropagation() : undefined}
       >
         {entry ? (
-          entry.render(instance.args)
+          renderInstanceTree(instance)
         ) : (
           <div
             style={{

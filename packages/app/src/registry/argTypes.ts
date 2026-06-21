@@ -3,6 +3,8 @@ import type { RawArgType } from './loader';
 
 function getControlType(raw: RawArgType): ArgDefinition['type'] {
   const ctrl = raw.control;
+  // control: false means this arg is a React slot (accepts component children)
+  if (ctrl === false) return 'slot';
   if (!ctrl) return 'text';
   const type = typeof ctrl === 'string' ? ctrl : ctrl.type;
   if (type === 'boolean') return 'boolean';

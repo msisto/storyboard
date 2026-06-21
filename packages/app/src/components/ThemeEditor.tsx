@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchTheme, saveTheme, type ThemeTokens } from '../store/themeApi';
 import { hslToHexSafe, hexToHslString } from '../utils/colorUtils';
+import { useCanvasStore } from '../store/useCanvasStore';
 
 // ── Token groups shown in the editor ─────────────────────────────────────────
 
@@ -53,12 +54,26 @@ const COLOR_GROUPS: TokenGroup[] = [
     ],
   },
   {
-    label: 'Destructive',
-    tokens: [{ key: '--destructive', label: 'Base' }],
+    label: 'Popover',
+    tokens: [
+      { key: '--popover', label: 'Base' },
+      { key: '--popover-foreground', label: 'Foreground' },
+    ],
   },
   {
-    label: 'Border',
-    tokens: [{ key: '--border', label: 'Border' }],
+    label: 'Destructive',
+    tokens: [
+      { key: '--destructive', label: 'Base' },
+      { key: '--destructive-foreground', label: 'Foreground' },
+    ],
+  },
+  {
+    label: 'Border & Input',
+    tokens: [
+      { key: '--border', label: 'Border' },
+      { key: '--input', label: 'Input' },
+      { key: '--ring', label: 'Ring' },
+    ],
   },
 ];
 
@@ -74,10 +89,29 @@ export function ThemeEditor() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
   const savedTimer = useRef<ReturnType<typeof setTimeout>>();
+  const { setThemePreview } = useCanvasStore();
 
   useEffect(() => {
     fetchTheme().then(setTokens).catch(console.error);
   }, []);
+
+  // Sync theme preview mode with the selected tab; clear on unmount
+  useEffect(() => {
+    setThemePreview(mode);
+    return () => setThemePreview(null);
+  }, [mode, setThemePreview]);
+
+  // Inject a scoped style tag for the active mode so frames override
+  // the OS media query regardless of system dark/light setting
+  useEffect(() => {
+    if (!tokens) return;
+    const modeTokens = tokens[mode];
+    const vars = Object.entries(modeTokens).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `[data-theme-preview="${mode}"] {\n${vars}\n}`;
+    document.head.appendChild(styleEl);
+    return () => styleEl.remove();
+  }, [mode, tokens]);
 
   const handleColorChange = useCallback(
     (varName: string, hex: string) => {

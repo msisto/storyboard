@@ -35,9 +35,39 @@ function removeFrame(frames: Frame[], id: string): Frame[] {
     .map((f) => f.frames ? { ...f, frames: removeFrame(f.frames, id) } : f);
 }
 
+// Recursively map over a ComponentInstance and its slot descendants
+function mapComponent(
+  component: ComponentInstance,
+  id: string,
+  fn: (c: ComponentInstance) => ComponentInstance
+): ComponentInstance {
+  if (component.id === id) return fn(component);
+  if (!component.slots) return component;
+  let changed = false;
+  const newSlots: Record<string, ComponentInstance[]> = {};
+  for (const [slotName, children] of Object.entries(component.slots)) {
+    const mapped = children.map((child) => {
+      const next = mapComponent(child, id, fn);
+      if (next !== child) changed = true;
+      return next;
+    });
+    newSlots[slotName] = mapped;
+  }
+  return changed ? { ...component, slots: newSlots } : component;
+}
+
+// Returns true if a component or any of its slot descendants has the given id
+function componentContainsId(component: ComponentInstance, id: string): boolean {
+  if (component.id === id) return true;
+  for (const children of Object.values(component.slots ?? {})) {
+    if (children.some((c) => componentContainsId(c, id))) return true;
+  }
+  return false;
+}
+
 function frameContainsItem(frame: Frame, id: string): boolean {
   if (frame.id === id) return true;
-  if (frame.components.some((c) => c.id === id)) return true;
+  if (frame.components.some((c) => componentContainsId(c, id))) return true;
   if ((frame.textLayers ?? []).some((t) => t.id === id)) return true;
   for (const cf of frame.frames ?? []) {
     if (frameContainsItem(cf, id)) return true;
@@ -69,6 +99,7 @@ interface DesignStore {
   addFrame: (x: number, y: number, width: number, height: number) => string;
   addChildFrame: (parentFrameId: string, x: number, y: number, width: number, height: number) => string;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
+  loadFrame: (id: string, frame: Frame) => void;
   deleteFrame: (id: string) => void;
   selectFrame: (id: string | null) => void;
   toggleFrameSelection: (id: string) => void;
@@ -89,6 +120,8 @@ interface DesignStore {
   deleteTextLayer: (frameId: string, layerId: string) => void;
   batchUpdatePositions: (frameId: string, updates: Array<{ id: string; x?: number; y?: number }>) => void;
   groupSelectedItems: () => void;
+  addSlottedComponent: (frameId: string, parentId: string, slotName: string, data: Omit<ComponentInstance, 'id'>) => string;
+  removeSlottedComponent: (frameId: string, parentId: string, slotName: string, childId: string) => void;
 }
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
@@ -225,6 +258,19 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
       };
     }),
 
+  // Replaces a frame without touching updatedAt — used for external file-watcher
+  // updates so the write doesn't trigger another auto-save cycle.
+  loadFrame: (id, frame) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        file: {
+          ...state.file,
+          frames: mapFrames(state.file.frames, id, () => frame),
+        },
+      };
+    }),
+
   deleteFrame: (id) =>
     set((state) => {
       if (!state.file) return state;
@@ -316,7 +362,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
           frames: mapFrames(state.file.frames, frameId, (f) => ({
             ...f,
             components: f.components.map((c) =>
-              c.id === componentId ? { ...c, ...patch } : c
+              mapComponent(c, componentId, (comp) => ({ ...comp, ...patch }))
             ),
           })),
         },
@@ -720,6 +766,64 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         file: { ...file, frames: updatedFrames, updatedAt: Date.now() },
         selectedComponentId: childFrameId,
         selectedComponentIds: [childFrameId],
+      };
+    }),
+
+  addSlottedComponent: (frameId, parentId, slotName, data) => {
+    const id = uid();
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: f.components.map((c) =>
+              mapComponent(c, parentId, (parent) => ({
+                ...parent,
+                slots: {
+                  ...parent.slots,
+                  [slotName]: [...(parent.slots?.[slotName] ?? []), { ...data, id }],
+                },
+              }))
+            ),
+          })),
+        },
+        selectedComponentId: id,
+        selectedComponentIds: [id],
+      };
+    });
+    return id;
+  },
+
+  removeSlottedComponent: (frameId, parentId, slotName, childId) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: f.components.map((c) =>
+              mapComponent(c, parentId, (parent) => {
+                const remaining = (parent.slots?.[slotName] ?? []).filter((ch) => ch.id !== childId);
+                const newSlots = { ...parent.slots };
+                if (remaining.length === 0) {
+                  delete newSlots[slotName];
+                } else {
+                  newSlots[slotName] = remaining;
+                }
+                return { ...parent, slots: Object.keys(newSlots).length > 0 ? newSlots : undefined };
+              })
+            ),
+          })),
+        },
+        selectedComponentId: state.selectedComponentId === childId ? null : state.selectedComponentId,
+        selectedComponentIds: state.selectedComponentIds.filter((i) => i !== childId),
       };
     }),
 

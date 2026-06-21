@@ -12,7 +12,7 @@ export interface StorybookIndex {
 
 export interface ArgDefinition {
   name: string;
-  type: 'text' | 'boolean' | 'number' | 'select' | 'color' | 'object';
+  type: 'text' | 'boolean' | 'number' | 'select' | 'color' | 'object' | 'slot';
   defaultValue?: unknown;
   options?: string[];
   description?: string;
@@ -50,6 +50,7 @@ export interface ComponentInstance {
   widthMode?: SizingMode;
   heightMode?: SizingMode;
   absolute?: boolean;
+  slots?: Record<string, ComponentInstance[]>;
 }
 
 // ── Tailwind spacing scale ────────────────────────────────────────────────────
@@ -78,6 +79,17 @@ export const TAILWIND_SPACING: { token: string; px: number }[] = [
   { token: '24',   px: 96  },
   { token: '28',   px: 112 },
   { token: '32',   px: 128 },
+  { token: '36',   px: 144 },
+  { token: '40',   px: 160 },
+  { token: '44',   px: 176 },
+  { token: '48',   px: 192 },
+  { token: '52',   px: 208 },
+  { token: '56',   px: 224 },
+  { token: '60',   px: 240 },
+  { token: '64',   px: 256 },
+  { token: '72',   px: 288 },
+  { token: '80',   px: 320 },
+  { token: '96',   px: 384 },
 ];
 
 export function snapToSpacing(px: number): number {

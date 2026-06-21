@@ -33,4 +33,8 @@ export const api = {
   deleteFile(id: string): Promise<void> {
     return request(`/files/${id}`, { method: 'DELETE' });
   },
+
+  saveFrameStories(frames: { name: string; content: string }[]): Promise<void> {
+    return request('/local-stories/batch', { method: 'POST', body: JSON.stringify({ frames }) });
+  },
 };

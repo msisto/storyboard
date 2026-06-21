@@ -1,29 +1,30 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
-import { buildLocalStoryFile } from '../export/jsxExport';
+import { exportFrameAsJsx } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
   distributeH, distributeV, tidyUp,
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
-import type { ArgDefinition, AutoLayoutSettings, Frame, SizingMode } from '../types';
+import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, Frame, SizingMode, StorybookStory } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 
 // shadcn/ui semantic foreground / text tokens
 const SEMANTIC_FG_TOKENS = [
-  { token: 'foreground',            label: 'foreground',            desc: 'Default text' },
-  { token: 'muted-foreground',      label: 'muted-foreground',      desc: 'Subdued / secondary text' },
-  { token: 'card-foreground',       label: 'card-foreground',       desc: 'Text on card' },
-  { token: 'primary',               label: 'primary',               desc: 'Primary brand color' },
-  { token: 'primary-foreground',    label: 'primary-foreground',    desc: 'Text on primary' },
-  { token: 'secondary-foreground',  label: 'secondary-foreground',  desc: 'Text on secondary surface' },
-  { token: 'accent-foreground',     label: 'accent-foreground',     desc: 'Text on accent' },
-  { token: 'destructive',           label: 'destructive',           desc: 'Error / danger' },
-  { token: 'destructive-foreground',label: 'destructive-foreground',desc: 'Text on destructive' },
+  { token: 'foreground',             label: 'foreground',             desc: 'Default text' },
+  { token: 'muted-foreground',       label: 'muted-foreground',       desc: 'Subdued / secondary text' },
+  { token: 'card-foreground',        label: 'card-foreground',        desc: 'Text on card' },
+  { token: 'popover-foreground',     label: 'popover-foreground',     desc: 'Text on popover' },
+  { token: 'primary',                label: 'primary',                desc: 'Primary brand color' },
+  { token: 'primary-foreground',     label: 'primary-foreground',     desc: 'Text on primary' },
+  { token: 'secondary-foreground',   label: 'secondary-foreground',   desc: 'Text on secondary surface' },
+  { token: 'accent-foreground',      label: 'accent-foreground',      desc: 'Text on accent' },
+  { token: 'destructive',            label: 'destructive',            desc: 'Error / danger' },
+  { token: 'destructive-foreground', label: 'destructive-foreground', desc: 'Text on destructive' },
 ] as const;
 
 function TextColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -541,44 +542,137 @@ function PropsSection({
   );
 }
 
+function CodePanel({ frame, stories }: { frame: Frame; stories: StorybookStory[] }) {
+  const [copied, setCopied] = useState(false);
+  const code = exportFrameAsJsx(frame, stories);
+
+  const copy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <div style={{
+        padding: '6px 12px', borderBottom: '1px solid var(--sb-border)',
+        display: 'flex', justifyContent: 'flex-end', flexShrink: 0,
+      }}>
+        <button
+          onClick={copy}
+          style={{ fontSize: 11, color: 'var(--sb-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+      <pre style={{
+        flex: 1, overflow: 'auto', margin: 0,
+        padding: '12px', fontSize: 11, lineHeight: 1.5,
+        fontFamily: 'monospace', whiteSpace: 'pre',
+        background: 'var(--sb-bg-secondary)', color: 'var(--sb-text-2)',
+      }}>
+        {code}
+      </pre>
+    </div>
+  );
+}
+
+function SlotsSection({
+  frameId,
+  componentId,
+  slots,
+  slotArgDefs,
+  onSelect,
+  onRemove,
+}: {
+  frameId: string;
+  componentId: string;
+  slots: ComponentInstance['slots'];
+  slotArgDefs: ArgDefinition[];
+  onSelect: (id: string) => void;
+  onRemove: (frameId: string, parentId: string, slotName: string, childId: string) => void;
+}) {
+  return (
+    <Section title="Slots">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {slotArgDefs.map((def) => {
+          const children = slots?.[def.name] ?? [];
+          return (
+            <div key={def.name}>
+              <div style={{ fontSize: 10, color: 'var(--sb-text-4)', textTransform: 'uppercase', marginBottom: 4 }}>
+                {def.name}
+              </div>
+              {children.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--sb-text-4)', fontStyle: 'italic' }}>
+                  Drop a component here
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {children.map((child) => (
+                    <div
+                      key={child.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '4px 6px',
+                        borderRadius: 4,
+                        background: 'var(--sb-bg-secondary)',
+                        border: '1px solid var(--sb-border)',
+                      }}
+                    >
+                      <button
+                        onClick={() => onSelect(child.id)}
+                        style={{
+                          flex: 1,
+                          textAlign: 'left',
+                          fontSize: 11,
+                          color: 'var(--sb-text-2)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {child.label}
+                      </button>
+                      <button
+                        onClick={() => onRemove(frameId, componentId, def.name, child.id)}
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--sb-text-4)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0 2px',
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
 export function PropsInspector() {
-  const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions } =
+  const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions, removeSlottedComponent, selectComponent } =
     useDesignStore();
   const { getArgDefs, stories } = useRegistryStore();
   const [tidyGap, setTidyGap] = useState(16);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-
-  const handleSaveAsStory = useCallback(async (frame: Frame) => {
-    const raw = window.prompt('Story name:', frame.label || 'MyComponent');
-    if (!raw?.trim()) return;
-    // Always PascalCase regardless of what the user typed
-    const name = raw.trim().replace(/[^a-zA-Z0-9]+/g, ' ').trim()
-      .split(' ').filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join('');
-    if (!name) return;
-    setSaveStatus('saving');
-    try {
-      const content = buildLocalStoryFile(frame, name, stories);
-      const res = await fetch('http://localhost:3333/api/local-stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), content }),
-      });
-      if (!res.ok) throw new Error('Server error');
-      setSaveStatus('saved');
-      // Poll loadRegistry until the new story appears in the index (HMR delay)
-      const { loadRegistry } = useRegistryStore.getState();
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        await loadRegistry();
-        attempts++;
-        if (attempts >= 8) clearInterval(poll);
-      }, 2000);
-      setTimeout(() => setSaveStatus('idle'), 5000);
-    } catch {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
-  }, [stories]);
+  const [frameTab, setFrameTab] = useState<'properties' | 'code'>('properties');
 
   const selectedFrame = file?.frames.find((f) => f.id === selectedFrameId);
   const selectedFrameData = selectedFrame;
@@ -588,6 +682,25 @@ export function PropsInspector() {
   const selectedTextLayer = selectedFrameData?.textLayers?.find(
     (t) => t.id === selectedComponentId
   );
+
+  // Recursively find a slot child and its parent context
+  function findSlotChild(
+    components: ComponentInstance[],
+    id: string
+  ): { child: ComponentInstance; parentId: string; slotName: string } | undefined {
+    for (const c of components) {
+      for (const [slotName, children] of Object.entries(c.slots ?? {})) {
+        for (const child of children) {
+          if (child.id === id) return { child, parentId: c.id, slotName };
+          const deeper = findSlotChild([child], id);
+          if (deeper) return deeper;
+        }
+      }
+    }
+  }
+  const slotChildContext = !selectedComponentData && !selectedTextLayer && selectedFrameData
+    ? findSlotChild(selectedFrameData.components, selectedComponentId ?? '')
+    : undefined;
 
   function findChildFrame(frames: Frame['frames'], id: string | null): import('../types').Frame | undefined {
     if (!id || !frames) return undefined;
@@ -926,6 +1039,46 @@ export function PropsInspector() {
     );
   }
 
+  // ── Slot child selected ───────────────────────────────────────────────────────
+  if (slotChildContext && selectedFrameData) {
+    const { child, parentId, slotName } = slotChildContext;
+    const argDefs = getArgDefs(child.storybookId);
+    return (
+      <div style={{ overflowY: 'auto', height: '100%' }}>
+        {/* Breadcrumb */}
+        <div style={{ padding: '6px 12px', borderBottom: '1px solid var(--sb-border)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => selectComponent(parentId)}
+            style={{ fontSize: 11, color: 'var(--sb-accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            ← Back
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--sb-text-4)' }}>/ {slotName}</span>
+        </div>
+        <PropsSection
+          argDefs={argDefs.filter((d) => d.type !== 'slot')}
+          args={child.args}
+          onChange={(key, v) =>
+            updateComponent(selectedFrameData.id, child.id, {
+              args: { ...child.args, [key]: v },
+            })
+          }
+        />
+        {/* Nested slots of the slot child */}
+        {argDefs.some((d) => d.type === 'slot') && (
+          <SlotsSection
+            frameId={selectedFrameData.id}
+            componentId={child.id}
+            slots={child.slots}
+            slotArgDefs={argDefs.filter((d) => d.type === 'slot')}
+            onSelect={selectComponent}
+            onRemove={removeSlottedComponent}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (selectedComponentData && selectedFrameData) {
     const argDefs = getArgDefs(selectedComponentData.storybookId);
     const inFlow = !!(selectedFrameData.autoLayout && !selectedComponentData.absolute);
@@ -1023,7 +1176,7 @@ export function PropsInspector() {
         )}
 
         <PropsSection
-          argDefs={argDefs}
+          argDefs={argDefs.filter((d) => d.type !== 'slot')}
           args={selectedComponentData.args}
           onChange={(key, v) =>
             updateComponent(selectedFrameData.id, selectedComponentData.id, {
@@ -1031,6 +1184,17 @@ export function PropsInspector() {
             })
           }
         />
+
+        {argDefs.some((d) => d.type === 'slot') && (
+          <SlotsSection
+            frameId={selectedFrameData.id}
+            componentId={selectedComponentData.id}
+            slots={selectedComponentData.slots}
+            slotArgDefs={argDefs.filter((d) => d.type === 'slot')}
+            onSelect={selectComponent}
+            onRemove={removeSlottedComponent}
+          />
+        )}
       </div>
     );
   }
@@ -1065,7 +1229,31 @@ export function PropsInspector() {
     };
 
     return (
-      <div style={{ overflowY: 'auto', height: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)', flexShrink: 0 }}>
+          {(['properties', 'code'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setFrameTab(t)}
+              style={{
+                flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', border: 'none', outline: 'none',
+                background: frameTab === t ? 'var(--sb-bg)' : 'var(--sb-bg-secondary)',
+                color: frameTab === t ? 'var(--sb-text)' : 'var(--sb-text-3)',
+                borderBottom: frameTab === t ? '2px solid var(--sb-accent)' : '2px solid transparent',
+                textTransform: 'capitalize',
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {frameTab === 'code' ? (
+          <CodePanel frame={selectedFrameData} stories={stories} />
+        ) : (
+        <div style={{ overflowY: 'auto', flex: 1 }}>
         <Section title="Frame">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
@@ -1266,29 +1454,8 @@ export function PropsInspector() {
           </div>
         </Section>
 
-        <Section title="Local Story">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--sb-text-3)', lineHeight: 1.4 }}>
-              Save this frame as a real Storybook story in the monorepo. It will appear in the Local section of the Components sidebar after Storybook reloads.
-            </p>
-            <button
-              onClick={() => handleSaveAsStory(selectedFrameData)}
-              disabled={saveStatus === 'saving'}
-              style={{
-                width: '100%',
-                padding: '5px 0',
-                fontSize: 12,
-                borderRadius: 4,
-                border: '1px solid var(--sb-border)',
-                background: saveStatus === 'saved' ? 'var(--sb-success-bg)' : saveStatus === 'error' ? 'var(--sb-error-bg)' : 'var(--sb-bg)',
-                color: saveStatus === 'saved' ? 'var(--sb-success)' : saveStatus === 'error' ? 'var(--sb-error)' : 'var(--sb-text-2)',
-                cursor: saveStatus === 'saving' ? 'default' : 'pointer',
-              }}
-            >
-              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? '✓ Saved — appears in sidebar shortly' : saveStatus === 'error' ? 'Error — is the server running?' : 'Save as Story…'}
-            </button>
-          </div>
-        </Section>
+        </div>
+        )}
       </div>
     );
   }

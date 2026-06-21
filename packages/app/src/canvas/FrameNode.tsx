@@ -231,7 +231,7 @@ const MIN_SIZE = 50;
 export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: FrameNodeProps) {
   const { selectFrame, toggleFrameSelection, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
     useDesignStore();
-  const { activeTool, viewport, enterTextEditMode, setTool } = useCanvasStore();
+  const { activeTool, viewport, enterTextEditMode, setTool, themePreview } = useCanvasStore();
   const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
 
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
@@ -504,6 +504,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
   return (
     <FramePortalContext.Provider value={portalContainer}>
     <div
+      {...(!isChildFrame && themePreview ? { 'data-theme-preview': themePreview } : {})}
       style={{
         position: 'absolute',
         left: frame.x,
