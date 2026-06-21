@@ -192,6 +192,9 @@ export function ComponentNode({
   const entry = getStoryEntry(instance.storybookId);
   const showOverlay = !isInteracting && !globalInteractMode;
 
+  const widthHug = instance.widthMode === 'hug';
+  const heightHug = instance.heightMode === 'hug';
+
   return (
     <div
       data-component-node="true"
@@ -199,8 +202,8 @@ export function ComponentNode({
         position: 'absolute',
         left: effectiveX,
         top: effectiveY,
-        width: effectiveWidth,
-        height: effectiveHeight,
+        width: widthHug ? 'fit-content' : effectiveWidth,
+        height: heightHug ? 'auto' : effectiveHeight,
         opacity: instance.locked ? 0.6 : 1,
         outline: isSelected && !isInteracting ? '2px solid var(--sb-accent)' : 'none',
         outlineOffset: -2,
@@ -225,7 +228,7 @@ export function ComponentNode({
       {/* Native component render */}
       <div
         ref={contentRef}
-        style={{ width: '100%', minHeight: '100%' }}
+        style={{ width: widthHug ? 'fit-content' : '100%', minHeight: heightHug ? undefined : '100%' }}
         onPointerDown={showOverlay && activeTool !== 'comment' ? (e) => e.stopPropagation() : undefined}
       >
         {entry ? (

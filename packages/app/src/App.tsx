@@ -550,10 +550,12 @@ export default function App() {
       const relY = worldY - absY;
       addComponent(frame.id, {
         ...slotData,
-        x: Math.max(0, Math.round(relX - 100)),
-        y: Math.max(0, Math.round(relY - 40)),
+        x: Math.max(0, Math.round(relX - 60)),
+        y: Math.max(0, Math.round(relY - 20)),
         width: 200,
         height: 80,
+        widthMode: 'hug',
+        heightMode: 'hug',
       });
     },
     [addComponent, addSlottedComponent]
