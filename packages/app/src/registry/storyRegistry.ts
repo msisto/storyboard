@@ -129,6 +129,12 @@ function buildEntries(): StoryEntry[] {
         }
       }
 
+      const rawArgDefs = parseArgTypes(mergedArgTypes);
+      // Backfill defaultValue from defaultArgs for any arg not already typed
+      const argDefs = rawArgDefs.map((d) =>
+        d.defaultValue !== undefined ? d : { ...d, defaultValue: defaultArgs[d.name] }
+      );
+
       entries.push({
         id,
         title: meta.title,
@@ -138,7 +144,7 @@ function buildEntries(): StoryEntry[] {
         importPath: moduleKey.includes('/stories/local/') ? undefined : storyFileToImportPath(moduleKey),
         render: renderFn,
         defaultArgs,
-        argDefs: parseArgTypes(mergedArgTypes),
+        argDefs,
       });
     }
   }

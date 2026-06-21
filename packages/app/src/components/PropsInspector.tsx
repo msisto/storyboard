@@ -341,6 +341,84 @@ function ArgControl({
     );
   }
 
+  const effectiveValue = value ?? def.defaultValue;
+
+  if (def.type === 'object' && Array.isArray(effectiveValue)) {
+    const items = effectiveValue as Record<string, unknown>[];
+    const allFields = items.length > 0
+      ? Object.keys(items[0]).filter((k) => typeof items[0][k] === 'string' || typeof items[0][k] === 'number')
+      : [];
+    const hasValueField = allFields.includes('value');
+    // Fields the user edits directly; 'value' is auto-derived and shown as a badge
+    const editFields = hasValueField ? allFields.filter((k) => k !== 'value') : allFields;
+    const primaryField = editFields[0];
+
+    const toSlug = (s: string) =>
+      s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
+
+    const updateItem = (idx: number, field: string, v: string) => {
+      pushH();
+      const next = items.map((item, i) => {
+        if (i !== idx) return item;
+        const updated = { ...item, [field]: v };
+        // Auto-sync 'value' when editing the primary field, if value still matches the old slug
+        if (hasValueField && field === primaryField) {
+          const oldSlug = toSlug(String(item[primaryField] ?? ''));
+          if (!item.value || String(item.value) === oldSlug) {
+            updated.value = toSlug(v);
+          }
+        }
+        return updated;
+      });
+      onChange(next);
+    };
+
+    const removeItem = (idx: number) => {
+      pushH();
+      onChange(items.filter((_, i) => i !== idx));
+    };
+
+    const addItem = () => {
+      pushH();
+      const template = editFields.reduce((a, k) => ({ ...a, [k]: '' }), {} as Record<string, unknown>);
+      if (hasValueField) template.value = `item-${items.length + 1}`;
+      // Preserve field order from original schema
+      const ordered = allFields.reduce((a, k) => ({ ...a, [k]: template[k] ?? '' }), {} as Record<string, unknown>);
+      onChange([...items, ordered]);
+    };
+
+    return (
+      <div>
+        <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4 }}>
+          {def.name}
+        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {items.map((item, idx) => (
+            <div key={idx} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {editFields.map((field) => (
+                <ItemCell
+                  key={field}
+                  value={String(item[field] ?? '')}
+                  placeholder={field}
+                  onChange={(v) => updateItem(idx, field, v)}
+                />
+              ))}
+              <button
+                onClick={() => removeItem(idx)}
+                style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-text-4)', fontSize: 13, padding: '0 2px', lineHeight: 1 }}
+                title="Remove item"
+              >×</button>
+            </div>
+          ))}
+          <button
+            onClick={addItem}
+            style={{ marginTop: 2, fontSize: 11, color: 'var(--sb-accent)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '2px 0' }}
+          >+ Add item</button>
+        </div>
+      </div>
+    );
+  }
+
   if (def.type === 'object') {
     return (
       <div>
@@ -451,6 +529,35 @@ function ArgControl({
           boxSizing: 'border-box',
         }}
       />
+    </div>
+  );
+}
+
+function ItemCell({ value, placeholder, onChange }: { value: string; placeholder: string; onChange: (v: string) => void }) {
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const start = () => { setDraft(value); setEditing(true); setTimeout(() => inputRef.current?.select(), 0); };
+  const commit = () => { onChange(draft); setEditing(false); };
+
+  return editing ? (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+      placeholder={placeholder}
+      style={{ flex: 1, minWidth: 0, fontSize: 11, padding: '2px 5px', border: '1px solid var(--sb-accent)', borderRadius: 3, outline: 'none', background: 'var(--sb-bg)', color: 'var(--sb-text-1)' }}
+    />
+  ) : (
+    <div
+      onClick={start}
+      title={placeholder}
+      style={{ flex: 1, minWidth: 0, fontSize: 11, padding: '2px 5px', border: '1px solid var(--sb-border)', borderRadius: 3, cursor: 'text', background: 'var(--sb-bg)', color: value ? 'var(--sb-text-1)' : 'var(--sb-text-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+    >
+      {value || placeholder}
     </div>
   );
 }
@@ -847,7 +954,8 @@ export function PropsInspector() {
   // Recursively find a slot child and its parent context
   function findSlotChild(
     components: ComponentInstance[],
-    id: string
+    id: string,
+    childFrames?: Frame['frames']
   ): { child: ComponentInstance; parentId: string; slotName: string } | undefined {
     for (const c of components) {
       for (const [slotName, children] of Object.entries(c.slots ?? {})) {
@@ -858,9 +966,14 @@ export function PropsInspector() {
         }
       }
     }
+    // Also search inside child frames (groups)
+    for (const cf of childFrames ?? []) {
+      const found = findSlotChild(cf.components, id, cf.frames);
+      if (found) return found;
+    }
   }
   const slotChildContext = !selectedComponentData && !selectedTextLayer && selectedFrameData
-    ? findSlotChild(selectedFrameData.components, selectedComponentId ?? '')
+    ? findSlotChild(selectedFrameData.components, selectedComponentId ?? '', selectedFrameData.frames)
     : undefined;
 
   function findChildFrame(frames: Frame['frames'], id: string | null): import('../types').Frame | undefined {

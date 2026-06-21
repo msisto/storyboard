@@ -63,7 +63,7 @@ The `local/` directory is listed in `vite.config.ts` under `server.watch.ignored
 
 **Auto-sizing.** A `ResizeObserver` on the component's content div measures the rendered height after each React commit and writes it back to the design store. `minHeight: '100%'` on the content div ensures the component expands to its natural size while still respecting manual resizes.
 
-**Interact mode.** By default a transparent overlay sits above each component so the canvas can intercept mouse events for dragging and selection. Double-clicking a component removes the overlay and passes pointer events through — you can type in inputs, click buttons, scroll, trigger hover states. Press Escape to exit. Pressing **I** (or the toolbar button) enters global interact mode, which removes overlays from every component at once.
+**Interact mode.** By default a transparent overlay sits above each component so the canvas can intercept mouse events for dragging and selection. Pressing **I** (or the toolbar button) enters global interact mode, which removes overlays from every component at once — you can type in inputs, click buttons, scroll, and trigger hover states. Press I again or Escape to exit.
 
 **Frame clipping.** Top-level frames always apply `overflow: hidden`, acting as browser viewport boundaries. Content and portals are clipped to the frame edge — a drawer that slides in stays inside the frame. Child frames have an optional "Clip Content" toggle in the inspector.
 
@@ -89,6 +89,49 @@ export const Default: Story = {
   render: () => <Card><CardTitle>Card Title</CardTitle>...</Card>,
 };
 ```
+
+### List-driven components (required convention)
+
+For components with repeating items — Accordion rows, Select options, radio buttons, menu items, tabs — move the items array into `args` and map over it in the render function. Storyboard detects any `args` field whose value is an array of objects and renders an inline list editor: add rows, remove rows, and edit each field directly from the canvas.
+
+```tsx
+// ✅ Items are editable from the canvas
+type AccordionItem = { value: string; trigger: string; content: string };
+
+export const Default: Story = {
+  args: {
+    items: [
+      { value: 'item-1', trigger: 'Is it accessible?', content: 'Yes.' },
+      { value: 'item-2', trigger: 'Is it styled?', content: 'Yes.' },
+    ],
+  },
+  argTypes: { items: { control: { type: 'object' } } },
+  render: ({ items }) => (
+    <Accordion type="single" collapsible>
+      {items.map((item) => (
+        <AccordionItem key={item.value} value={item.value}>
+          <AccordionTrigger>{item.trigger}</AccordionTrigger>
+          <AccordionContent>{item.content}</AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
+  ),
+};
+
+// ✗ Hardcoded — items are not editable from the canvas
+export const Default: Story = {
+  render: () => (
+    <Accordion type="single" collapsible>
+      <AccordionItem value="item-1">...</AccordionItem>
+      <AccordionItem value="item-2">...</AccordionItem>
+    </Accordion>
+  ),
+};
+```
+
+Components that don't follow this pattern still work on the canvas, but their items aren't individually editable.
+
+**Migrating an existing library:** This is a mechanical refactor. For each list-driven component, extract the hardcoded items into a typed array, add it to `args`, add `argTypes: { items: { control: { type: 'object' } } }`, and map over it in the render function. See [`STORYBOARD_MIGRATION.md`](./STORYBOARD_MIGRATION.md) for a ready-to-use Claude Code prompt that does this automatically.
 
 ### Slots
 
@@ -352,8 +395,6 @@ The frame inspector has a Properties | Code tab bar at the top. The **Code** tab
 
 ### Interacting with components
 
-**Double-click** any component to enter per-component interact mode. The overlay is removed; pointer events pass through to the component. Press Escape to exit.
-
 **Press I** (or the toolbar button) to enter global interact mode — all components on the canvas become interactive at once. Press I again or Escape to exit.
 
 In interact mode, two-finger scroll over a scroll area scrolls the content; the canvas does not pan.
@@ -366,7 +407,7 @@ Open the Text tab to browse the Tailwind type scale. Click a row to add a text l
 
 Select the frame tool (F) and draw inside an existing frame to create a child frame. The child frame participates in its parent's auto-layout flow. Child frames can have their own auto-layout, a "Clip Content" toggle, and all the same inspector controls as top-level frames.
 
-**Selection model:** Clicking a child frame selects it as a unit. Double-click to enter it and select its individual children. Press Escape to step back out.
+**Selection model:** Clicking a child frame selects it as a unit. Click a child component in the Layers panel to select it directly. Press Escape to step back out.
 
 ### Auto-layout
 

@@ -7,36 +7,43 @@ import {
   SelectValue,
 } from '../components/ui/select';
 
-const meta = {
+type SelectItemType = { value: string; label: string };
+type SelectArgs = { disabled: boolean; placeholder: string; items: SelectItemType[] };
+
+const defaultItems: SelectItemType[] = [
+  { value: 'apple', label: 'Apple' },
+  { value: 'banana', label: 'Banana' },
+  { value: 'cherry', label: 'Cherry' },
+  { value: 'date', label: 'Date' },
+];
+
+const meta: Meta<SelectArgs> = {
   title: 'UI/Select',
   component: Select,
   parameters: { layout: 'centered' },
   argTypes: {
-    disabled: {
-      control: 'boolean',
-      description: 'Disables the select',
-    },
+    disabled: { control: 'boolean', description: 'Disables the select' },
+    items: { control: { type: 'object' } },
   },
-} satisfies Meta<typeof Select>;
+};
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<SelectArgs>;
 
 export const Default: Story = {
-  render: (args) => (
-    <Select {...args}>
+  args: { disabled: false, placeholder: 'Select a fruit', items: defaultItems },
+  render: ({ disabled, placeholder, items = defaultItems }) => (
+    <Select disabled={disabled}>
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select a fruit" />
+        <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="apple">Apple</SelectItem>
-        <SelectItem value="banana">Banana</SelectItem>
-        <SelectItem value="cherry">Cherry</SelectItem>
-        <SelectItem value="date">Date</SelectItem>
+        {(items as SelectItemType[]).map((item) => (
+          <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+        ))}
       </SelectContent>
     </Select>
   ),
-  args: { disabled: false },
 };
 
 export const WithValue: Story = {

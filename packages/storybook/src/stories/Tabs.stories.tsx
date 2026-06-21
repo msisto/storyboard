@@ -3,53 +3,43 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
 
-type TabsArgs = { defaultValue: string };
+type TabItemType = { value: string; label: string; content: string };
+type TabsArgs = { defaultValue: string; items: TabItemType[] };
+
+const defaultItems: TabItemType[] = [
+  { value: 'account', label: 'Account', content: 'Manage your account settings.' },
+  { value: 'password', label: 'Password', content: 'Change your password here.' },
+];
 
 const meta: Meta<TabsArgs> = {
   title: 'UI/Tabs',
   component: Tabs,
   parameters: { layout: 'centered' },
+  argTypes: { items: { control: { type: 'object' } } },
 };
 
 export default meta;
 type Story = StoryObj<TabsArgs>;
 
 export const Default: Story = {
-  args: { defaultValue: 'account' },
-  render: ({ defaultValue }) => (
-    <Tabs defaultValue={defaultValue} className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="account">Account</TabsTrigger>
-        <TabsTrigger value="password">Password</TabsTrigger>
-      </TabsList>
-      <TabsContent value="account">
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="tabs-name">Name</Label>
-            <input id="tabs-name" defaultValue="Jane Doe" className="w-full h-9 rounded-md border px-3 text-sm" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tabs-username">Username</Label>
-            <input id="tabs-username" defaultValue="@jane" className="w-full h-9 rounded-md border px-3 text-sm" />
-          </div>
-          <Button className="w-full">Save changes</Button>
-        </div>
-      </TabsContent>
-      <TabsContent value="password">
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="current-password">Current password</Label>
-            <input id="current-password" type="password" className="w-full h-9 rounded-md border px-3 text-sm" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-password">New password</Label>
-            <input id="new-password" type="password" className="w-full h-9 rounded-md border px-3 text-sm" />
-          </div>
-          <Button className="w-full">Update password</Button>
-        </div>
-      </TabsContent>
-    </Tabs>
-  ),
+  args: { defaultValue: 'account', items: defaultItems },
+  render: ({ defaultValue, items = defaultItems }) => {
+    const tabItems = items as TabItemType[];
+    return (
+      <Tabs defaultValue={defaultValue} className="w-full">
+        <TabsList style={{ display: 'grid', width: '100%', gridTemplateColumns: `repeat(${tabItems.length}, 1fr)` }}>
+          {tabItems.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>{tab.label}</TabsTrigger>
+          ))}
+        </TabsList>
+        {tabItems.map((tab) => (
+          <TabsContent key={tab.value} value={tab.value}>
+            <p className="py-4 text-sm text-muted-foreground">{tab.content}</p>
+          </TabsContent>
+        ))}
+      </Tabs>
+    );
+  },
 };
 
 export const ThreeTabs: Story = {
@@ -88,6 +78,44 @@ export const WithDisabled: Story = {
       </TabsContent>
       <TabsContent value="analytics">
         <p className="py-4 text-sm text-muted-foreground">Analytics data goes here.</p>
+      </TabsContent>
+    </Tabs>
+  ),
+};
+
+export const FormTabs: Story = {
+  args: { defaultValue: 'account' },
+  render: ({ defaultValue }) => (
+    <Tabs defaultValue={defaultValue} className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="account">Account</TabsTrigger>
+        <TabsTrigger value="password">Password</TabsTrigger>
+      </TabsList>
+      <TabsContent value="account">
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="tabs-name">Name</Label>
+            <input id="tabs-name" defaultValue="Jane Doe" className="w-full h-9 rounded-md border px-3 text-sm" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tabs-username">Username</Label>
+            <input id="tabs-username" defaultValue="@jane" className="w-full h-9 rounded-md border px-3 text-sm" />
+          </div>
+          <Button className="w-full">Save changes</Button>
+        </div>
+      </TabsContent>
+      <TabsContent value="password">
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current password</Label>
+            <input id="current-password" type="password" className="w-full h-9 rounded-md border px-3 text-sm" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <input id="new-password" type="password" className="w-full h-9 rounded-md border px-3 text-sm" />
+          </div>
+          <Button className="w-full">Update password</Button>
+        </div>
       </TabsContent>
     </Tabs>
   ),

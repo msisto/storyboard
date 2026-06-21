@@ -2,33 +2,35 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Label } from '../components/ui/label';
 
-type RadioGroupArgs = { defaultValue: string };
+type RadioItemType = { value: string; label: string };
+type RadioGroupArgs = { defaultValue: string; items: RadioItemType[] };
+
+const defaultItems: RadioItemType[] = [
+  { value: 'option-one', label: 'Option One' },
+  { value: 'option-two', label: 'Option Two' },
+  { value: 'option-three', label: 'Option Three' },
+];
 
 const meta: Meta<RadioGroupArgs> = {
   title: 'UI/RadioGroup',
   component: RadioGroup,
   parameters: { layout: 'centered' },
+  argTypes: { items: { control: { type: 'object' } } },
 };
 
 export default meta;
 type Story = StoryObj<RadioGroupArgs>;
 
 export const Default: Story = {
-  args: { defaultValue: 'option-one' },
-  render: ({ defaultValue }) => (
+  args: { defaultValue: 'option-one', items: defaultItems },
+  render: ({ defaultValue, items = defaultItems }) => (
     <RadioGroup defaultValue={defaultValue}>
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem value="option-one" id="option-one" />
-        <Label htmlFor="option-one">Option One</Label>
-      </div>
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem value="option-two" id="option-two" />
-        <Label htmlFor="option-two">Option Two</Label>
-      </div>
-      <div className="flex items-center space-x-2">
-        <RadioGroupItem value="option-three" id="option-three" />
-        <Label htmlFor="option-three">Option Three</Label>
-      </div>
+      {(items as RadioItemType[]).map((item) => (
+        <div key={item.value} className="flex items-center space-x-2">
+          <RadioGroupItem value={item.value} id={item.value} />
+          <Label htmlFor={item.value}>{item.label}</Label>
+        </div>
+      ))}
     </RadioGroup>
   ),
 };

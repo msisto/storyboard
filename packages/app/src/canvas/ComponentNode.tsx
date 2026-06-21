@@ -27,10 +27,8 @@ export function ComponentNode({
   onReorderDragStart,
 }: ComponentNodeProps) {
   const { selectComponent, updateComponent, pushHistory } = useDesignStore();
-  const { interactingComponentId, enterInteractMode, exitInteractMode, viewport, activeTool, globalInteractMode } =
+  const { viewport, activeTool, globalInteractMode } =
     useCanvasStore();
-
-  const isInteracting = interactingComponentId === instance.id;
   const instanceRef = useRef(instance);
   instanceRef.current = instance;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -136,23 +134,11 @@ export function ComponentNode({
      selectComponent, updateComponent, onReorderDragStart, pushHistory, viewport.zoom]
   );
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (instance.locked) return;
-      e.stopPropagation();
-      enterInteractMode(instance.id);
-    },
-    [instance.id, instance.locked, enterInteractMode]
-  );
-
   const handleContainerMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (isInteracting && e.target === e.currentTarget) {
-        exitInteractMode();
-      }
     },
-    [isInteracting, exitInteractMode]
+    []
   );
 
   const handleResize = useCallback(
@@ -168,15 +154,6 @@ export function ComponentNode({
     [frameId, instance.id, instance.absolute, inAutoLayout, updateComponent]
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape' && isInteracting) {
-        exitInteractMode();
-      }
-    },
-    [isInteracting, exitInteractMode]
-  );
-
   const overlayCursor = activeTool === 'comment'
     ? 'crosshair'
     : inAutoLayout && !instance.absolute
@@ -190,7 +167,7 @@ export function ComponentNode({
   if (!instance.visible) return null;
 
   const entry = getStoryEntry(instance.storybookId);
-  const showOverlay = !isInteracting && !globalInteractMode;
+  const showOverlay = !globalInteractMode;
 
   const widthHug = instance.widthMode === 'hug';
   const heightHug = instance.heightMode === 'hug';
@@ -205,13 +182,11 @@ export function ComponentNode({
         width: widthHug ? 'fit-content' : effectiveWidth,
         height: heightHug ? 'auto' : effectiveHeight,
         opacity: instance.locked ? 0.6 : 1,
-        outline: isSelected && !isInteracting ? '2px solid var(--sb-accent)' : 'none',
+        outline: isSelected ? '2px solid var(--sb-accent)' : 'none',
         outlineOffset: -2,
         overflow: 'hidden',
       }}
       ref={containerRef}
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
       onMouseDown={handleContainerMouseDown}
       onClick={(e) => { if (activeTool !== 'comment') e.stopPropagation(); }}
     >
@@ -220,7 +195,6 @@ export function ComponentNode({
         <div
           style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: overlayCursor }}
           onMouseDown={handleOverlayMouseDown}
-          onDoubleClick={handleDoubleClick}
           onClick={(e) => { if (activeTool !== 'comment') e.stopPropagation(); }}
         />
       )}
@@ -254,33 +228,13 @@ export function ComponentNode({
         )}
       </div>
 
-      {isSelected && !isInteracting && (
+      {isSelected && (
         <ResizeHandles
           getGeometry={getGeometry}
           onResize={handleResize}
           onResizeStart={pushHistory}
           zoom={viewport.zoom}
         />
-      )}
-
-      {isInteracting && !globalInteractMode && (
-        <div
-          style={{
-            position: 'absolute',
-            top: -28,
-            left: 0,
-            background: 'var(--sb-accent)',
-            color: '#fff',
-            fontSize: 11,
-            padding: '2px 8px',
-            borderRadius: 4,
-            whiteSpace: 'nowrap',
-            zIndex: 10,
-            pointerEvents: 'none',
-          }}
-        >
-          Interact mode · Esc to exit
-        </div>
       )}
     </div>
   );
