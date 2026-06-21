@@ -3,7 +3,7 @@ import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
-import { exportFrameAsJsx } from '../export/jsxExport';
+import { buildLocalStoryFile } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
@@ -574,7 +574,7 @@ function PropsSection({
 
 function CodePanel({ frame, stories }: { frame: Frame; stories: StorybookStory[] }) {
   const [copied, setCopied] = useState(false);
-  const code = exportFrameAsJsx(frame, stories);
+  const code = buildLocalStoryFile(frame, frame.label, stories);
 
   const copy = () => {
     navigator.clipboard.writeText(code).then(() => {

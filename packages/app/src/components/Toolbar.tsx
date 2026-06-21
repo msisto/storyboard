@@ -3,7 +3,6 @@ import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { saveDesignFile, openDesignFile } from '../store/fileSystem';
-import { exportFrameAsJsx } from '../export/jsxExport';
 import type { Tool } from '../types';
 
 interface ToolbarProps {
@@ -13,119 +12,11 @@ interface ToolbarProps {
   onAuthorChange: (name: string) => void;
 }
 
-interface ExportModalProps {
-  onClose: () => void;
-}
-
-function ExportModal({ onClose }: ExportModalProps) {
-  const { file, selectedFrameId } = useDesignStore();
-  const { stories } = useRegistryStore();
-  const [selectedFrame, setSelectedFrame] = useState<string>(
-    selectedFrameId ?? file?.frames[0]?.id ?? ''
-  );
-  const [copied, setCopied] = useState(false);
-
-  const frame = file?.frames.find((f) => f.id === selectedFrame);
-  const code = frame ? exportFrameAsJsx(frame, stories) : '';
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.5)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: 'var(--sb-bg)',
-          borderRadius: 8,
-          padding: 20,
-          width: 560,
-          maxHeight: '80vh',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Export as JSX</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>
-            ✕
-          </button>
-        </div>
-
-        <select
-          value={selectedFrame}
-          onChange={(e) => setSelectedFrame(e.target.value)}
-          style={{ padding: '6px 8px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, outline: 'none' }}
-        >
-          {file?.frames.map((f) => (
-            <option key={f.id} value={f.id}>{f.label}</option>
-          ))}
-        </select>
-
-        <textarea
-          readOnly
-          value={code}
-          rows={16}
-          style={{
-            fontFamily: 'monospace',
-            fontSize: 12,
-            border: '1px solid var(--sb-border)',
-            borderRadius: 4,
-            padding: 10,
-            resize: 'vertical',
-            outline: 'none',
-            background: 'var(--sb-bg-secondary)',
-          }}
-        />
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button
-            onClick={handleCopy}
-            style={{
-              padding: '6px 16px',
-              fontSize: 13,
-              background: copied ? '#10b981' : 'var(--sb-accent)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 4,
-              cursor: 'pointer',
-            }}
-          >
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-          <button
-            onClick={onClose}
-            style={{ padding: '6px 16px', fontSize: 13, border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)' }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
   const { file, newFile, loadFile, selectedFrameId, selectComponent } = useDesignStore();
   const { status, loadRegistry } = useRegistryStore();
-  const [showExport, setShowExport] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const zoomPercent = Math.round(viewport.zoom * 100);
@@ -200,7 +91,6 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
                 { label: 'New file', action: () => { newFile('Untitled'); setShowMenu(false); } },
                 { label: 'Save  ⌘S', action: () => { handleSave(); setShowMenu(false); } },
                 { label: 'Open  ⌘O', action: () => { handleOpen(); setShowMenu(false); } },
-                { label: 'Export JSX', action: () => { setShowExport(true); setShowMenu(false); } },
               ].map((item) => (
                 <button
                   key={item.label}
@@ -332,14 +222,6 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
           <OpenIcon />
         </button>
-        <button onClick={() => setShowExport(true)} title="Export JSX" disabled={!file?.frames.length}
-          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center', gap: 4, opacity: !file?.frames.length ? 0.4 : 1 }}>
-          <ExportIcon />
-          <span style={{ fontSize: 11, color: 'var(--sb-text-2)' }}>JSX</span>
-        </button>
-
-        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
-
         {/* Refresh components */}
         <button
           onClick={loadRegistry}
@@ -377,7 +259,6 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
         </div>
       </div>
 
-      {showExport && <ExportModal onClose={() => setShowExport(false)} />}
       {showMenu && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 99 }}
@@ -462,12 +343,3 @@ function InteractIcon() {
   );
 }
 
-function ExportIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1.5V9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M4.5 4L7 1.5L9.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 9.5V11.5C2 12.05 2.45 12.5 3 12.5H11C11.55 12.5 12 12.05 12 11.5V9.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}

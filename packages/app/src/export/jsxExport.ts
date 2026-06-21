@@ -211,36 +211,7 @@ ${children}
   </div>`;
 }
 
-export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): string {
-  const imports = new Set<string>();
-  const fnName = frame.label.replace(/[^a-zA-Z0-9]/g, '') || 'Frame';
-
-  // Collect component names from the full slot tree, not just top-level
-  frame.components.filter((c) => c.visible).forEach((instance) => {
-    const ids = new Set<string>();
-    collectIds(instance, ids);
-    ids.forEach((id) => {
-      const story = stories.find((s) => s.id === id);
-      if (story) imports.add(story.title.split('/').pop()!);
-    });
-  });
-
-  const body = buildFrameJsx(frame, stories);
-  const importBlock = [...imports]
-    .map((name) => `import { ${name} } from '@/components/ui/${toKebab(name)}';`)
-    .join('\n');
-
-  return `${importBlock}
-
-export function ${fnName}() {
-  return (
-${body}
-  );
-}`;
-}
-
-// Generates a complete .stories.tsx file. Uses the same import strategy as
-// exportFrameAsJsx: direct @/components/ui/ imports with args passed as props.
+// Generates a complete .stories.tsx file.
 export function buildLocalStoryFile(frame: Frame, name: string, stories: StorybookStory[]): string {
   const pascal = toPascal(name) || 'LocalComponent';
 
