@@ -1051,15 +1051,17 @@ export function PropsInspector() {
                     <SpacingInput label="Left"   value={cfAl.paddingLeft}   onChange={(v) => patchCFAL({ paddingLeft: v })} />
                   </div>
                 </div>
-                <AlignmentGrid
-                  primaryAlign={cfAl.primaryAlign}
-                  counterAlign={cfAl.counterAlign}
-                  direction={cfAl.direction}
-                  onChange={(pa, ca) => patchCFAL({ primaryAlign: pa, counterAlign: ca })}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <SizingSelect label="W Mode" value={cfAl.widthMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ widthMode: v as 'fixed' | 'hug' })} />
-                  <SizingSelect label="H Mode" value={cfAl.heightMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ heightMode: v as 'fixed' | 'hug' })} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlignmentGrid
+                    primaryAlign={cfAl.primaryAlign}
+                    counterAlign={cfAl.counterAlign}
+                    direction={cfAl.direction}
+                    onChange={(pa, ca) => patchCFAL({ primaryAlign: pa, counterAlign: ca })}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                    <SizingSelect label="W Mode" value={cfAl.widthMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ widthMode: v as 'fixed' | 'hug' })} />
+                    <SizingSelect label="H Mode" value={cfAl.heightMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ heightMode: v as 'fixed' | 'hug' })} />
+                  </div>
                 </div>
               </>
             )}
@@ -1456,28 +1458,28 @@ export function PropsInspector() {
                   </div>
                 </div>
 
-                {/* Alignment grid */}
-                <AlignmentGrid
-                  primaryAlign={al.primaryAlign}
-                  counterAlign={al.counterAlign}
-                  direction={al.direction}
-                  onChange={(primaryAlign, counterAlign) => patchAL({ primaryAlign, counterAlign })}
-                />
-
-                {/* Frame sizing */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <SizingSelect
-                    label="W Mode"
-                    value={al.widthMode}
-                    options={['fixed', 'hug']}
-                    onChange={(v) => patchAL({ widthMode: v as 'fixed' | 'hug' })}
+                {/* Alignment grid + frame sizing side by side */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlignmentGrid
+                    primaryAlign={al.primaryAlign}
+                    counterAlign={al.counterAlign}
+                    direction={al.direction}
+                    onChange={(primaryAlign, counterAlign) => patchAL({ primaryAlign, counterAlign })}
                   />
-                  <SizingSelect
-                    label="H Mode"
-                    value={al.heightMode}
-                    options={['fixed', 'hug']}
-                    onChange={(v) => patchAL({ heightMode: v as 'fixed' | 'hug' })}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                    <SizingSelect
+                      label="W Mode"
+                      value={al.widthMode}
+                      options={['fixed', 'hug']}
+                      onChange={(v) => patchAL({ widthMode: v as 'fixed' | 'hug' })}
+                    />
+                    <SizingSelect
+                      label="H Mode"
+                      value={al.heightMode}
+                      options={['fixed', 'hug']}
+                      onChange={(v) => patchAL({ heightMode: v as 'fixed' | 'hug' })}
+                    />
+                  </div>
                 </div>
               </>
             )}
