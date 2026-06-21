@@ -177,7 +177,9 @@ export function ComponentNode({
     [isInteracting, exitInteractMode]
   );
 
-  const overlayCursor = inAutoLayout && !instance.absolute
+  const overlayCursor = activeTool === 'comment'
+    ? 'crosshair'
+    : inAutoLayout && !instance.absolute
     ? 'grab'
     : instance.locked
     ? 'not-allowed'
@@ -208,7 +210,7 @@ export function ComponentNode({
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       onMouseDown={handleContainerMouseDown}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => { if (activeTool !== 'comment') e.stopPropagation(); }}
     >
       {/* Selection/drag overlay — removed in interact mode so component receives events */}
       {showOverlay && (
@@ -216,7 +218,7 @@ export function ComponentNode({
           style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: overlayCursor }}
           onMouseDown={handleOverlayMouseDown}
           onDoubleClick={handleDoubleClick}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { if (activeTool !== 'comment') e.stopPropagation(); }}
         />
       )}
 
@@ -224,7 +226,7 @@ export function ComponentNode({
       <div
         ref={contentRef}
         style={{ width: '100%', minHeight: '100%' }}
-        onPointerDown={showOverlay ? (e) => e.stopPropagation() : undefined}
+        onPointerDown={showOverlay && activeTool !== 'comment' ? (e) => e.stopPropagation() : undefined}
       >
         {entry ? (
           renderInstanceTree(instance)
