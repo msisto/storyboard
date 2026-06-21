@@ -11,7 +11,7 @@ import {
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
 import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, Frame, SizingMode, StorybookStory } from '../types';
-import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
+import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 
 // shadcn/ui semantic foreground / text tokens
 const SEMANTIC_FG_TOKENS = [
@@ -454,12 +454,17 @@ function ArgControl({
 
 function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>{label}</span>}
-      <select
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+      {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 28 }}>{label}</span>}
+      <input
+        type="number"
+        min={0}
         value={value}
         onFocus={pushH}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (!isNaN(v) && v >= 0) onChange(v);
+        }}
         style={{
           width: '100%',
           padding: '3px 6px',
@@ -468,16 +473,10 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
           borderRadius: 4,
           outline: 'none',
           background: 'var(--sb-bg)',
-          cursor: 'pointer',
-          appearance: 'auto',
+          color: 'var(--sb-text-1)',
+          minWidth: 0,
         }}
-      >
-        {TAILWIND_SPACING.map((s) => (
-          <option key={s.px} value={s.px}>
-            {s.token} — {s.px}px
-          </option>
-        ))}
-      </select>
+      />
     </div>
   );
 }
