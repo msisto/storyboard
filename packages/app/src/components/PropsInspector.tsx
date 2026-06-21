@@ -521,8 +521,10 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
             display: 'flex', alignItems: 'baseline', gap: 2,
           }}
         >
-          <span style={{ color: 'var(--sb-text-1)', fontWeight: 500 }}>{value}</span>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>px</span>
+          <span style={{ color: 'var(--sb-text-1)', fontWeight: 500 }}>
+            {TAILWIND_SPACING.find((s) => s.px === value)?.token ?? value}
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>{value}px</span>
         </div>
       )}
       {open && (
