@@ -453,17 +453,29 @@ function ArgControl({
 }
 
 function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const [draft, setDraft] = React.useState<string | null>(null);
+
+  const commit = (raw: string) => {
+    const v = parseFloat(raw);
+    if (!isNaN(v) && v >= 0) onChange(v);
+    setDraft(null);
+  };
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
       {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 28 }}>{label}</span>}
       <input
-        type="number"
-        min={0}
-        value={value}
-        onFocus={pushH}
-        onChange={(e) => {
-          const v = parseFloat(e.target.value);
-          if (!isNaN(v) && v >= 0) onChange(v);
+        type="text"
+        inputMode="decimal"
+        value={draft ?? String(value)}
+        onFocus={(e) => { pushH(); setDraft(String(value)); e.target.select(); }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={(e) => commit(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+          if (e.key === 'Escape') setDraft(null);
+          if (e.key === 'ArrowUp') { e.preventDefault(); onChange(Math.max(0, value + 1)); }
+          if (e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 1)); }
         }}
         style={{
           width: '100%',
