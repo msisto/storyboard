@@ -1425,6 +1425,30 @@ export function PropsInspector() {
                   </div>
                 </div>
 
+                {/* Alignment grid + frame sizing side by side */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlignmentGrid
+                    primaryAlign={al.primaryAlign}
+                    counterAlign={al.counterAlign}
+                    direction={al.direction}
+                    onChange={(primaryAlign, counterAlign) => patchAL({ primaryAlign, counterAlign })}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                    <SizingSelect
+                      label="W Mode"
+                      value={al.widthMode}
+                      options={['fixed', 'hug']}
+                      onChange={(v) => patchAL({ widthMode: v as 'fixed' | 'hug' })}
+                    />
+                    <SizingSelect
+                      label="H Mode"
+                      value={al.heightMode}
+                      options={['fixed', 'hug']}
+                      onChange={(v) => patchAL({ heightMode: v as 'fixed' | 'hug' })}
+                    />
+                  </div>
+                </div>
+
                 {/* Wrap (horizontal only) */}
                 {al.direction === 'horizontal' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
@@ -1455,30 +1479,6 @@ export function PropsInspector() {
                     <SpacingInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: v })} />
                     <SpacingInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
                     <SpacingInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: v })} />
-                  </div>
-                </div>
-
-                {/* Alignment grid + frame sizing side by side */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <AlignmentGrid
-                    primaryAlign={al.primaryAlign}
-                    counterAlign={al.counterAlign}
-                    direction={al.direction}
-                    onChange={(primaryAlign, counterAlign) => patchAL({ primaryAlign, counterAlign })}
-                  />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-                    <SizingSelect
-                      label="W Mode"
-                      value={al.widthMode}
-                      options={['fixed', 'hug']}
-                      onChange={(v) => patchAL({ widthMode: v as 'fixed' | 'hug' })}
-                    />
-                    <SizingSelect
-                      label="H Mode"
-                      value={al.heightMode}
-                      options={['fixed', 'hug']}
-                      onChange={(v) => patchAL({ heightMode: v as 'fixed' | 'hug' })}
-                    />
                   </div>
                 </div>
               </>
