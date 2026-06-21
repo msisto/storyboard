@@ -1023,7 +1023,7 @@ export function PropsInspector() {
         </Section>
 
         {selectedFrameData.autoLayout && (
-          <Section title="Auto Layout">
+          <Section title="Flex">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <SizingSelect
                 label="W Mode"
@@ -1051,7 +1051,7 @@ export function PropsInspector() {
                 onFocus={pushH}
                 onChange={(e) => patchWithHistory({ absolute: e.target.checked })}
               />
-              Ignore auto layout
+              Ignore flex
             </label>
           </Section>
         )}
@@ -1123,7 +1123,7 @@ export function PropsInspector() {
                     onFocus={pushH}
                     onChange={(e) => { pushH(); patchCF({ absolute: e.target.checked }); }}
                   />
-                  Ignore auto layout
+                  Ignore flex
                 </label>
               </div>
             )}
@@ -1151,13 +1151,13 @@ export function PropsInspector() {
           </div>
         </Section>
 
-        <Section title="Auto Layout">
+        <Section title="Flex">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={cfAl ? disableCFAutoLayout : enableCFAutoLayout}
               style={{ width: '100%', padding: '5px 0', fontSize: 12, borderRadius: 4, border: '1px solid var(--sb-border)', background: cfAl ? 'var(--sb-control-active)' : 'var(--sb-bg)', color: 'var(--sb-text-2)', cursor: 'pointer' }}
             >
-              {cfAl ? 'Remove Auto Layout' : 'Add Auto Layout  ⇧A'}
+              {cfAl ? 'Remove Flex' : 'Add Flex  ⇧A'}
             </button>
             {cfAl && (
               <>
@@ -1290,7 +1290,7 @@ export function PropsInspector() {
         </Section>
 
         {selectedFrameData.autoLayout && (
-          <Section title="Auto Layout">
+          <Section title="Flex">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <SizingSelect
                 label="W Mode"
@@ -1333,7 +1333,7 @@ export function PropsInspector() {
                   })
                 }
               />
-              Ignore auto layout
+              Ignore flex
             </label>
           </Section>
         )}
@@ -1509,7 +1509,7 @@ export function PropsInspector() {
           </div>
         </Section>
 
-        <Section title="Auto Layout">
+        <Section title="Flex">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={al ? disableAutoLayout : enableAutoLayout}
@@ -1524,7 +1524,7 @@ export function PropsInspector() {
                 cursor: 'pointer',
               }}
             >
-              {al ? 'Remove Auto Layout' : 'Add Auto Layout  ⇧A'}
+              {al ? 'Remove Flex' : 'Add Flex  ⇧A'}
             </button>
 
             {al && (
