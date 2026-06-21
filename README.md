@@ -160,7 +160,7 @@ The filename is derived from the frame label: `Frame 1` → `Frame1.stories.tsx`
 // @storyboard {"id":"abc123","label":"Hero Section","width":390,"height":844,...}
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../../components/ui/card';
 
 const HeroSection = () => (
   <div style={{ width: 390, height: 844, ... }}>
@@ -192,7 +192,7 @@ Child sizing modes:
 - **fill** — expands to consume remaining space in the flow direction
 - **hug** — sizes to natural content; for text layers, measured via `ResizeObserver`
 
-All spacing values (gap, padding) are constrained to the Tailwind default spacing scale and displayed as token + pixel value (e.g. `4 — 16px`).
+All spacing values (gap, padding) are constrained to the Tailwind default spacing scale and displayed as token + pixel value (e.g. `4  16px`).
 
 ### Nested frames
 
@@ -347,7 +347,7 @@ Select a component to see its props in the Inspect panel under **PROPS**. Each a
 
 ### Inspector Code tab
 
-The frame inspector has a Properties | Code tab bar at the top. The **Code** tab shows the live JSX output of `exportFrameAsJsx` for the selected frame — slot-aware, updated as you edit. A Copy button in the top-right copies the output to clipboard.
+The frame inspector has a Properties | Code tab bar at the top. The **Code** tab shows live JSX for the selected frame — slot-aware, updated as you edit. A Copy button in the top-right copies the output to clipboard.
 
 ### Interacting with components
 
