@@ -1,6 +1,6 @@
 # Storyboard
 
-An experience design environment for Storybook component libraries.
+A design environment for Storybook component libraries.
 
 <img width="986" height="647" alt="Screenshot 2026-06-21 at 7 35 51 PM" src="https://github.com/user-attachments/assets/90aa3249-f5b4-4221-a82e-db0ef4a4db1c" />
 
