@@ -104,6 +104,10 @@ function textSpan(t: TextLayer, absolute: boolean): string {
   }
 }
 
+function toKebab(pascal: string): string {
+  return pascal.replace(/([A-Z])/g, (m, c, i) => (i > 0 ? '-' : '') + c.toLowerCase());
+}
+
 function toPascal(name: string): string {
   return name.replace(/[^a-zA-Z0-9]+/g, ' ').trim().split(' ')
     .filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join('');
@@ -223,7 +227,7 @@ export function exportFrameAsJsx(frame: Frame, stories: StorybookStory[]): strin
 
   const body = buildFrameJsx(frame, stories);
   const importBlock = [...imports]
-    .map((name) => `import { ${name} } from '@/components/ui/${name.toLowerCase()}';`)
+    .map((name) => `import { ${name} } from '@/components/ui/${toKebab(name)}';`)
     .join('\n');
 
   return `${importBlock}
@@ -252,7 +256,7 @@ export function buildLocalStoryFile(frame: Frame, name: string, stories: Storybo
 
   const body = buildFrameJsx(frame, stories);
   const importBlock = [...imports]
-    .map((compName) => `import { ${compName} } from '@/components/ui/${compName.toLowerCase()}';`)
+    .map((compName) => `import { ${compName} } from '@/components/ui/${toKebab(compName)}';`)
     .join('\n');
 
   const storyboardMeta = JSON.stringify(frame);
