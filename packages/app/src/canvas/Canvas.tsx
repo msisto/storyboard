@@ -3,7 +3,31 @@ import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
 import { FrameNode } from './FrameNode';
 import { PeerCursors } from './PeerCursors';
+import { CommentPin } from '../comments/CommentPin';
 import type { PeerCursor } from '../comments/useCommentSync';
+import type { Frame } from '../types';
+
+import type { Comment } from '../types';
+
+interface PlacedComment { comment: Comment; wx: number; wy: number }
+
+// Build a map of frameId → world offset by walking the frame tree.
+function buildFrameOffsets(frames: Frame[], ox = 0, oy = 0, out = new Map<string, { x: number; y: number }>()) {
+  for (const f of frames) {
+    const ax = ox + f.x, ay = oy + f.y;
+    out.set(f.id, { x: ax, y: ay });
+    if (f.frames?.length) buildFrameOffsets(f.frames, ax, ay, out);
+  }
+  return out;
+}
+
+function placedComments(frames: Frame[], comments: Comment[]): PlacedComment[] {
+  const offsets = buildFrameOffsets(frames);
+  return comments.map((c) => {
+    const off = offsets.get(c.frameId) ?? { x: 0, y: 0 };
+    return { comment: c, wx: off.x + c.x, wy: off.y + c.y };
+  });
+}
 
 
 interface CanvasProps {
@@ -287,6 +311,13 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
             isSelected={frame.id === selectedFrameId}
             isMultiSelected={selectedFrameIds.length > 1 && selectedFrameIds.includes(frame.id)}
           />
+        ))}
+
+        {/* Comment pins rendered in world space, outside any clipping frame */}
+        {file && placedComments(file.frames, file.comments).map(({ comment, wx, wy }) => (
+          <div key={comment.id} style={{ position: 'absolute', left: wx, top: wy, zIndex: 9999 }}>
+            <CommentPin comment={comment} />
+          </div>
         ))}
       </div>
 

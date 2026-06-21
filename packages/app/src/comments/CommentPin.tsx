@@ -16,9 +16,8 @@ export function CommentPin({ comment }: CommentPinProps) {
     <div
       style={{
         position: 'absolute',
-        left: comment.x - 12,
-        top: comment.y - 12,
-        zIndex: 100,
+        left: -12,
+        top: -12,
       }}
     >
       <button

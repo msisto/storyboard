@@ -4,7 +4,6 @@ import { useDesignStore } from '../store/useDesignStore';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { ComponentNode } from './ComponentNode';
 import { ResizeHandles } from './ResizeHandles';
-import { CommentPin } from '../comments/CommentPin';
 import { computeAutoLayout } from './autoLayout';
 import { TextLayerNode } from './TextLayerNode';
 import { FramePortalContext } from '@/components/ui/portal-context';
@@ -232,9 +231,7 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
   const { selectFrame, toggleFrameSelection, updateFrame, selectedComponentIds, selectComponent, reorderFlowItem, addTextLayer, pushHistory } =
     useDesignStore();
   const { activeTool, viewport, enterTextEditMode, setTool, themePreview } = useCanvasStore();
-  const comments = useDesignStore((s) => s.file?.comments.filter((c) => c.frameId === frame.id) ?? []);
-
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   const sizeRef = useRef({ x: frame.x, y: frame.y, w: frame.width, h: frame.height });
   sizeRef.current = { x: frame.x, y: frame.y, w: frame.width, h: frame.height };
@@ -592,9 +589,6 @@ export function FrameNode({ frame, isSelected, isMultiSelected, isChildFrame }: 
 
         {insertionLine}
 
-        {comments.map((comment) => (
-          <CommentPin key={comment.id} comment={comment} />
-        ))}
 
         {activeTool === 'text' && (
           <div
