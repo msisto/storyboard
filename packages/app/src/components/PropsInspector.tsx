@@ -456,54 +456,75 @@ function ArgControl({
 }
 
 function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  const [draft, setDraft] = React.useState<string | null>(null);
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
   const [open, setOpen] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const commit = (raw: string) => {
     const v = parseFloat(raw);
     if (!isNaN(v) && v >= 0) onChange(v);
-    setDraft(null);
+    setEditing(false);
+    setDraft('');
   };
 
-  // Close panel when clicking outside
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      if (!wrapRef.current?.contains(e.target as Node)) { setOpen(false); }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  const startEdit = () => {
+    pushH();
+    setDraft(String(value));
+    setEditing(true);
+    setOpen(true);
+    setTimeout(() => { inputRef.current?.select(); }, 0);
+  };
+
   return (
     <div ref={wrapRef} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, position: 'relative' }}>
       {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 28 }}>{label}</span>}
-      <input
-        type="text"
-        inputMode="decimal"
-        value={draft ?? String(value)}
-        onFocus={(e) => { pushH(); setDraft(String(value)); setOpen(true); e.target.select(); }}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={(e) => { commit(e.target.value); }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); setOpen(false); }
-          if (e.key === 'Escape') { setDraft(null); setOpen(false); }
-          if (e.key === 'ArrowUp') { e.preventDefault(); onChange(Math.max(0, value + 1)); }
-          if (e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 1)); }
-        }}
-        style={{
-          width: '100%',
-          padding: '3px 6px',
-          fontSize: 12,
-          border: '1px solid var(--sb-border)',
-          borderRadius: 4,
-          outline: 'none',
-          background: 'var(--sb-bg)',
-          color: 'var(--sb-text-1)',
-          minWidth: 0,
-        }}
-      />
+
+      {editing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => { commit(e.target.value); setOpen(false); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); setOpen(false); }
+            if (e.key === 'Escape') { setEditing(false); setOpen(false); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); onChange(Math.max(0, value + 1)); setDraft(String(Math.max(0, value + 1))); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 1)); setDraft(String(Math.max(0, value - 1))); }
+          }}
+          style={{
+            width: '100%', padding: '3px 6px', fontSize: 12,
+            border: '1px solid var(--sb-accent)', borderRadius: 4,
+            outline: 'none', background: 'var(--sb-bg)',
+            color: 'var(--sb-text-1)', minWidth: 0,
+          }}
+        />
+      ) : (
+        <div
+          onClick={startEdit}
+          style={{
+            width: '100%', padding: '3px 8px', fontSize: 12,
+            border: '1px solid var(--sb-border)', borderRadius: 4,
+            background: 'var(--sb-bg)', cursor: 'text', minWidth: 0,
+            display: 'flex', alignItems: 'baseline', gap: 2,
+          }}
+        >
+          <span style={{ color: 'var(--sb-text-1)', fontWeight: 500 }}>{value}</span>
+          <span style={{ fontSize: 10, color: 'var(--sb-text-4)' }}>px</span>
+        </div>
+      )}
       {open && (
         <div
           style={{
