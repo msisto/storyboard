@@ -11,7 +11,7 @@ import {
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
 import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, Frame, SizingMode, StorybookStory } from '../types';
-import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
+import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 
 // shadcn/ui semantic foreground / text tokens
 const SEMANTIC_FG_TOKENS = [
@@ -454,6 +454,8 @@ function ArgControl({
 
 function SpacingInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   const [draft, setDraft] = React.useState<string | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
 
   const commit = (raw: string) => {
     const v = parseFloat(raw);
@@ -461,19 +463,29 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
     setDraft(null);
   };
 
+  // Close panel when clicking outside
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+    <div ref={wrapRef} style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, position: 'relative' }}>
       {label && <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 28 }}>{label}</span>}
       <input
         type="text"
         inputMode="decimal"
         value={draft ?? String(value)}
-        onFocus={(e) => { pushH(); setDraft(String(value)); e.target.select(); }}
+        onFocus={(e) => { pushH(); setDraft(String(value)); setOpen(true); e.target.select(); }}
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={(e) => commit(e.target.value)}
+        onBlur={(e) => { commit(e.target.value); }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          if (e.key === 'Escape') setDraft(null);
+          if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); setOpen(false); }
+          if (e.key === 'Escape') { setDraft(null); setOpen(false); }
           if (e.key === 'ArrowUp') { e.preventDefault(); onChange(Math.max(0, value + 1)); }
           if (e.key === 'ArrowDown') { e.preventDefault(); onChange(Math.max(0, value - 1)); }
         }}
@@ -489,6 +501,57 @@ function SpacingInput({ label, value, onChange }: { label: string; value: number
           minWidth: 0,
         }}
       />
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: label ? 32 : 0,
+            right: 0,
+            marginTop: 3,
+            background: 'var(--sb-bg)',
+            border: '1px solid var(--sb-border)',
+            borderRadius: 6,
+            boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+            zIndex: 200,
+            maxHeight: 200,
+            overflowY: 'auto',
+          }}
+        >
+          {TAILWIND_SPACING.map((s) => {
+            const active = s.px === value;
+            return (
+              <div
+                key={s.px}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(s.px);
+                  setDraft(null);
+                  setOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  background: active ? 'var(--sb-control-active)' : 'transparent',
+                  borderLeft: active ? '2px solid var(--sb-accent)' : '2px solid transparent',
+                }}
+                onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--sb-hover, rgba(128,128,128,0.08))'; }}
+                onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+              >
+                <span style={{ fontSize: 12, fontWeight: active ? 600 : 400, color: active ? 'var(--sb-text-1)' : 'var(--sb-text-2)' }}>
+                  {s.px}px
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--sb-text-4)' }}>
+                  {s.token}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1058,8 +1121,8 @@ export function PropsInspector() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     <SpacingInput label="Top"    value={cfAl.paddingTop}    onChange={(v) => patchCFAL({ paddingTop: v })} />
                     <SpacingInput label="Right"  value={cfAl.paddingRight}  onChange={(v) => patchCFAL({ paddingRight: v })} />
-                    <SpacingInput label="Bottom" value={cfAl.paddingBottom} onChange={(v) => patchCFAL({ paddingBottom: v })} />
                     <SpacingInput label="Left"   value={cfAl.paddingLeft}   onChange={(v) => patchCFAL({ paddingLeft: v })} />
+                    <SpacingInput label="Bottom" value={cfAl.paddingBottom} onChange={(v) => patchCFAL({ paddingBottom: v })} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1464,8 +1527,8 @@ export function PropsInspector() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     <SpacingInput label="Top"    value={al.paddingTop}    onChange={(v) => patchAL({ paddingTop: v })} />
                     <SpacingInput label="Right"  value={al.paddingRight}  onChange={(v) => patchAL({ paddingRight: v })} />
-                    <SpacingInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
                     <SpacingInput label="Left"   value={al.paddingLeft}   onChange={(v) => patchAL({ paddingLeft: v })} />
+                    <SpacingInput label="Bottom" value={al.paddingBottom} onChange={(v) => patchAL({ paddingBottom: v })} />
                   </div>
                 </div>
 
