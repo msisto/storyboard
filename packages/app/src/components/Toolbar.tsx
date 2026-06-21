@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
-import { useRegistryStore } from '../registry/useRegistryStore';
 import { saveDesignFile, openDesignFile } from '../store/fileSystem';
 import type { Tool } from '../types';
 
@@ -12,11 +11,9 @@ interface ToolbarProps {
   onAuthorChange: (name: string) => void;
 }
 
-
 export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
-  const { file, newFile, loadFile, selectedFrameId, selectComponent } = useDesignStore();
-  const { status, loadRegistry } = useRegistryStore();
+  const { file, newFile, loadFile, selectComponent } = useDesignStore();
   const [showMenu, setShowMenu] = useState(false);
 
   const zoomPercent = Math.round(viewport.zoom * 100);
@@ -144,7 +141,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
 
         <button
           onClick={() => { if (!globalInteractMode) selectComponent(null); toggleGlobalInteractMode(); }}
-          title="Global interact mode (I) — all iframes receive pointer events"
+          title="Global interact mode (I)"
           style={{
             padding: '5px 9px',
             border: globalInteractMode ? '1px solid var(--sb-accent)' : '1px solid var(--sb-border)',
@@ -213,49 +210,22 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
 
         <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
 
-        {/* Save / Open / Export */}
-        <button onClick={handleSave} title="Save (⌘S)"
-          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
-          <SaveIcon />
-        </button>
-        <button onClick={handleOpen} title="Open (⌘O)"
-          style={{ padding: '5px 7px', border: '1px solid var(--sb-border)', borderRadius: 4, cursor: 'pointer', background: 'var(--sb-bg)', display: 'flex', alignItems: 'center' }}>
-          <OpenIcon />
-        </button>
-        {/* Refresh components */}
-        <button
-          onClick={loadRegistry}
-          title="Refresh component library"
-          style={{
-            padding: '5px 7px',
-            border: '1px solid var(--sb-border)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            background: 'var(--sb-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            opacity: status === 'loading' ? 0.5 : 1,
-          }}
-        >
-          <RefreshIcon spinning={status === 'loading'} />
-        </button>
-
-        <div style={{ width: 1, height: 20, background: 'var(--sb-border)' }} />
-
         {/* Online indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <span
             style={{
               width: 8,
               height: 8,
               borderRadius: '50%',
               background: connected ? '#10b981' : '#ef4444',
-              display: 'inline-block',
+              flexShrink: 0,
             }}
           />
-          <span style={{ color: 'var(--sb-text-3)' }}>
-            {connected ? `${peerCount} online` : 'Disconnected'}
-          </span>
+          {(!connected || peerCount > 1) && (
+            <span style={{ fontSize: 12, color: 'var(--sb-text-3)' }}>
+              {connected ? `${peerCount} online` : 'Offline'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -303,38 +273,6 @@ function CommentIcon() {
   );
 }
 
-function SaveIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1.5" y="1.5" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.3" fill="none" />
-      <rect x="4" y="1.5" width="6" height="4" rx="0.5" fill="currentColor" />
-      <rect x="3" y="7.5" width="8" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.2" fill="none" />
-      <rect x="5.5" y="2" width="1.5" height="2.5" rx="0.5" fill="var(--sb-bg)" />
-    </svg>
-  );
-}
-
-function OpenIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M1.5 4.5C1.5 3.67 2.17 3 3 3H5.5L7 5H11C11.83 5 12.5 5.67 12.5 6.5V10.5C12.5 11.33 11.83 12 11 12H3C2.17 12 1.5 11.33 1.5 10.5V4.5Z" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function RefreshIcon({ spinning }: { spinning: boolean }) {
-  return (
-    <svg
-      width="14" height="14" viewBox="0 0 14 14" fill="none"
-      style={spinning ? { animation: 'spin 0.8s linear infinite' } : undefined}
-    >
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <path d="M12 7A5 5 0 1 1 9.5 2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-      <path d="M9.5 1V3.5H12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function InteractIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -342,4 +280,3 @@ function InteractIcon() {
     </svg>
   );
 }
-
