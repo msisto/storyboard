@@ -203,6 +203,7 @@ export default function App() {
   const [view, setView] = useState<AppView>('loading');
   const [leftTab, setLeftTab] = useState<LeftTab>('layers');
   const [leftPanelWidth, setLeftPanelWidth] = useState(280);
+  const [rightPanelWidth, setRightPanelWidth] = useState(240);
   const [panelsVisible, setPanelsVisible] = useState(true);
 
   const handleLeftPanelResize = useCallback((e: React.MouseEvent) => {
@@ -223,6 +224,25 @@ export default function App() {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   }, [leftPanelWidth]);
+
+  const handleRightPanelResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = rightPanelWidth;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    const onMove = (mv: MouseEvent) => {
+      setRightPanelWidth(Math.max(200, Math.min(600, startWidth - (mv.clientX - startX))));
+    };
+    const onUp = () => {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [rightPanelWidth]);
   const [pendingComment, setPendingComment] = useState<{
     frameId: string;
     x: number;
@@ -740,15 +760,29 @@ export default function App() {
         {panelsVisible && (
           <div
             style={{
-              width: 240,
+              width: rightPanelWidth,
               flexShrink: 0,
               borderLeft: '1px solid var(--sb-border)',
               background: 'var(--sb-bg)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
+              position: 'relative',
             }}
           >
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleRightPanelResize}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 4,
+                cursor: 'col-resize',
+                zIndex: 10,
+              }}
+            />
             <div
               style={{
                 padding: '8px 12px',

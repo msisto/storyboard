@@ -1,4 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
@@ -670,14 +673,16 @@ function CodePanel({ frame, stories }: { frame: Frame; stories: StorybookStory[]
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
-      <pre style={{
-        flex: 1, overflow: 'auto', margin: 0,
-        padding: '12px', fontSize: 11, lineHeight: 1.5,
-        fontFamily: 'monospace', whiteSpace: 'pre',
-        background: 'var(--sb-bg-secondary)', color: 'var(--sb-text-2)',
-      }}>
-        {code}
-      </pre>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <CodeMirror
+          value={code}
+          readOnly
+          theme={vscodeDark}
+          extensions={[javascript({ jsx: true, typescript: true })]}
+          basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false }}
+          style={{ fontSize: 11 }}
+        />
+      </div>
     </div>
   );
 }
