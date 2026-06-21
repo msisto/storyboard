@@ -2,6 +2,8 @@
 
 An experience design canvas for Storybook component libraries.
 
+<img width="988" height="641" alt="Screenshot 2026-06-20 at 11 20 26 PM" src="https://github.com/user-attachments/assets/792a120f-0269-47cf-9cf4-1c8694a20e5c" />
+
 <img width="1728" height="937" alt="Screenshot 2026-06-20 at 1 52 25 PM" src="https://github.com/user-attachments/assets/9d6ad5fd-711d-4847-b3ac-a3fbaa50e5f9" />
 
 
