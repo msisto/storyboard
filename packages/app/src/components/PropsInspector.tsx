@@ -1057,7 +1057,7 @@ export function PropsInspector() {
                   direction={cfAl.direction}
                   onChange={(pa, ca) => patchCFAL({ primaryAlign: pa, counterAlign: ca })}
                 />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <SizingSelect label="W Mode" value={cfAl.widthMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ widthMode: v as 'fixed' | 'hug' })} />
                   <SizingSelect label="H Mode" value={cfAl.heightMode} options={['fixed', 'hug']} onChange={(v) => patchCFAL({ heightMode: v as 'fixed' | 'hug' })} />
                 </div>
@@ -1158,7 +1158,7 @@ export function PropsInspector() {
 
         {selectedFrameData.autoLayout && (
           <Section title="Auto Layout">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <SizingSelect
                 label="W Mode"
                 value={selectedComponentData.widthMode ?? 'fixed'}
@@ -1465,7 +1465,7 @@ export function PropsInspector() {
                 />
 
                 {/* Frame sizing */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <SizingSelect
                     label="W Mode"
                     value={al.widthMode}
@@ -1739,38 +1739,40 @@ function SizingSelect({
   onChange: (v: string) => void;
 }) {
   return (
-    <div>
-      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 2, textTransform: 'uppercase' }}>
-        {label}
-      </label>
-      <select
-        value={value}
-        onFocus={pushH}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '3px 6px',
-          fontSize: 12,
-          border: '1px solid var(--sb-border)',
-          borderRadius: 4,
-          outline: 'none',
-          background: 'var(--sb-bg)',
-          boxSizing: 'border-box',
-        }}
-      >
+    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 14 }}>
+        {label.charAt(0)}
+      </span>
+      <div style={{ display: 'flex', border: '1px solid var(--sb-border)', borderRadius: 4, overflow: 'hidden', flex: 1 }}>
         {options.map((o) => (
-          <option key={o} value={o}>
-            {o.charAt(0).toUpperCase() + o.slice(1)}
-          </option>
+          <button
+            key={o}
+            onClick={() => { pushH(); onChange(o); }}
+            title={o.charAt(0).toUpperCase() + o.slice(1)}
+            style={{
+              flex: 1,
+              padding: '3px 4px',
+              fontSize: 10,
+              border: 'none',
+              borderRight: o !== options[options.length - 1] ? '1px solid var(--sb-border)' : 'none',
+              background: value === o ? 'var(--sb-control-active)' : 'transparent',
+              color: value === o ? 'var(--sb-text-1)' : 'var(--sb-text-3)',
+              cursor: 'pointer',
+              fontWeight: value === o ? 600 : 400,
+            }}
+          >
+            {o === 'fixed' ? '—' : o === 'hug' ? '⇔' : '↔'}
+          </button>
         ))}
-      </select>
+      </div>
     </div>
   );
 }
 
-// 3×3 + space-between alignment grid
-// For horizontal: columns = primaryAlign (start/center/end/space-between), rows = counterAlign (start/center/end)
-// For vertical: axes are swapped
+// Spatial 3×3 alignment grid — position of the dot = where content sits in the container.
+// Horizontal layout: grid-x = primaryAlign (start/center/end), grid-y = counterAlign (start/center/end)
+// Vertical layout: grid-x = counterAlign, grid-y = primaryAlign
+// Space-between is a separate distribute button alongside the grid.
 function AlignmentGrid({
   primaryAlign,
   counterAlign,
@@ -1785,52 +1787,108 @@ function AlignmentGrid({
     counterAlign: AutoLayoutSettings['counterAlign']
   ) => void;
 }) {
-  const primaries: AutoLayoutSettings['primaryAlign'][] = ['start', 'center', 'end', 'space-between'];
-  const counters: AutoLayoutSettings['counterAlign'][] = ['start', 'center', 'end'];
+  const isH = direction === 'horizontal';
+  const colValues: ('start' | 'center' | 'end')[] = ['start', 'center', 'end'];
+  const rowValues: ('start' | 'center' | 'end')[] = ['start', 'center', 'end'];
+  const isDistribute = primaryAlign === 'space-between';
 
-  // Visual labels
-  const primaryLabels = direction === 'horizontal'
-    ? { start: '⇤', center: '⇔', end: '⇥', 'space-between': '⇿' }
-    : { start: '⇡', center: '⇕', end: '⇣', 'space-between': '⇿' };
-  const counterLabels = direction === 'horizontal'
-    ? { start: '↑', center: '↕', end: '↓' }
-    : { start: '←', center: '↔', end: '→' };
+  const getPA = (col: 'start' | 'center' | 'end', row: 'start' | 'center' | 'end') =>
+    isH ? col : row;
+  const getCA = (col: 'start' | 'center' | 'end', row: 'start' | 'center' | 'end') =>
+    isH ? row : col;
 
   return (
-    <div>
-      <label style={{ fontSize: 10, color: 'var(--sb-text-3)', display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>
-        Alignment
-      </label>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {counters.map((ca) => (
-          <div key={ca} style={{ display: 'flex', gap: 3 }}>
-            {primaries.map((pa) => {
-              const active = primaryAlign === pa && counterAlign === ca;
-              return (
-                <button
-                  key={pa}
-                  onClick={() => { pushH(); onChange(pa, ca); }}
-                  title={`${pa} / ${ca}`}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+      {/* 3×3 dot grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 26px)',
+          gridTemplateRows: 'repeat(3, 26px)',
+          gap: 2,
+          border: '1px solid var(--sb-border)',
+          borderRadius: 5,
+          padding: 3,
+          background: 'var(--sb-bg-2, var(--sb-bg))',
+        }}
+      >
+        {rowValues.map((row) =>
+          colValues.map((col) => {
+            const pa = getPA(col, row);
+            const ca = getCA(col, row);
+            const active = !isDistribute && primaryAlign === pa && counterAlign === ca;
+            return (
+              <button
+                key={`${col}-${row}`}
+                onClick={() => { pushH(); onChange(pa, ca); }}
+                title={`${isH ? 'primary' : 'counter'}: ${col}, ${isH ? 'counter' : 'primary'}: ${row}`}
+                style={{
+                  width: 26,
+                  height: 26,
+                  border: 'none',
+                  borderRadius: 3,
+                  background: active ? 'var(--sb-control-active)' : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                }}
+              >
+                <div
                   style={{
-                    flex: 1,
-                    padding: '4px 0',
-                    fontSize: 11,
-                    borderRadius: 3,
-                    border: active ? '1px solid var(--sb-border-strong)' : '1px solid var(--sb-border)',
-                    background: active ? 'var(--sb-control-active)' : 'transparent',
-                    color: 'var(--sb-text-2)',
-                    cursor: 'pointer',
-                    lineHeight: 1,
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: active ? 'var(--sb-accent)' : 'var(--sb-border-strong, var(--sb-text-4))',
                   }}
-                >
-                  {primaryLabels[pa]}
-                  {counterLabels[ca]}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+                />
+              </button>
+            );
+          })
+        )}
       </div>
+
+      {/* Distribute (space-between) button */}
+      <button
+        onClick={() => {
+          pushH();
+          onChange(isDistribute ? 'start' : 'space-between', counterAlign);
+        }}
+        title="Distribute (space-between)"
+        style={{
+          width: 26,
+          height: 26,
+          border: '1px solid var(--sb-border)',
+          borderRadius: 4,
+          background: isDistribute ? 'var(--sb-control-active)' : 'transparent',
+          color: isDistribute ? 'var(--sb-accent)' : 'var(--sb-text-3)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          alignSelf: 'center',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          {isH ? (
+            <>
+              <line x1="1" y1="3" x2="1" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="13" y1="3" x2="13" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="3.5" y="5" width="3" height="4" rx="1" fill="currentColor"/>
+              <rect x="7.5" y="5" width="3" height="4" rx="1" fill="currentColor"/>
+            </>
+          ) : (
+            <>
+              <line x1="3" y1="1" x2="11" y2="1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="3" y1="13" x2="11" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="5" y="3.5" width="4" height="3" rx="1" fill="currentColor"/>
+              <rect x="5" y="7.5" width="4" height="3" rx="1" fill="currentColor"/>
+            </>
+          )}
+        </svg>
+      </button>
     </div>
   );
 }
