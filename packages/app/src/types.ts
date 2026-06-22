@@ -231,6 +231,7 @@ export interface DesignFile {
   frames: Frame[];
   comments: Comment[];
   transitions?: FrameTransition[];
+  theme?: { light: Record<string, string>; dark: Record<string, string> };
 }
 
 export interface FileListItem {

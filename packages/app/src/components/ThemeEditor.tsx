@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchTheme, saveTheme, type ThemeTokens } from '../store/themeApi';
 import { hslToHexSafe, hexToHslString } from '../utils/colorUtils';
 import { useCanvasStore } from '../store/useCanvasStore';
+import { useDesignStore } from '../store/useDesignStore';
 import { detectColorTokens, isShadcnTokens, groupTokens, type ColorToken } from '../lib/detectTokens';
 
 // ── Token groups shown in the editor ─────────────────────────────────────────
@@ -83,18 +84,32 @@ const COLOR_TOKEN_KEYS = new Set(COLOR_GROUPS.flatMap((g) => g.tokens.map((t) =>
 // ── ThemeEditor ───────────────────────────────────────────────────────────────
 
 export function ThemeEditor() {
-  const [tokens, setTokens] = useState<ThemeTokens | null>(null);
+  const { file, updateTheme } = useDesignStore();
+  const hasLocalTheme = !!file?.theme;
+  const [systemTokens, setSystemTokens] = useState<ThemeTokens | null>(null);
+  const [localTokens, setLocalTokens] = useState<ThemeTokens | null>(file?.theme ?? null);
+  const [scope, setScope] = useState<'system' | 'local'>(hasLocalTheme ? 'local' : 'system');
   const [mode, setMode] = useState<'light' | 'dark'>(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   );
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
-  const savedTimer = useRef<ReturnType<typeof setTimeout>>();
   const { setThemePreview } = useCanvasStore();
 
+  const tokens = scope === 'local' ? localTokens : systemTokens;
+
+  // Always fetch system tokens; also seed local if file has saved theme
   useEffect(() => {
-    fetchTheme().then(setTokens).catch(console.error);
-  }, []);
+    fetchTheme().then((t) => {
+      setSystemTokens(t);
+      if (file?.theme) {
+        setLocalTokens(file.theme);
+        setScope('local');
+      } else {
+        setLocalTokens(t);
+        setScope('system');
+      }
+    }).catch(console.error);
+  }, [file?.id]);
 
   // Sync theme preview mode with the selected tab; clear on unmount
   useEffect(() => {
@@ -117,69 +132,63 @@ export function ThemeEditor() {
   const handleColorChange = useCallback(
     (varName: string, hex: string) => {
       const hsl = hexToHslString(hex);
-
-      setTokens((prev) => {
-        if (!prev) return prev;
-        const next = {
-          ...prev,
-          [mode]: { ...prev[mode], [varName]: hsl },
-        };
-
-        // Apply to DOM live so the app updates immediately
+      const applyDOM = () => {
         const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if ((mode === 'dark') === systemDark) {
-          document.documentElement.style.setProperty(varName, hsl);
-        }
-
-        // Debounce write to disk
-        clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => {
-          setSaveState('saving');
-          saveTheme(next)
-            .then(() => {
-              setSaveState('saved');
-              clearTimeout(savedTimer.current);
-              savedTimer.current = setTimeout(() => setSaveState('idle'), 1500);
-            })
-            .catch(() => setSaveState('error'));
-        }, 600);
-
-        return next;
-      });
+        if ((mode === 'dark') === systemDark) document.documentElement.style.setProperty(varName, hsl);
+      };
+      if (scope === 'local') {
+        setLocalTokens((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, [mode]: { ...prev[mode], [varName]: hsl } };
+          applyDOM();
+          clearTimeout(saveTimer.current);
+          saveTimer.current = setTimeout(() => updateTheme(next), 300);
+          return next;
+        });
+      } else {
+        setSystemTokens((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, [mode]: { ...prev[mode], [varName]: hsl } };
+          applyDOM();
+          clearTimeout(saveTimer.current);
+          saveTimer.current = setTimeout(() => saveTheme(next), 300);
+          return next;
+        });
+      }
     },
-    [mode]
+    [mode, scope, updateTheme]
   );
 
   const handleRadiusChange = useCallback(
     (value: number) => {
       const strVal = `${value}rem`;
-      setTokens((prev) => {
-        if (!prev) return prev;
-        const next = {
-          light: { ...prev.light, '--radius': strVal },
-          dark: { ...prev.dark, '--radius': strVal },
-        };
-        document.documentElement.style.setProperty('--radius', strVal);
-
-        clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => {
-          setSaveState('saving');
-          saveTheme(next)
-            .then(() => {
-              setSaveState('saved');
-              clearTimeout(savedTimer.current);
-              savedTimer.current = setTimeout(() => setSaveState('idle'), 1500);
-            })
-            .catch(() => setSaveState('error'));
-        }, 600);
-
-        return next;
+      const apply = (prev: ThemeTokens): ThemeTokens => ({
+        light: { ...prev.light, '--radius': strVal },
+        dark: { ...prev.dark, '--radius': strVal },
       });
+      document.documentElement.style.setProperty('--radius', strVal);
+      if (scope === 'local') {
+        setLocalTokens((prev) => {
+          if (!prev) return prev;
+          const next = apply(prev);
+          clearTimeout(saveTimer.current);
+          saveTimer.current = setTimeout(() => updateTheme(next), 300);
+          return next;
+        });
+      } else {
+        setSystemTokens((prev) => {
+          if (!prev) return prev;
+          const next = apply(prev);
+          clearTimeout(saveTimer.current);
+          saveTimer.current = setTimeout(() => saveTheme(next), 300);
+          return next;
+        });
+      }
     },
-    []
+    [scope, updateTheme]
   );
 
-  useEffect(() => () => { clearTimeout(saveTimer.current); clearTimeout(savedTimer.current); }, []);
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   const activeTokens = tokens?.[mode] ?? {};
   const radiusVal = parseFloat(tokens?.light['--radius'] ?? '0.5');
@@ -204,27 +213,37 @@ export function ThemeEditor() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Mode tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)', flexShrink: 0 }}>
+      {/* Scope + mode row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderBottom: '1px solid var(--sb-border)', flexShrink: 0 }}>
+        <select
+          value={scope}
+          onChange={(e) => {
+            const next = e.target.value as 'system' | 'local';
+            if (next === 'local' && !file?.theme && systemTokens) {
+              // First time switching to local — copy system tokens into file
+              setLocalTokens(systemTokens);
+              updateTheme(systemTokens);
+            }
+            setScope(next);
+          }}
+          style={{ flex: 1, fontSize: 11, padding: '3px 5px', border: '1px solid var(--sb-border)', borderRadius: 4, background: 'var(--sb-bg)', color: 'var(--sb-text-2)', cursor: 'pointer' }}
+        >
+          <option value="system">System theme</option>
+          <option value="local">Local theme</option>
+        </select>
         {(['light', 'dark'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            style={{
-              flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 600,
-              cursor: 'pointer', border: 'none', outline: 'none',
-              background: mode === m ? 'var(--sb-bg)' : 'var(--sb-bg-secondary)',
-              color: mode === m ? 'var(--sb-text)' : 'var(--sb-text-3)',
-              borderBottom: mode === m ? '2px solid var(--sb-accent)' : '2px solid transparent',
-              textTransform: 'capitalize',
-              transition: 'color 120ms',
-            }}
-          >
+          <button key={m} onClick={() => setMode(m)} style={{
+            padding: '3px 8px', fontSize: 11,
+            fontWeight: mode === m ? 600 : 400,
+            color: mode === m ? 'var(--sb-text-1)' : 'var(--sb-text-4)',
+            background: mode === m ? 'var(--sb-control-active)' : 'transparent',
+            border: '1px solid var(--sb-border)', borderRadius: 4,
+            cursor: 'pointer', textTransform: 'capitalize',
+          }}>
             {m}
           </button>
         ))}
       </div>
-
       {/* Scrollable token list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {shadcn ? (
@@ -299,18 +318,6 @@ export function ThemeEditor() {
         )}
       </div>
 
-      {/* Save status */}
-      {saveState !== 'idle' && (
-        <div style={{
-          padding: '6px 12px', fontSize: 11,
-          borderTop: '1px solid var(--sb-border)',
-          color: saveState === 'saved' ? 'var(--sb-success)' : saveState === 'error' ? 'var(--sb-error)' : 'var(--sb-text-3)',
-          background: saveState === 'saved' ? 'var(--sb-success-bg)' : saveState === 'error' ? 'var(--sb-error-bg)' : 'var(--sb-bg)',
-          flexShrink: 0,
-        }}>
-          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? '✓ Saved to CSS files' : '✗ Save failed'}
-        </div>
-      )}
     </div>
   );
 }
@@ -333,20 +340,10 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
 
 function ColorRow({ label, hex, onChange }: { label: string; hex: string; onChange: (hex: string) => void }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '3px 12px',
-    }}>
-      <span style={{ fontSize: 11, color: 'var(--sb-text-2)', flex: 1, minWidth: 0 }}>
-        {label}
-      </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 12px' }}>
+      <span style={{ fontSize: 11, color: 'var(--sb-text-2)', flex: 1, minWidth: 0 }}>{label}</span>
       <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{
-          display: 'block', width: 20, height: 20, borderRadius: 4,
-          background: hex,
-          border: '1px solid var(--sb-border)',
-          flexShrink: 0,
-        }} />
+        <span style={{ display: 'block', width: 20, height: 20, borderRadius: 4, background: hex, border: '1px solid var(--sb-border)', flexShrink: 0 }} />
         <input
           type="color"
           value={hex}
@@ -354,9 +351,7 @@ function ColorRow({ label, hex, onChange }: { label: string; hex: string; onChan
           style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
           tabIndex={-1}
         />
-        <span style={{ fontSize: 10, color: 'var(--sb-text-4)', fontFamily: 'monospace' }}>
-          {hex}
-        </span>
+        <span style={{ fontSize: 10, color: 'var(--sb-text-4)', fontFamily: 'monospace' }}>{hex}</span>
       </label>
     </div>
   );

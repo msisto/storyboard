@@ -8,7 +8,7 @@ import { TextPalette } from './components/TextPalette';
 import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
-import { BottomInspector } from './components/BottomInspector';
+import { ThemeEditor } from './components/ThemeEditor';
 import { useRegistryStore } from './registry/useRegistryStore';
 import { getStoryEntry } from './registry/storyRegistry';
 import { useDesignStore, findFrame } from './store/useDesignStore';
@@ -18,6 +18,14 @@ import { useAutoSave } from './store/useAutoSave';
 import { api } from './store/api';
 import { computeAutoLayout } from './canvas/autoLayout';
 import type { AutoLayoutSettings, Frame, StorybookStory } from './types';
+
+function findContainingFrame(frames: Frame[], componentId: string): Frame | undefined {
+  for (const f of frames) {
+    if (f.components.some((c) => c.id === componentId)) return f;
+    const found = findContainingFrame(f.frames ?? [], componentId);
+    if (found) return found;
+  }
+}
 
 function inferAutoLayout(frame: Frame): AutoLayoutSettings {
   type Item = { x: number; y: number; width?: number; height?: number };
@@ -255,6 +263,22 @@ export default function App() {
 
   useAutoSave();
 
+  // Inject file-specific theme overrides into <head> whenever the file or its theme changes.
+  // The global theme.css remains the base; file.theme is layered on top as overrides.
+  useEffect(() => {
+    const existing = document.getElementById('sb-file-theme');
+    if (existing) existing.remove();
+    if (!file?.theme) return;
+    const { light, dark } = file.theme;
+    const toVars = (tokens: Record<string, string>) =>
+      Object.entries(tokens).map(([k, v]) => `  ${k}: ${v};`).join('\n');
+    const styleEl = document.createElement('style');
+    styleEl.id = 'sb-file-theme';
+    styleEl.textContent = `.light {\n${toVars(light)}\n}\n.dark {\n${toVars(dark)}\n}`;
+    document.head.appendChild(styleEl);
+    return () => styleEl.remove();
+  }, [file?.id, file?.theme]);
+
   // URL-based routing: ?file=<id> opens a file; no param shows the picker
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('file');
@@ -414,24 +438,28 @@ export default function App() {
         if (e.key === 'c') {
           e.preventDefault();
           const state = useDesignStore.getState();
+          const canvasState = useCanvasStore.getState();
           if (state.selectedComponentId && state.file) {
-            const comp = state.file.frames
-              .flatMap((f) => f.components)
-              .find((c) => c.id === state.selectedComponentId);
-            if (comp) useCanvasStore.getState().setClipboard(comp);
+            const frame = findContainingFrame(state.file.frames, state.selectedComponentId);
+            const comp = frame?.components.find((c) => c.id === state.selectedComponentId);
+            if (comp) { canvasState.setClipboard(comp); canvasState.setFrameClipboard(null); }
+          } else if (state.selectedFrameId && state.file) {
+            const frame = findFrame(state.file.frames, state.selectedFrameId);
+            if (frame) { canvasState.setFrameClipboard(frame); canvasState.setClipboard(null); }
           }
         }
 
         if (e.key === 'v') {
           e.preventDefault();
-          const { clipboard } = useCanvasStore.getState();
+          const { clipboard, frameClipboard } = useCanvasStore.getState();
           const state = useDesignStore.getState();
-          if (clipboard && state.selectedFrameId) {
-            state.addComponent(state.selectedFrameId, {
-              ...clipboard,
-              x: clipboard.x + 20,
-              y: clipboard.y + 20,
-            });
+          if (clipboard) {
+            const targetFrameId = state.selectedFrameId ?? state.file?.frames[0]?.id;
+            if (targetFrameId) {
+              state.addComponent(targetFrameId, { ...clipboard, x: clipboard.x + 20, y: clipboard.y + 20 });
+            }
+          } else if (frameClipboard) {
+            state.duplicateFrame(frameClipboard.id);
           }
         }
 
@@ -443,18 +471,16 @@ export default function App() {
           e.preventDefault();
           const state = useDesignStore.getState();
           if (state.selectedComponentId) {
-            const frame = state.file?.frames.find((f) =>
-              f.components.some((c) => c.id === state.selectedComponentId)
-            );
-            const comp = frame?.components.find((c) => c.id === state.selectedComponentId);
-            if (comp && frame) {
-              state.addComponent(frame.id, {
-                ...comp,
-                x: comp.x + 20,
-                y: comp.y + 20,
-                label: comp.label + ' copy',
-              });
+            const containingFrame = findContainingFrame(state.file?.frames ?? [], state.selectedComponentId);
+            if (containingFrame) {
+              // Regular component
+              state.duplicateComponent(containingFrame.id, state.selectedComponentId);
+            } else {
+              // selectedComponentId is a child frame (group)
+              state.duplicateFrame(state.selectedComponentId);
             }
+          } else if (state.selectedFrameId) {
+            state.duplicateFrame(state.selectedFrameId);
           }
         }
       }
@@ -797,27 +823,12 @@ export default function App() {
                 zIndex: 10,
               }}
             />
-            <div
-              style={{
-                padding: '8px 12px',
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--sb-text-3)',
-                borderBottom: '1px solid var(--sb-border)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Properties
-            </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <PropsInspector />
+              {(selectedFrameId || selectedComponentId) ? <PropsInspector /> : <ThemeEditor />}
             </div>
           </div>
         )}
       </div>
-
-      {panelsVisible && <BottomInspector />}
 
       {/* Comment placement modal */}
       {pendingComment && (

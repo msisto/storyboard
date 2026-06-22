@@ -4,9 +4,8 @@ import { useDesignStore } from '../store/useDesignStore';
 import { FrameNode } from './FrameNode';
 import { PeerCursors } from './PeerCursors';
 import { CommentPin } from '../comments/CommentPin';
-import { TransitionInspectorPanel } from '../components/TransitionInspectorPanel';
 import type { PeerCursor } from '../comments/useCommentSync';
-import type { Frame, FrameTransition } from '../types';
+import type { Frame } from '../types';
 
 import type { Comment } from '../types';
 
@@ -36,54 +35,6 @@ interface CanvasProps {
   peerCursors?: Map<string, PeerCursor>;
 }
 
-function TransitionArrow({
-  from, to, transition,
-  onOpen,
-}: {
-  from: Frame; to: Frame; transition: FrameTransition;
-  onOpen: (rect: DOMRect) => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-  const sx = from.x + from.width;
-  const sy = from.y + from.height / 2;
-  const ex = to.x;
-  const ey = to.y + to.height / 2;
-  const offset = Math.max(80, Math.abs(ex - sx) * 0.5);
-  const d = `M ${sx} ${sy} C ${sx + offset} ${sy} ${ex - offset} ${ey} ${ex} ${ey}`;
-  const mid = { x: (sx + ex) / 2, y: (sy + ey) / 2 };
-
-  return (
-    <g
-      style={{ cursor: 'pointer' }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={(e) => {
-        e.stopPropagation();
-        const svgEl = (e.currentTarget as SVGGElement).closest('svg');
-        const svgRect = svgEl?.getBoundingClientRect() ?? { left: 0, top: 0, width: 0, height: 0 };
-        // Create anchor rect near click point
-        const rect = { left: e.clientX - 1, top: e.clientY - 1, width: 2, height: 2, right: e.clientX + 1, bottom: e.clientY + 1 } as DOMRect;
-        onOpen(rect);
-      }}
-    >
-      {/* Wide invisible hit target */}
-      <path d={d} stroke="transparent" strokeWidth={12} fill="none" style={{ pointerEvents: 'stroke' }} />
-      {/* Visible arrow */}
-      <path
-        d={d}
-        stroke="var(--sb-accent)"
-        strokeWidth={1.5}
-        fill="none"
-        opacity={hovered ? 0.85 : 0.45}
-        markerEnd="url(#transition-arrow)"
-        style={{ transition: 'opacity 120ms', pointerEvents: 'none' }}
-      />
-      {/* Midpoint circle */}
-      <circle cx={mid.x} cy={mid.y} r={4} fill="var(--sb-accent)" opacity={hovered ? 0.9 : 0.55} style={{ pointerEvents: 'none' }} />
-    </g>
-  );
-}
-
 export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
   const { viewport, activeTool, pan, zoom, setTool, globalInteractMode, exitGlobalInteractMode } = useCanvasStore();
   const { file, addFrame, addChildFrame, selectFrame, selectComponent, selectedFrameId, selectedFrameIds } = useDesignStore();
@@ -99,20 +50,6 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
     x: number; y: number; w: number; h: number;
   } | null>(null);
   const rbStart = useRef<{ x: number; y: number } | null>(null);
-
-  // Transition inspector state
-  const [activeConnector, setActiveConnector] = useState<{
-    fromFrame: Frame; toFrame?: Frame; rect: DOMRect;
-  } | null>(null);
-  const activeTransition = activeConnector
-    ? (file?.transitions ?? []).find(
-        (t) => t.fromFrameId === activeConnector.fromFrame.id &&
-               (activeConnector.toFrame ? t.toFrameId === activeConnector.toFrame.id : false)
-      )
-    : undefined;
-
-  // Hovered frame (for connect handle)
-  const [hoveredFrameId, setHoveredFrameId] = useState<string | null>(null);
 
   // Convert screen coords to world coords
   const screenToWorld = useCallback(
@@ -284,23 +221,8 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         const vp = useCanvasStore.getState().viewport;
         sendCursor((cx - vp.x) / vp.zoom, (cy - vp.y) / vp.zoom);
       }
-      // Track hovered frame for connect handle
-      if (activeTool === 'select' && !globalInteractMode) {
-        const rect = rootRef.current?.getBoundingClientRect();
-        if (rect) {
-          const vp = useCanvasStore.getState().viewport;
-          const wx = (e.clientX - rect.left - vp.x) / vp.zoom;
-          const wy = (e.clientY - rect.top - vp.y) / vp.zoom;
-          const hovered = file?.frames.find(
-            (f) => wx >= f.x && wx <= f.x + f.width && wy >= f.y && wy <= f.y + f.height
-          ) ?? null;
-          setHoveredFrameId(hovered?.id ?? null);
-        }
-      } else if (hoveredFrameId !== null) {
-        setHoveredFrameId(null);
-      }
     },
-    [activeTool, pan, sendCursor, globalInteractMode, file?.frames, hoveredFrameId]
+    [activeTool, pan, sendCursor, globalInteractMode]
   );
 
   const handleMouseUp = useCallback(
@@ -392,31 +314,6 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
           transformOrigin: '0 0',
         }}
       >
-        {/* Transition arrows — rendered under frames */}
-        <svg style={{ position: 'absolute', top: 0, left: 0, overflow: 'visible', width: 0, height: 0, pointerEvents: 'none' }}>
-          <defs>
-            <marker id="transition-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-              <path d="M0,0.5 L6,3.5 L0,6.5 Z" fill="var(--sb-accent)" />
-            </marker>
-          </defs>
-          <g style={{ pointerEvents: 'all' }}>
-            {(file?.transitions ?? []).map((t) => {
-              const fromF = file!.frames.find((f) => f.id === t.fromFrameId);
-              const toF = file!.frames.find((f) => f.id === t.toFrameId);
-              if (!fromF || !toF) return null;
-              return (
-                <TransitionArrow
-                  key={t.id}
-                  from={fromF}
-                  to={toF}
-                  transition={t}
-                  onOpen={(rect) => setActiveConnector({ fromFrame: fromF, toFrame: toF, rect })}
-                />
-              );
-            })}
-          </g>
-        </svg>
-
         {file?.frames.map((frame) => (
           <FrameNode
             key={frame.id}
@@ -425,38 +322,6 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
             isMultiSelected={selectedFrameIds.length > 1 && selectedFrameIds.includes(frame.id)}
           />
         ))}
-
-        {/* Connect "+" handle on hovered frame */}
-        {activeTool === 'select' && !globalInteractMode && hoveredFrameId && (() => {
-          const f = file?.frames.find((fr) => fr.id === hoveredFrameId);
-          if (!f) return null;
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                left: f.x + f.width + 4,
-                top: f.y + f.height / 2 - 10,
-                width: 20, height: 20,
-                borderRadius: '50%',
-                background: 'var(--sb-accent)',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                zIndex: 200,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-              }}
-              title="Add transition from this frame"
-              onClick={(e) => {
-                e.stopPropagation();
-                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
-                setActiveConnector({ fromFrame: f, toFrame: undefined, rect });
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M5 1V9M1 5H9" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </div>
-          );
-        })()}
 
         {/* Comment pins: unread in any mode, all unresolved in comment mode */}
         {file && placedComments(file.frames, file.comments.filter((c) =>
@@ -513,37 +378,6 @@ export function Canvas({ sendCursor, peerCursors }: CanvasProps = {}) {
         />
       )}
 
-      {/* Transition inspector */}
-      {activeConnector && (
-        <TransitionInspectorPanel
-          fromFrame={activeConnector.fromFrame}
-          toFrame={activeConnector.toFrame}
-          allFrames={file?.frames ?? []}
-          transition={activeTransition}
-          anchorRect={activeConnector.rect}
-          onAdd={(toFrameId) => {
-            const { addTransition } = useDesignStore.getState();
-            addTransition(activeConnector.fromFrame.id, toFrameId, { type: 'manual' });
-            // After adding, update activeConnector to know the destination
-            const toF = file?.frames.find((f) => f.id === toFrameId);
-            if (toF) setActiveConnector((prev) => prev ? { ...prev, toFrame: toF } : null);
-          }}
-          onUpdate={(trigger) => {
-            if (activeTransition) {
-              const { updateTransition } = useDesignStore.getState();
-              updateTransition(activeTransition.id, { trigger });
-            }
-          }}
-          onRemove={() => {
-            if (activeTransition) {
-              const { removeTransition } = useDesignStore.getState();
-              removeTransition(activeTransition.id);
-            }
-            setActiveConnector(null);
-          }}
-          onClose={() => setActiveConnector(null)}
-        />
-      )}
     </div>
   );
 }

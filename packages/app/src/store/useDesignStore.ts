@@ -35,6 +35,32 @@ function removeFrame(frames: Frame[], id: string): Frame[] {
     .map((f) => f.frames ? { ...f, frames: removeFrame(f.frames, id) } : f);
 }
 
+function deepCloneComponent(c: ComponentInstance): ComponentInstance {
+  const slots: Record<string, ComponentInstance[]> = {};
+  for (const [k, v] of Object.entries(c.slots ?? {})) {
+    slots[k] = v.map(deepCloneComponent);
+  }
+  return { ...c, id: uid(), slots };
+}
+
+function deepCloneFrame(f: Frame): Frame {
+  return {
+    ...f,
+    id: uid(),
+    components: f.components.map(deepCloneComponent),
+    textLayers: (f.textLayers ?? []).map((t) => ({ ...t, id: uid() })),
+    frames: (f.frames ?? []).map(deepCloneFrame),
+  };
+}
+
+function findParentFrame(frames: Frame[], childId: string): Frame | undefined {
+  for (const f of frames) {
+    if ((f.frames ?? []).some((c) => c.id === childId)) return f;
+    const found = findParentFrame(f.frames ?? [], childId);
+    if (found) return found;
+  }
+}
+
 // Recursively map over a ComponentInstance and its slot descendants
 function mapComponent(
   component: ComponentInstance,
@@ -94,11 +120,14 @@ interface DesignStore {
   selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
   renameFile: (name: string) => void;
+  updateTheme: (theme: { light: Record<string, string>; dark: Record<string, string> }) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
   pushHistory: () => void;
   undo: () => void;
   addFrame: (x: number, y: number, width: number, height: number) => string;
   addChildFrame: (parentFrameId: string, x: number, y: number, width: number, height: number) => string;
+  duplicateFrame: (id: string) => void;
+  duplicateComponent: (frameId: string, componentId: string) => void;
   updateFrame: (id: string, patch: Partial<Frame>) => void;
   loadFrame: (id: string, frame: Frame) => void;
   deleteFrame: (id: string) => void;
@@ -157,6 +186,9 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
 
   renameFile: (name) =>
     set((state) => state.file ? { file: { ...state.file, name, updatedAt: Date.now() } } : state),
+
+  updateTheme: (theme) =>
+    set((state) => state.file ? { file: { ...state.file, theme, updatedAt: Date.now() } } : state),
 
   loadFile: (file) =>
     set({
@@ -266,6 +298,65 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
     });
     return id;
   },
+
+  duplicateFrame: (id) =>
+    set((state) => {
+      if (!state.file) return state;
+      const original = findFrame(state.file.frames, id);
+      if (!original) return state;
+      const clone = { ...deepCloneFrame(original), x: original.x + 20, y: original.y + 20, label: original.label + ' copy' };
+      const parent = findParentFrame(state.file.frames, id);
+      const insertAfter = <T>(arr: T[], item: T, afterId: string, getId: (i: T) => string): T[] => {
+        const idx = arr.findIndex((i) => getId(i) === afterId);
+        if (idx === -1) return [...arr, item];
+        return [...arr.slice(0, idx + 1), item, ...arr.slice(idx + 1)];
+      };
+      let newFrames: Frame[];
+      if (parent) {
+        newFrames = mapFrames(state.file.frames, parent.id, (p) => {
+          const newChildFrames = insertAfter(p.frames ?? [], clone, id, (f) => f.id);
+          const newFlowOrder = p.flowOrder ? insertAfter(p.flowOrder, clone.id, id, (s) => s) : undefined;
+          return { ...p, frames: newChildFrames, ...(newFlowOrder ? { flowOrder: newFlowOrder } : {}) };
+        });
+      } else {
+        newFrames = insertAfter(state.file.frames, clone, id, (f) => f.id);
+      }
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: { ...state.file, updatedAt: Date.now(), frames: newFrames },
+        selectedFrameId: clone.id,
+        selectedComponentId: null,
+        selectedComponentIds: [],
+      };
+    }),
+
+  duplicateComponent: (frameId, componentId) =>
+    set((state) => {
+      if (!state.file) return state;
+      const frame = findFrame(state.file.frames, frameId);
+      const original = frame?.components.find((c) => c.id === componentId);
+      if (!frame || !original) return state;
+      const clone = { ...deepCloneComponent(original), x: original.x + 20, y: original.y + 20, label: original.label ? original.label + ' copy' : original.label };
+      const insertAfter = <T>(arr: T[], item: T, afterId: string, getId: (i: T) => string): T[] => {
+        const idx = arr.findIndex((i) => getId(i) === afterId);
+        if (idx === -1) return [...arr, item];
+        return [...arr.slice(0, idx + 1), item, ...arr.slice(idx + 1)];
+      };
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          frames: mapFrames(state.file.frames, frameId, (f) => ({
+            ...f,
+            components: insertAfter(f.components, clone, componentId, (c) => c.id),
+            ...(f.flowOrder ? { flowOrder: insertAfter(f.flowOrder, clone.id, componentId, (s) => s) } : {}),
+          })),
+        },
+        selectedComponentId: clone.id,
+        selectedComponentIds: [clone.id],
+      };
+    }),
 
   updateFrame: (id, patch) =>
     set((state) => {

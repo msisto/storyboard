@@ -216,8 +216,8 @@ export function LayersPanel() {
             </span>
           )}
 
-          <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>
-            F
+          <span style={{ color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '2px 3px', borderRadius: 2, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="1" y="1" width="8" height="8" rx="1"/><line x1="1" y1="3.5" x2="9" y2="3.5"/><line x1="3.5" y1="1" x2="3.5" y2="3.5"/></svg>
           </span>
         </div>
 
@@ -365,7 +365,9 @@ export function LayersPanel() {
                       {tl.label}
                     </span>
                   )}
-                  <span style={{ fontSize: 9, color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '1px 4px', borderRadius: 2, flexShrink: 0 }}>T</span>
+                  <span style={{ color: 'var(--sb-text-4)', background: 'var(--sb-bg-tertiary)', padding: '2px 3px', borderRadius: 2, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2"><line x1="5" y1="1.5" x2="5" y2="8.5"/><line x1="1.5" y1="1.5" x2="8.5" y2="1.5"/></svg>
+                  </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); updateTextLayer(frame.id, tl.id, { visible: !tl.visible }); }}
                     title={tl.visible ? 'Hide' : 'Show'}

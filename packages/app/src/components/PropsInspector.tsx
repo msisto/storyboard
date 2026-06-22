@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ThemeEditor } from './ThemeEditor';
+import CodeMirror from '@uiw/react-codemirror';
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
+import { buildLocalStoryFile } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
@@ -880,11 +883,57 @@ function SlotsSection({
   );
 }
 
+function usePrefersDark() {
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const [dark, setDark] = useState(mq.matches);
+  useEffect(() => {
+    const handler = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return dark;
+}
+
+function CodePanel({ frame }: { frame: Frame }) {
+  const { stories } = useRegistryStore();
+  const [copied, setCopied] = useState(false);
+  const dark = usePrefersDark();
+  const code = buildLocalStoryFile(frame, frame.label, stories);
+
+  const copy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <div style={{ padding: '4px 12px', borderBottom: '1px solid var(--sb-border)', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
+        <button onClick={copy} style={{ fontSize: 11, color: 'var(--sb-accent)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <CodeMirror
+          value={code}
+          readOnly
+          theme={dark ? vscodeDark : vscodeLight}
+          extensions={[javascript({ jsx: true, typescript: true })]}
+          basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false }}
+          style={{ fontSize: 11 }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function PropsInspector() {
   const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions, removeSlottedComponent, selectComponent } =
     useDesignStore();
   const { getArgDefs } = useRegistryStore();
   const [tidyGap, setTidyGap] = useState(16);
+  const [frameTab, setFrameTab] = useState<'properties' | 'code'>('properties');
 
   const selectedFrame = file?.frames.find((f) => f.id === selectedFrameId);
   const selectedFrameData = selectedFrame;
@@ -934,7 +983,7 @@ export function PropsInspector() {
       : undefined;
 
   if (!selectedFrameData && !selectedComponentData && !selectedTextLayer) {
-    return <ThemeEditor />;
+    return null;
   }
 
   // Multi-frame alignment panel
@@ -1108,7 +1157,7 @@ export function PropsInspector() {
                 onFocus={pushH}
                 onChange={(e) => patchWithHistory({ absolute: e.target.checked })}
               />
-              Ignore flex
+              Absolute
             </label>
           </Section>
         )}
@@ -1180,7 +1229,7 @@ export function PropsInspector() {
                     onFocus={pushH}
                     onChange={(e) => { pushH(); patchCF({ absolute: e.target.checked }); }}
                   />
-                  Ignore flex
+                  Absolute
                 </label>
               </div>
             )}
@@ -1390,7 +1439,7 @@ export function PropsInspector() {
                   })
                 }
               />
-              Ignore flex
+              Absolute
             </label>
           </Section>
         )}
@@ -1450,6 +1499,27 @@ export function PropsInspector() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        {/* Tab bar */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)', flexShrink: 0 }}>
+          {(['properties', 'code'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFrameTab(tab)}
+              style={{
+                flex: 1, padding: '7px 0', fontSize: 11, fontWeight: frameTab === tab ? 600 : 400,
+                color: frameTab === tab ? 'var(--sb-text-1)' : 'var(--sb-text-4)',
+                background: 'none', border: 'none',
+                borderBottom: frameTab === tab ? '2px solid var(--sb-accent)' : '2px solid transparent',
+                cursor: 'pointer', textTransform: 'capitalize',
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        {frameTab === 'code' ? (
+          <CodePanel frame={selectedFrameData} />
+        ) : (
         <div style={{ overflowY: 'auto', flex: 1 }}>
         <Section title="Frame">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1636,6 +1706,7 @@ export function PropsInspector() {
         </Section>
 
         </div>
+        )}
       </div>
     );
   }
@@ -1888,17 +1959,28 @@ function SizingSelect({
   options: string[];
   onChange: (v: string) => void;
 }) {
+  const isWidth = label.charAt(0).toUpperCase() === 'W';
+  const icon = isWidth ? (
+    <svg width="12" height="8" viewBox="0 0 12 8" fill="none" style={{ display: 'block' }}>
+      <path d="M1 4H11M1 4L3.5 1.5M1 4L3.5 6.5M11 4L8.5 1.5M11 4L8.5 6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ) : (
+    <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ display: 'block' }}>
+      <path d="M4 1V11M4 1L1.5 3.5M4 1L6.5 3.5M4 11L1.5 8.5M4 11L6.5 8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-      <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase', flexShrink: 0, width: 14 }}>
-        {label.charAt(0)}
+      <span style={{ color: 'var(--sb-text-3)', flexShrink: 0, width: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {icon}
       </span>
       <div style={{ display: 'flex', border: '1px solid var(--sb-border)', borderRadius: 4, overflow: 'hidden', flex: 1 }}>
         {options.map((o) => (
           <button
             key={o}
             onClick={() => { pushH(); onChange(o); }}
-            title={o.charAt(0).toUpperCase() + o.slice(1)}
+            title={o === 'fixed' ? 'Fixed' : o === 'hug' ? 'Hug' : 'Grow'}
             style={{
               flex: 1,
               padding: '3px 4px',
@@ -1911,7 +1993,7 @@ function SizingSelect({
               fontWeight: value === o ? 600 : 400,
             }}
           >
-            {o === 'fixed' ? 'Fixed' : o === 'hug' ? 'Hug' : 'Fill'}
+            {o === 'fixed' ? 'Fixed' : o === 'hug' ? 'Hug' : 'Grow'}
           </button>
         ))}
       </div>

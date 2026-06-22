@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CanvasViewport, ComponentInstance, Tool } from '../types';
+import type { CanvasViewport, ComponentInstance, Frame, Tool } from '../types';
 
 interface CanvasStore {
   viewport: CanvasViewport;
@@ -9,7 +9,9 @@ interface CanvasStore {
   globalInteractMode: boolean;
   themePreview: 'dark' | 'light' | null;
   clipboard: ComponentInstance | null;
+  frameClipboard: Frame | null;
   setClipboard: (instance: ComponentInstance | null) => void;
+  setFrameClipboard: (frame: Frame | null) => void;
   setThemePreview: (mode: 'dark' | 'light' | null) => void;
   setTool: (tool: Tool) => void;
   pan: (dx: number, dy: number) => void;
@@ -37,8 +39,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   globalInteractMode: false,
   themePreview: null,
   clipboard: null,
+  frameClipboard: null,
   setThemePreview: (mode) => set({ themePreview: mode }),
   setClipboard: (instance) => set({ clipboard: instance }),
+  setFrameClipboard: (frame) => set({ frameClipboard: frame }),
 
   setTool: (tool) => set({ activeTool: tool, interactingComponentId: null, editingTextLayerId: null, globalInteractMode: false }),
 

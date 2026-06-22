@@ -176,11 +176,16 @@ Components that use React portals (Dialog, Drawer, Sheet, DropdownMenu, etc.) re
 
 Each Radix UI primitive in `packages/storybook/src/components/ui/` reads a container from `FramePortalContext` (via `portal-context.tsx`) and passes it as the `container` prop to the Radix `Portal` component.
 
-### Dark mode
+### Dark mode and theming
 
 The canvas UI and all components respond to the system `prefers-color-scheme` setting. All colors are CSS custom properties — switching your OS between light and dark mode updates the toolbar, panels, inspector, and every rendered component instantly.
 
 Background color tokens (`background`, `card`, `muted`, etc.) in the color picker are stored as `hsl(var(--card))` in the design file and resolve at runtime against the same shadcn/ui CSS variable definitions the component library uses, so frames and components stay in sync across theme switches.
+
+**System vs local themes.** `packages/app/src/theme.css` defines the default shadcn/ui token set. The theme editor (visible when nothing is selected on the canvas) lets you edit these tokens in two scopes:
+
+- **System theme** — edits write back to `theme.css` via the API and affect every file that hasn't overridden them.
+- **Local theme** — starts as a copy of the system theme and is stored in the design file JSON (`DesignFile.theme`). Changes apply only to that file. App.tsx injects a `<style id="sb-file-theme">` tag with `.light { }` / `.dark { }` overrides whenever the active file changes.
 
 ### Design file storage
 
@@ -246,11 +251,7 @@ Frames can contain child frames, enabling nested auto-layouts — for example, a
 
 ### Viewport
 
-The canvas supports pinch-to-zoom centered on the cursor position. On load the viewport fits all frames with padding. Clicking a frame in the timeline centers and fits that frame.
-
-### Timeline
-
-The horizontal strip at the bottom shows frames in sequence order. Frames can be drag-reordered. Clicking a card selects the frame and fits the viewport to it. Frames can be hidden from the timeline (inspector → Timeline → Hidden) while staying on the canvas.
+The canvas supports pinch-to-zoom centered on the cursor position. On load the viewport fits all frames with padding.
 
 ### Real-time collaboration
 
@@ -391,9 +392,12 @@ To fill a slot, drag a component from the palette and drop it onto an existing c
 
 Select a component to see its props in the Inspect panel under **PROPS**. Each arg defined in the story appears as an input control. Changes take effect instantly — one character at a time. Different instances of the same story can have independent content.
 
-### Inspector Code tab
+### Right panel
 
-The frame inspector has a Properties | Code tab bar at the top. The **Code** tab shows live JSX for the selected frame — slot-aware, updated as you edit. A Copy button in the top-right copies the output to clipboard.
+The right panel is context-driven:
+
+- **Nothing selected** — the theme editor is shown. A **System theme / Local theme** dropdown at the top switches scope. **Light** and **Dark** toggle which palette you're editing. System edits save to `theme.css`; local edits save into the current file.
+- **Frame selected** — a **Properties | Code** tab bar appears. Properties shows layout, sizing, and background controls. Code shows live JSX for the frame — slot-aware, updated as you edit. A Copy button in the top-right copies the output to clipboard.
 
 ### Interacting with components
 
@@ -418,10 +422,6 @@ Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel
 ### Alignment and distribution
 
 Select two or more items to see alignment controls in the Inspect panel. Align edges or centers, distribute with equal spacing.
-
-### Timeline management
-
-Frames shown in the timeline represent your demo flow. To remove a frame from the timeline without deleting it, select it and toggle **Timeline → Hidden** in the inspector.
 
 ### JSX export
 
@@ -457,7 +457,6 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
       "x": 100, "y": 100,
       "width": 375, "height": 812,
       "backgroundColor": "hsl(var(--background))",
-      "inTimeline": true,
       "autoLayout": {
         "direction": "vertical",
         "gap": 16,
@@ -504,7 +503,11 @@ Files are stored as `designs/<uuid>.json`. The shape maps directly to `DesignFil
       "frames": []
     }
   ],
-  "comments": []
+  "comments": [],
+  "theme": {
+    "light": { "--background": "0 0% 100%", "--primary": "220 90% 56%", "--radius": "0.5rem" },
+    "dark":  { "--background": "0 0% 5.9%", "--primary": "220 90% 60%", "--radius": "0.5rem" }
+  }
 }
 ```
 
@@ -534,16 +537,15 @@ packages/app/src/
     ComponentPalette.tsx     searchable story list; Local section below library groups
     TextPalette.tsx          Tailwind type scale browser, draggable rows
     PropsInspector.tsx       context-sensitive inspector; frame view has Properties|Code tab
+    ThemeEditor.tsx          system/local theme token editor; shown when nothing is selected
     FilePicker.tsx           file list, create/open/delete
-
-  timeline/
-    StoryboardTimeline.tsx   bottom frame strip, wireframe thumbnails, drag reorder
 
   store/
     useDesignStore.ts        all design state + 50-step undo; recursive frame helpers
     useCanvasStore.ts        viewport, active tool, interact mode
     useAutoSave.ts           debounced save (1s): JSON to /api/files + .tsx to /api/local-stories/batch
     api.ts                   REST client for /api/files and /api/local-stories
+    themeApi.ts              GET/PUT /api/theme — reads and writes theme.css token values
 
   registry/
     storyRegistry.ts         imports all *.stories.tsx + local/*.stories.tsx at build time;
