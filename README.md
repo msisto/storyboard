@@ -1,5 +1,9 @@
 # Storyboard
 
+![Status](https://img.shields.io/badge/status-experimental-orange)
+![License](https://img.shields.io/github/license/msisto/storyboard)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
+
 A design environment for Storybook component libraries.
 
 <img width="3456" height="1868" alt="CleanShot 2026-06-21 at 20 11 52@2x" src="https://github.com/user-attachments/assets/a2702723-eb5d-4886-8d43-8ea870456e8b" />
