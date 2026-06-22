@@ -20,10 +20,9 @@ Concretely:
 
 - **Interaction states are real** — hover a component and it hovers, type in an input, open a dropdown
 - **Portals render and clip inside the frame** — dialogs, drawers, and sheets behave like a real viewport boundary
-- **Auto-layout with real constraints** — flow, gap, padding, and fill/hug sizing, snapped to your Tailwind scale
+- **Auto-layout with real constraints** — flow, gap, padding, and fill/hug sizing on a configurable spacing scale
 - **Every instance holds independent content** — the same component appears with different content across frames
-
-
+ 
 ---
 
 ## Architecture
