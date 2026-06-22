@@ -8,6 +8,7 @@ import { TextPalette } from './components/TextPalette';
 import { FilePicker } from './components/FilePicker';
 import { saveDesignFile, openDesignFile } from './store/fileSystem';
 import { PropsInspector } from './components/PropsInspector';
+import { BottomInspector } from './components/BottomInspector';
 import { useRegistryStore } from './registry/useRegistryStore';
 import { getStoryEntry } from './registry/storyRegistry';
 import { useDesignStore, findFrame } from './store/useDesignStore';
@@ -807,7 +808,7 @@ export default function App() {
                 letterSpacing: '0.05em',
               }}
             >
-              {selectedFrameId || selectedComponentId || selectedFrameIds.length > 0 ? 'Inspect' : 'Theme'}
+              Properties
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <PropsInspector />
@@ -816,6 +817,7 @@ export default function App() {
         )}
       </div>
 
+      {panelsVisible && <BottomInspector />}
 
       {/* Comment placement modal */}
       {pendingComment && (

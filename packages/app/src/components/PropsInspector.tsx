@@ -1,19 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import { ThemeEditor } from './ThemeEditor';
 import { useDesignStore } from '../store/useDesignStore';
 import { useRegistryStore } from '../registry/useRegistryStore';
 import { computeAutoLayout } from '../canvas/autoLayout';
-import { buildLocalStoryFile } from '../export/jsxExport';
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignCenterV, alignBottom,
   distributeH, distributeV, tidyUp,
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
-import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, DesignFile, Frame, SizingMode, StorybookStory } from '../types';
+import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, DesignFile, Frame, SizingMode } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 import { detectColorTokens, tokenToCss, type ColorToken } from '../lib/detectTokens';
 
@@ -794,43 +790,6 @@ function PropsSection({
   );
 }
 
-function CodePanel({ frame, stories }: { frame: Frame; stories: StorybookStory[] }) {
-  const [copied, setCopied] = useState(false);
-  const code = buildLocalStoryFile(frame, frame.label, stories);
-
-  const copy = () => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-      <div style={{
-        padding: '6px 12px', borderBottom: '1px solid var(--sb-border)',
-        display: 'flex', justifyContent: 'flex-end', flexShrink: 0,
-      }}>
-        <button
-          onClick={copy}
-          style={{ fontSize: 11, color: 'var(--sb-accent)', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
-      </div>
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        <CodeMirror
-          value={code}
-          readOnly
-          theme={vscodeDark}
-          extensions={[javascript({ jsx: true, typescript: true })]}
-          basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false }}
-          style={{ fontSize: 11 }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function SlotsSection({
   frameId,
@@ -924,9 +883,8 @@ function SlotsSection({
 export function PropsInspector() {
   const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions, removeSlottedComponent, selectComponent } =
     useDesignStore();
-  const { getArgDefs, stories } = useRegistryStore();
+  const { getArgDefs } = useRegistryStore();
   const [tidyGap, setTidyGap] = useState(16);
-  const [frameTab, setFrameTab] = useState<'properties' | 'code'>('properties');
 
   const selectedFrame = file?.frames.find((f) => f.id === selectedFrameId);
   const selectedFrameData = selectedFrame;
@@ -1492,29 +1450,6 @@ export function PropsInspector() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        {/* Tab bar */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--sb-border)', flexShrink: 0 }}>
-          {(['properties', 'code'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setFrameTab(t)}
-              style={{
-                flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none', outline: 'none',
-                background: frameTab === t ? 'var(--sb-bg)' : 'var(--sb-bg-secondary)',
-                color: frameTab === t ? 'var(--sb-text)' : 'var(--sb-text-3)',
-                borderBottom: frameTab === t ? '2px solid var(--sb-accent)' : '2px solid transparent',
-                textTransform: 'capitalize',
-              }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        {frameTab === 'code' ? (
-          <CodePanel frame={selectedFrameData} stories={stories} />
-        ) : (
         <div style={{ overflowY: 'auto', flex: 1 }}>
         <Section title="Frame">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1537,24 +1472,6 @@ export function PropsInspector() {
                   boxSizing: 'border-box',
                 }}
               />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 10, color: 'var(--sb-text-3)', textTransform: 'uppercase' }}>Timeline</span>
-              <button
-                onClick={() => updateFrame(selectedFrameData.id, { inTimeline: selectedFrameData.inTimeline === false })}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: 11,
-                  borderRadius: 4,
-                  border: '1px solid var(--sb-border)',
-                  background: selectedFrameData.inTimeline !== false ? 'var(--sb-success-bg)' : 'var(--sb-bg-secondary)',
-                  color: selectedFrameData.inTimeline !== false ? 'var(--sb-success)' : 'var(--sb-text-3)',
-                  cursor: 'pointer',
-                }}
-              >
-                {selectedFrameData.inTimeline !== false ? 'Shown' : 'Hidden'}
-              </button>
             </div>
 
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -1719,7 +1636,6 @@ export function PropsInspector() {
         </Section>
 
         </div>
-        )}
       </div>
     );
   }
