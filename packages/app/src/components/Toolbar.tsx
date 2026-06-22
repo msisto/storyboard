@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useCanvasStore } from '../store/useCanvasStore';
 import { useDesignStore } from '../store/useDesignStore';
-import { saveDesignFile, openDesignFile } from '../store/fileSystem';
 import type { Tool } from '../types';
 
 interface ToolbarProps {
@@ -18,7 +17,7 @@ interface ToolbarProps {
 
 export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, hasTransitions, onAddFrame, unreadCommentCount = 0, onToggleComments }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
-  const { file, newFile, loadFile, renameFile, selectComponent } = useDesignStore();
+  const { file, newFile, closeFile, renameFile, selectComponent } = useDesignStore();
   const [showMenu, setShowMenu] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -31,23 +30,6 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, 
     { id: 'comment', icon: <CommentIcon />, label: 'Comment', key: 'C' },
   ];
 
-  const handleSave = async () => {
-    if (!file) return;
-    try {
-      await saveDesignFile(file);
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') alert('Save failed: ' + (e as Error).message);
-    }
-  };
-
-  const handleOpen = async () => {
-    try {
-      const loaded = await openDesignFile();
-      loadFile(loaded);
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') alert('Open failed: ' + (e as Error).message);
-    }
-  };
 
   const fitAll = () => {
     if (!file?.frames.length) return;
@@ -95,8 +77,7 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, 
             >
               {[
                 { label: 'New file', action: () => { newFile('Untitled'); setShowMenu(false); } },
-                { label: 'Save  ⌘S', action: () => { handleSave(); setShowMenu(false); } },
-                { label: 'Open  ⌘O', action: () => { handleOpen(); setShowMenu(false); } },
+                { label: 'All boards', action: () => { closeFile(); setShowMenu(false); } },
               ].map((item) => (
                 <button
                   key={item.label}

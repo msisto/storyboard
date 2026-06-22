@@ -423,10 +423,6 @@ Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel
 
 Select two or more items to see alignment controls in the Inspect panel. Align edges or centers, distribute with equal spacing.
 
-### JSX export
-
-Menu (≡) → Export JSX generates a React component for any frame. Auto-layout frames produce a `className` string using Tailwind utility classes. Slot compositions are emitted as nested JSX. Semantic background tokens (`hsl(var(--background))` etc.) are preserved as-is.
-
 ---
 
 ## Component library

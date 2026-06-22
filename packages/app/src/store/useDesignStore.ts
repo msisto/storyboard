@@ -119,6 +119,7 @@ interface DesignStore {
   selectedComponentId: string | null;     // primary (last clicked) — kept for single-select consumers
   selectedComponentIds: string[];          // full multi-selection
   newFile: (name: string) => void;
+  closeFile: () => void;
   renameFile: (name: string) => void;
   updateTheme: (theme: { light: Record<string, string>; dark: Record<string, string> }) => void;
   loadFile: (file: Omit<DesignFile, 'id'> & { id?: string }) => void;
@@ -165,6 +166,8 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
   selectedFrameIds: [],
   selectedComponentId: null,
   selectedComponentIds: [],
+
+  closeFile: () => set({ file: null, selectedFrameId: null, selectedFrameIds: [], selectedComponentId: null, selectedComponentIds: [], history: [] }),
 
   newFile: (name) =>
     set({
