@@ -406,7 +406,11 @@ export function StoryboardTimeline({
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeSlot, setActiveSlot] = useState<{ fromFrame: Frame; toFrame: Frame; transition?: FrameTransition; rect: DOMRect } | null>(null);
+  const [activeSlot, setActiveSlot] = useState<{ fromFrame: Frame; toFrame: Frame; rect: DOMRect } | null>(null);
+  // Derive live — never stale after store updates
+  const activeTransition = activeSlot
+    ? transitions.find((t) => t.fromFrameId === activeSlot.fromFrame.id && t.toFrameId === activeSlot.toFrame.id)
+    : undefined;
   const draggingIdRef = useRef<string | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
   insertionIndexRef.current = insertionIndex;
@@ -703,7 +707,7 @@ export function StoryboardTimeline({
                     fromFrame={frame}
                     toFrame={next}
                     transition={t}
-                    onOpen={(rect) => setActiveSlot({ fromFrame: frame, toFrame: next, transition: t, rect })}
+                    onOpen={(rect) => setActiveSlot({ fromFrame: frame, toFrame: next, rect })}
                   />
                 );
               })()}
@@ -810,18 +814,14 @@ export function StoryboardTimeline({
       <TransitionInspectorPanel
         fromFrame={activeSlot.fromFrame}
         toFrame={activeSlot.toFrame}
-        transition={activeSlot.transition}
+        transition={activeTransition}
         anchorRect={activeSlot.rect}
-        onAdd={() => {
-          onAddTransition?.(activeSlot.fromFrame.id, activeSlot.toFrame.id);
-          const t = transitions.find((tr) => tr.fromFrameId === activeSlot.fromFrame.id && tr.toFrameId === activeSlot.toFrame.id);
-          setActiveSlot((s) => s ? { ...s, transition: t } : null);
-        }}
+        onAdd={() => onAddTransition?.(activeSlot.fromFrame.id, activeSlot.toFrame.id)}
         onUpdate={(trigger) => {
-          if (activeSlot.transition) onUpdateTransition?.(activeSlot.transition.id, trigger);
+          if (activeTransition) onUpdateTransition?.(activeTransition.id, trigger);
         }}
         onRemove={() => {
-          if (activeSlot.transition) onRemoveTransition?.(activeSlot.transition.id);
+          if (activeTransition) onRemoveTransition?.(activeTransition.id);
           setActiveSlot(null);
         }}
         onClose={() => setActiveSlot(null)}

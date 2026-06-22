@@ -13,7 +13,7 @@ import {
   distributeH, distributeV, tidyUp,
   type ItemGeometry,
 } from '../canvas/alignmentUtils';
-import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, DesignFile, Frame, FrameTransition, SizingMode, StorybookStory, TransitionTrigger } from '../types';
+import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, DesignFile, Frame, SizingMode, StorybookStory } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
 import { detectColorTokens, tokenToCss, type ColorToken } from '../lib/detectTokens';
 
@@ -147,181 +147,6 @@ function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (
   );
 }
 
-// ── Transition section ────────────────────────────────────────────────────────
-
-type TriggerMode = 'component-click' | 'component-submit' | 'arg-change-truthy' | 'arg-change-equals' | 'timer' | 'manual';
-
-function triggerToMode(t: TransitionTrigger): TriggerMode {
-  if (t.type === 'component-click') return 'component-click';
-  if (t.type === 'component-submit') return 'component-submit';
-  if (t.type === 'arg-change') return t.condition === 'equals' ? 'arg-change-equals' : 'arg-change-truthy';
-  if (t.type === 'timer') return 'timer';
-  return 'manual';
-}
-
-function modeLabel(m: TriggerMode): string {
-  switch (m) {
-    case 'component-click': return 'is clicked';
-    case 'component-submit': return 'is submitted';
-    case 'arg-change-truthy': return 'changes and is not empty';
-    case 'arg-change-equals': return 'changes to value';
-    case 'timer': return 'after N seconds';
-    case 'manual': return 'any click on frame';
-  }
-}
-
-const TRIGGER_MODES: TriggerMode[] = ['component-click', 'component-submit', 'arg-change-truthy', 'arg-change-equals', 'timer', 'manual'];
-
-interface TransitionRowProps {
-  transition: FrameTransition;
-  frame: Frame;
-  allFrames: Frame[];
-  onUpdate: (patch: Partial<Omit<FrameTransition, 'id'>>) => void;
-  onRemove: () => void;
-  getArgDefs: (id: string) => import('../types').ArgDefinition[];
-}
-
-function TransitionRow({ transition, frame, allFrames, onUpdate, onRemove, getArgDefs }: TransitionRowProps) {
-  const mode = triggerToMode(transition.trigger);
-  const trigger = transition.trigger;
-
-  const needsComponent = mode !== 'timer' && mode !== 'manual';
-  const needsArg = mode === 'arg-change-truthy' || mode === 'arg-change-equals';
-  const needsValue = mode === 'arg-change-equals';
-  const needsSeconds = mode === 'timer';
-
-  const componentId = (trigger as { componentId?: string }).componentId ?? '';
-  const argName = (trigger as { argName?: string }).argName ?? '';
-  const timerSeconds = (trigger as { seconds?: number }).seconds ?? 3;
-  const equalsValue = (trigger as { value?: string }).value ?? '';
-
-  const argDefs = needsArg && componentId ? getArgDefs(
-    frame.components.find((c) => c.id === componentId)?.storybookId ?? ''
-  ) : [];
-
-  function buildTrigger(newMode: TriggerMode, cId: string, aName: string, val: string, secs: number): TransitionTrigger {
-    switch (newMode) {
-      case 'component-click': return { type: 'component-click', componentId: cId };
-      case 'component-submit': return { type: 'component-submit', componentId: cId };
-      case 'arg-change-truthy': return { type: 'arg-change', componentId: cId, argName: aName, condition: 'truthy' };
-      case 'arg-change-equals': return { type: 'arg-change', componentId: cId, argName: aName, condition: 'equals', value: val };
-      case 'timer': return { type: 'timer', seconds: secs };
-      case 'manual': return { type: 'manual' };
-    }
-  }
-
-  const selectStyle: React.CSSProperties = {
-    width: '100%', padding: '3px 5px', fontSize: 11,
-    border: '1px solid var(--sb-border)', borderRadius: 4,
-    background: 'var(--sb-bg)', color: 'var(--sb-text-2)', outline: 'none',
-  };
-
-  return (
-    <div style={{ background: 'var(--sb-bg-secondary)', borderRadius: 6, padding: '8px 8px', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
-      {/* Remove */}
-      <button
-        onClick={onRemove}
-        style={{ position: 'absolute', top: 6, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-text-4)', fontSize: 13, lineHeight: 1, padding: 2 }}
-        title="Remove transition"
-      >
-        ✕
-      </button>
-
-      {/* Trigger type */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0 }}>When</span>
-        <select
-          value={mode}
-          onChange={(e) => {
-            const newMode = e.target.value as TriggerMode;
-            onUpdate({ trigger: buildTrigger(newMode, componentId, argName, equalsValue, timerSeconds) });
-          }}
-          style={{ ...selectStyle, flex: 1 }}
-        >
-          {TRIGGER_MODES.map((m) => <option key={m} value={m}>{modeLabel(m)}</option>)}
-        </select>
-      </div>
-
-      {/* Component picker */}
-      {needsComponent && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 28 }}>on</span>
-          <select
-            value={componentId}
-            onChange={(e) => onUpdate({ trigger: buildTrigger(mode, e.target.value, argName, equalsValue, timerSeconds) })}
-            style={{ ...selectStyle, flex: 1 }}
-          >
-            <option value="">— pick component —</option>
-            {frame.components.map((c) => (
-              <option key={c.id} value={c.id}>{c.label || c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Arg picker */}
-      {needsArg && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 28 }}>arg</span>
-          <select
-            value={argName}
-            onChange={(e) => onUpdate({ trigger: buildTrigger(mode, componentId, e.target.value, equalsValue, timerSeconds) })}
-            style={{ ...selectStyle, flex: 1 }}
-          >
-            <option value="">— pick arg —</option>
-            {argDefs.filter((d) => d.type !== 'slot').map((d) => (
-              <option key={d.name} value={d.name}>{d.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Value input for arg-change-equals */}
-      {needsValue && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 28 }}>= </span>
-          <input
-            type="text"
-            value={equalsValue}
-            placeholder="value"
-            onChange={(e) => onUpdate({ trigger: buildTrigger(mode, componentId, argName, e.target.value, timerSeconds) })}
-            style={{ ...selectStyle, flex: 1 }}
-          />
-        </div>
-      )}
-
-      {/* Seconds for timer */}
-      {needsSeconds && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 28 }}>after</span>
-          <input
-            type="number"
-            min={0.5} step={0.5}
-            value={timerSeconds}
-            onChange={(e) => onUpdate({ trigger: buildTrigger(mode, componentId, argName, equalsValue, parseFloat(e.target.value) || 1) })}
-            style={{ ...selectStyle, flex: 1 }}
-          />
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>s</span>
-        </div>
-      )}
-
-      {/* Destination */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 10, color: 'var(--sb-accent)', flexShrink: 0 }}>→</span>
-        <select
-          value={transition.toFrameId}
-          onChange={(e) => onUpdate({ toFrameId: e.target.value })}
-          style={{ ...selectStyle, flex: 1 }}
-        >
-          <option value="">— destination —</option>
-          {allFrames.filter((f) => f.id !== transition.fromFrameId).map((f) => (
-            <option key={f.id} value={f.id}>{f.label}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-}
 
 const DEVICE_PRESETS = [
   { label: 'iPhone', w: 390, h: 844 },
@@ -1097,7 +922,7 @@ function SlotsSection({
 }
 
 export function PropsInspector() {
-  const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions, removeSlottedComponent, selectComponent, addTransition, updateTransition, removeTransition } =
+  const { file, selectedFrameId, selectedFrameIds, selectedComponentId, selectedComponentIds, updateFrame, updateComponent, updateTextLayer, batchUpdatePositions, batchUpdateFramePositions, removeSlottedComponent, selectComponent } =
     useDesignStore();
   const { getArgDefs, stories } = useRegistryStore();
   const [tidyGap, setTidyGap] = useState(16);
@@ -1783,37 +1608,7 @@ export function PropsInspector() {
           </div>
         </Section>
 
-        <Section title="Transitions">
-          {(() => {
-            const outgoing = (file?.transitions ?? []).filter((t) => t.fromFrameId === selectedFrameData.id);
-            const allFrames = file?.frames ?? [];
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {outgoing.map((t) => (
-                  <TransitionRow
-                    key={t.id}
-                    transition={t}
-                    frame={selectedFrameData}
-                    allFrames={allFrames}
-                    onUpdate={(patch) => updateTransition(t.id, patch)}
-                    onRemove={() => removeTransition(t.id)}
-                    getArgDefs={getArgDefs}
-                  />
-                ))}
-                <button
-                  onClick={() => addTransition(selectedFrameData.id, allFrames.find((f) => f.id !== selectedFrameData.id)?.id ?? '', { type: 'manual' })}
-                  style={{
-                    width: '100%', padding: '4px 0', fontSize: 11,
-                    borderRadius: 4, border: '1px dashed var(--sb-border-strong)',
-                    background: 'transparent', color: 'var(--sb-text-3)', cursor: 'pointer',
-                  }}
-                >
-                  + Add transition
-                </button>
-              </div>
-            );
-          })()}
-        </Section>
+
 
         <Section title="Flex">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
