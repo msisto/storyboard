@@ -1,7 +1,7 @@
 # Storyboard
 
 ![Status](https://img.shields.io/badge/status-experimental-orange)
-![License](https://img.shields.io/github/license/msisto/storyboard)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
 
 A design environment for Storybook component libraries.
