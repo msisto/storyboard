@@ -1,5 +1,6 @@
-import React, { useCallback, useRef, useState } from 'react';
-import type { Comment, Frame, FrameTransition } from '../types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { Comment, Frame, FrameTransition, TransitionTrigger } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 import { getStoryEntry } from '../registry/storyRegistry';
 
@@ -15,6 +16,7 @@ interface StoryboardTimelineProps {
   onRemoveFromTimeline: (frameId: string) => void;
   onAddFrame: () => void;
   onAddTransition?: (fromFrameId: string, toFrameId: string) => void;
+  onUpdateTransition?: (id: string, trigger: TransitionTrigger) => void;
   onRemoveTransition?: (transitionId: string) => void;
 }
 
@@ -23,74 +25,184 @@ const THUMB_W = 52;
 const THUMB_H = 38;
 const DRAG_THRESHOLD = 6;
 
-function ConnectorSlot({
-  connected,
-  transitionId,
-  onAdd,
-  onRemove,
-}: {
-  connected: boolean;
-  transitionId?: string;
+/* Crossfade icon — two bezier arcs that cross in the center */
+function CrossfadeIcon({ size = 14, color = 'var(--sb-accent)', opacity = 1 }: { size?: number; color?: string; opacity?: number }) {
+  const h = Math.round(size * 2.4);
+  const yTop = Math.round(h * 0.22);
+  const yBot = Math.round(h * 0.78);
+  const cp = Math.round(size * 0.55);
+  return (
+    <svg width={size} height={h} viewBox={`0 0 ${size} ${h}`} fill="none" style={{ opacity, transition: 'opacity 150ms' }}>
+      <path
+        d={`M 0 ${yTop} C ${cp} ${yTop} ${size - cp} ${yBot} ${size} ${yBot}`}
+        stroke={color} strokeWidth="1.4" strokeLinecap="round"
+      />
+      <path
+        d={`M 0 ${yBot} C ${cp} ${yBot} ${size - cp} ${yTop} ${size} ${yTop}`}
+        stroke={color} strokeWidth="1.4" strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+interface TransitionInspectorPanelProps {
+  fromFrame: Frame;
+  toFrame: Frame;
+  transition?: FrameTransition;
+  anchorRect: DOMRect;
   onAdd: () => void;
-  onRemove: (id: string) => void;
+  onUpdate: (trigger: TransitionTrigger) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}
+
+function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, onAdd, onUpdate, onRemove, onClose }: TransitionInspectorPanelProps) {
+  const trigger = transition?.trigger ?? { type: 'manual' as const };
+  const isTimer = trigger.type === 'timer';
+  const panelWidth = 264;
+  const left = Math.round(anchorRect.left + anchorRect.width / 2 - panelWidth / 2);
+  const bottom = window.innerHeight - anchorRect.top + 10;
+
+  // close on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      const target = e.target as Element;
+      if (!target.closest('[data-transition-inspector]')) onClose();
+    }
+    setTimeout(() => document.addEventListener('mousedown', handler), 0);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const sel: React.CSSProperties = {
+    width: '100%', padding: '4px 8px', fontSize: 11,
+    border: '1px solid var(--sb-border)', borderRadius: 4,
+    background: 'var(--sb-bg)', color: 'var(--sb-text-2)', outline: 'none',
+    cursor: 'pointer',
+  };
+
+  return createPortal(
+    <div
+      data-transition-inspector
+      style={{
+        position: 'fixed',
+        left: Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8)),
+        bottom,
+        width: panelWidth,
+        background: 'var(--sb-bg)',
+        border: '1px solid var(--sb-border)',
+        borderRadius: 8,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+        zIndex: 99998,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header: frame A → crossfade → frame B */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px 8px', borderBottom: '1px solid var(--sb-border)' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>
+          {fromFrame.label}
+        </span>
+        <CrossfadeIcon size={12} color="var(--sb-accent)" opacity={0.8} />
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80, textAlign: 'right' }}>
+          {toFrame.label}
+        </span>
+        <button onClick={onClose} style={{ marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-text-4)', fontSize: 13, padding: 2, lineHeight: 1, flexShrink: 0 }}>✕</button>
+      </div>
+
+      {/* Trigger config */}
+      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0 }}>Trigger</span>
+          <select
+            value={isTimer ? 'timer' : 'manual'}
+            style={{ ...sel, flex: 1 }}
+            onChange={(e) => {
+              const t: TransitionTrigger = e.target.value === 'timer'
+                ? { type: 'timer', seconds: 3 }
+                : { type: 'manual' };
+              if (transition) onUpdate(t);
+              else { onAdd(); onUpdate(t); }
+            }}
+          >
+            <option value="manual">Tap anywhere to advance</option>
+            <option value="timer">Auto-advance after…</option>
+          </select>
+        </div>
+
+        {isTimer && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 40 }}>Seconds</span>
+            <input
+              type="number"
+              min={0.5} step={0.5}
+              value={(trigger as { seconds: number }).seconds}
+              onChange={(e) => onUpdate({ type: 'timer', seconds: parseFloat(e.target.value) || 1 })}
+              style={{ ...sel, width: 64 }}
+            />
+          </div>
+        )}
+
+        {!transition && (
+          <button
+            onClick={onAdd}
+            style={{ width: '100%', padding: '5px 0', fontSize: 11, borderRadius: 4, border: 'none', background: 'var(--sb-accent)', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Add transition
+          </button>
+        )}
+
+        {transition && (
+          <button
+            onClick={() => { onRemove(); onClose(); }}
+            style={{ width: '100%', padding: '5px 0', fontSize: 11, borderRadius: 4, border: '1px solid var(--sb-border)', background: 'transparent', color: 'var(--sb-text-3)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Remove transition
+          </button>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ConnectorSlot({
+  fromFrame,
+  toFrame,
+  transition,
+  onOpen,
+}: {
+  fromFrame: Frame;
+  toFrame: Frame;
+  transition?: FrameTransition;
+  onOpen: (rect: DOMRect) => void;
 }) {
   const [hovered, setHovered] = React.useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const connected = !!transition;
 
   return (
     <div
+      ref={ref}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => {
         e.stopPropagation();
-        if (connected && transitionId) onRemove(transitionId);
-        else onAdd();
+        if (ref.current) onOpen(ref.current.getBoundingClientRect());
       }}
-      title={connected ? 'Remove transition' : 'Add transition'}
+      title={connected ? `${fromFrame.label} → ${toFrame.label}` : 'Add transition'}
       style={{
         flexShrink: 0,
-        width: hovered ? 28 : 20,
+        width: 20,
         height: 64,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        position: 'relative',
-        transition: 'width 120ms ease',
       }}
     >
       {connected ? (
-        /* Crossfade connector: overlapping rounded rectangles with an arrow */
-        <div style={{ position: 'relative', width: '100%', height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* Left gradient fade */}
-          <div style={{
-            position: 'absolute', left: 0, top: 0, width: '50%', height: '100%',
-            background: 'linear-gradient(to right, transparent, var(--sb-accent))',
-            opacity: hovered ? 0.6 : 0.35,
-            borderRadius: '3px 0 0 3px',
-            transition: 'opacity 120ms',
-          }} />
-          {/* Right gradient fade */}
-          <div style={{
-            position: 'absolute', right: 0, top: 0, width: '50%', height: '100%',
-            background: 'linear-gradient(to left, transparent, var(--sb-accent))',
-            opacity: hovered ? 0.6 : 0.35,
-            borderRadius: '0 3px 3px 0',
-            transition: 'opacity 120ms',
-          }} />
-          {/* Arrow chevron */}
-          <svg
-            width="10" height="10" viewBox="0 0 10 10" fill="none"
-            style={{ position: 'relative', zIndex: 1, opacity: hovered ? 1 : 0.8, transition: 'opacity 120ms' }}
-          >
-            <path d="M2 2L7 5L2 8" stroke="var(--sb-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
+        <CrossfadeIcon size={14} color="var(--sb-accent)" opacity={hovered ? 0.95 : 0.55} />
       ) : (
-        /* Empty slot: faint plus */
-        <svg
-          width="10" height="10" viewBox="0 0 10 10" fill="none"
-          style={{ opacity: hovered ? 0.6 : 0.2, transition: 'opacity 120ms' }}
-        >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ opacity: hovered ? 0.5 : 0.15, transition: 'opacity 150ms' }}>
           <path d="M5 1V9M1 5H9" stroke="var(--sb-text)" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       )}
@@ -208,11 +320,13 @@ export function StoryboardTimeline({
   onRemoveFromTimeline,
   onAddFrame,
   onAddTransition,
+  onUpdateTransition,
   onRemoveTransition,
 }: StoryboardTimelineProps) {
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<{ fromFrame: Frame; toFrame: Frame; transition?: FrameTransition; rect: DOMRect } | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const insertionIndexRef = useRef<number | null>(null);
   insertionIndexRef.current = insertionIndex;
@@ -271,6 +385,7 @@ export function StoryboardTimeline({
   const unreadCount = comments.filter((c) => !c.read && !c.resolved).length;
 
   return (
+    <>
     <div
       style={{
         height: 90,
@@ -505,10 +620,10 @@ export function StoryboardTimeline({
                 const t = transitions.find((tr) => tr.fromFrameId === frame.id && tr.toFrameId === next.id);
                 return (
                   <ConnectorSlot
-                    connected={!!t}
-                    transitionId={t?.id}
-                    onAdd={() => onAddTransition?.(frame.id, next.id)}
-                    onRemove={(id) => onRemoveTransition?.(id)}
+                    fromFrame={frame}
+                    toFrame={next}
+                    transition={t}
+                    onOpen={(rect) => setActiveSlot({ fromFrame: frame, toFrame: next, transition: t, rect })}
                   />
                 );
               })()}
@@ -609,5 +724,29 @@ export function StoryboardTimeline({
         )}
       </button>
     </div>
+
+    {/* Transition inspector portal */}
+    {activeSlot && (
+      <TransitionInspectorPanel
+        fromFrame={activeSlot.fromFrame}
+        toFrame={activeSlot.toFrame}
+        transition={activeSlot.transition}
+        anchorRect={activeSlot.rect}
+        onAdd={() => {
+          onAddTransition?.(activeSlot.fromFrame.id, activeSlot.toFrame.id);
+          const t = transitions.find((tr) => tr.fromFrameId === activeSlot.fromFrame.id && tr.toFrameId === activeSlot.toFrame.id);
+          setActiveSlot((s) => s ? { ...s, transition: t } : null);
+        }}
+        onUpdate={(trigger) => {
+          if (activeSlot.transition) onUpdateTransition?.(activeSlot.transition.id, trigger);
+        }}
+        onRemove={() => {
+          if (activeSlot.transition) onRemoveTransition?.(activeSlot.transition.id);
+          setActiveSlot(null);
+        }}
+        onClose={() => setActiveSlot(null)}
+      />
+    )}
+    </>
   );
 }

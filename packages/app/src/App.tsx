@@ -834,6 +834,10 @@ export default function App() {
             const { addTransition } = useDesignStore.getState();
             addTransition(fromId, toId, { type: 'manual' });
           }}
+          onUpdateTransition={(id, trigger) => {
+            const { updateTransition } = useDesignStore.getState();
+            updateTransition(id, { trigger });
+          }}
           onRemoveTransition={(id) => {
             const { removeTransition } = useDesignStore.getState();
             removeTransition(id);
