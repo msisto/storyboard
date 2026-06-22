@@ -21,8 +21,8 @@ Concretely:
 - **Interaction states are real** — hover a component and it hovers, type in an input, open a dropdown
 - **Portals render and clip inside the frame** — dialogs, drawers, and sheets behave like a real viewport boundary
 - **Auto-layout with real constraints** — flow, gap, padding, and fill/hug sizing, snapped to your Tailwind scale
-- **Every instance holds independent content** — the same story becomes different concrete screens
-- **Each frame is a committed `.tsx` story** — design changes show up as readable git diffs alongside the code
+- **Every instance holds independent content** — the same component appears with different content across frames
+
 
 ---
 
