@@ -1,27 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Badge } from '../components/ui/badge';
 
-const meta = {
+type BadgeArgs = { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' };
+
+const meta: Meta<BadgeArgs> = {
   title: 'UI/Badge',
-  component: Badge,
   parameters: { layout: 'centered' },
   argTypes: {
-    variant: {
-      control: 'select',
-      options: ['default', 'secondary', 'destructive', 'outline'],
-      description: 'Visual style variant',
-    },
-    children: {
-      control: 'text',
-      description: 'Badge label',
-    },
+    label: { control: 'text' },
+    variant: { control: 'select', options: ['default', 'secondary', 'destructive', 'outline'] },
   },
-} satisfies Meta<typeof Badge>;
+};
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<BadgeArgs>;
 
-export const Default: Story = { args: { children: 'Badge', variant: 'default' } };
-export const Secondary: Story = { args: { children: 'Secondary', variant: 'secondary' } };
-export const Destructive: Story = { args: { children: 'Error', variant: 'destructive' } };
-export const Outline: Story = { args: { children: 'Outline', variant: 'outline' } };
+const render = ({ label, variant }: BadgeArgs) => <Badge variant={variant}>{label}</Badge>;
+
+export const Default: Story = { args: { label: 'Badge', variant: 'default' }, render };
+export const Secondary: Story = { args: { label: 'Secondary', variant: 'secondary' }, render };
+export const Destructive: Story = { args: { label: 'Error', variant: 'destructive' }, render };
+export const Outline: Story = { args: { label: 'Outline', variant: 'outline' }, render };

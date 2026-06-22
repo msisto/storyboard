@@ -713,8 +713,12 @@ function PropsSection({
   // Keys covered by argDefs
   const defKeys = new Set(argDefs.map((d) => d.name));
 
-  // Args already on the instance that have no argDef (user-added or set externally)
-  const extraKeys = Object.keys(args).filter((k) => !defKeys.has(k));
+  // Args already on the instance that have no argDef (user-added or set externally).
+  // Exclude React-reserved props — they appear as stale args when a story renames children to label.
+  const REACT_RESERVED = new Set(['children', 'className', 'style', 'key', 'ref']);
+  const extraKeys = Object.keys(args).filter(
+    (k) => !defKeys.has(k) && !(argDefs.length > 0 && REACT_RESERVED.has(k))
+  );
 
   const hasContent = argDefs.length > 0 || extraKeys.length > 0;
 
