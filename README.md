@@ -8,9 +8,13 @@ A design environment for Storybook component libraries.
 
 ---
 
-## What it does
+## Why this exists
 
-Storyboard is a design environment for Storybook component libraries. It lets you compose screens from your production components — with live rendering, editable props, and real-time interaction — and saves each frame as a committed `.tsx` story file alongside your source code.
+Most teams keep their component library twice: once in code, once in a design tool that mirrors it. The two drift, and keeping them aligned is ongoing work.
+
+Storyboard is a design canvas whose only component library is your Storybook. Every element on the canvas is a live production component, and every frame you compose is written back to the repo as a real .tsx story. One source of truth; the output of design is code, not a spec to reinterpret.
+
+Because the design lives in the repo as readable story files and JSON, it's also part of the context an agent reads when working on the codebase — no separate design system to reconcile, no handoff to encode.
 
 Concretely:
 
