@@ -62,7 +62,23 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
     : trigger.type === 'timer' ? 'timer'
     : 'manual';
   const selectedComponentId = trigger.type === 'component-click' ? trigger.componentId : '';
+  const selectedItemValue = trigger.type === 'component-click' ? (trigger.itemValue ?? '') : '';
   const timerSeconds = trigger.type === 'timer' ? trigger.seconds : 3;
+
+  // Detect array args on the selected component for item-level click targets
+  const selectedComp = fromFrame.components.find((c) => c.id === selectedComponentId);
+  const arrayArgEntries = selectedComp
+    ? Object.entries(selectedComp.args).filter(
+        ([, v]) => Array.isArray(v) && (v as unknown[]).length > 0 && typeof (v as unknown[])[0] === 'object'
+      )
+    : [];
+  const listItems = (arrayArgEntries[0]?.[1] ?? null) as Record<string, unknown>[] | null;
+  function itemLabel(item: Record<string, unknown>): string {
+    return String(item.label ?? item.title ?? item.name ?? item.value ?? '?');
+  }
+  function itemValue(item: Record<string, unknown>, i: number): string {
+    return String(item.value ?? item.label ?? i);
+  }
 
   const panelWidth = 280;
   const left = Math.round(anchorRect.left + anchorRect.width / 2 - panelWidth / 2);
@@ -133,9 +149,9 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
               applyTrigger(t);
             }}
           >
-            <option value="manual">tap anywhere</option>
-            <option value="component-click">a component is clicked</option>
-            <option value="timer">after N seconds</option>
+            <option value="manual">tap anywhere on screen</option>
+            <option value="component-click">click on a component</option>
+            <option value="timer">automatically after…</option>
           </select>
         </div>
 
@@ -153,6 +169,30 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
               )}
               {fromFrame.components.map((c) => (
                 <option key={c.id} value={c.id}>{c.label || c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* List item sub-picker — shown when selected component has array args */}
+        {triggerType === 'component-click' && selectedComponentId && listItems && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 44 }}>Item</span>
+            <select
+              value={selectedItemValue}
+              style={{ ...sel, flex: 1 }}
+              onChange={(e) => {
+                const val = e.target.value;
+                applyTrigger({
+                  type: 'component-click',
+                  componentId: selectedComponentId,
+                  ...(val ? { itemValue: val } : {}),
+                });
+              }}
+            >
+              <option value="">Any item</option>
+              {listItems.map((item, i) => (
+                <option key={i} value={itemValue(item, i)}>{itemLabel(item)}</option>
               ))}
             </select>
           </div>

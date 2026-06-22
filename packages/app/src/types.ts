@@ -201,7 +201,7 @@ export interface Comment {
 }
 
 export type TransitionTrigger =
-  | { type: 'component-click'; componentId: string }
+  | { type: 'component-click'; componentId: string; itemValue?: string }
   | { type: 'component-submit'; componentId: string }
   | { type: 'arg-change'; componentId: string; argName: string; condition: 'truthy' | 'equals'; value?: string }
   | { type: 'timer'; seconds: number }

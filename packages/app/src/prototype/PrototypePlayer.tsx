@@ -74,16 +74,9 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
   function tryNavigate(componentId: string, eventType: 'component-click' | 'component-submit') {
     for (const t of transitions) {
       if (t.trigger.type !== eventType) continue;
-      if ((t.trigger as { componentId: string }).componentId !== componentId) continue;
-      if (evaluateConditions(t.conditions ?? [], liveArgs, baseArgs)) {
-        onNavigate(t.toFrameId);
-        return;
-      }
-    }
-    // Check arg-change transitions that already satisfy condition
-    for (const t of transitions) {
-      if (t.trigger.type !== 'arg-change') continue;
-      if ((t.trigger as { componentId: string }).componentId !== componentId) continue;
+      const tr = t.trigger as { componentId: string; itemValue?: string };
+      if (tr.componentId !== componentId) continue;
+      if (tr.itemValue) continue; // item-value triggers handled in handleComponentArgChange
       if (evaluateConditions(t.conditions ?? [], liveArgs, baseArgs)) {
         onNavigate(t.toFrameId);
         return;
@@ -93,7 +86,8 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
 
   function handleComponentArgChange(componentId: string, argName: string, value: unknown) {
     onArgChange(componentId, argName, value);
-    // Check arg-change triggers
+
+    // arg-change triggers
     for (const t of transitions) {
       if (t.trigger.type !== 'arg-change') continue;
       const tr = t.trigger as { type: 'arg-change'; componentId: string; argName: string; condition: 'truthy' | 'equals'; value?: string };
@@ -102,6 +96,19 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
       if (passes && evaluateConditions(t.conditions ?? [], liveArgs, baseArgs)) {
         onNavigate(t.toFrameId);
         return;
+      }
+    }
+
+    // component-click with itemValue — fires when onValueChange/onChange reports the target value
+    for (const t of transitions) {
+      if (t.trigger.type !== 'component-click') continue;
+      const tr = t.trigger as { componentId: string; itemValue?: string };
+      if (tr.componentId !== componentId || !tr.itemValue) continue;
+      if (String(value ?? '') === tr.itemValue) {
+        if (evaluateConditions(t.conditions ?? [], liveArgs, baseArgs)) {
+          onNavigate(t.toFrameId);
+          return;
+        }
       }
     }
   }
@@ -131,8 +138,11 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
         {frame.components.map((component) => {
           const geo = layout.components[component.id];
           if (!geo) return null;
-          const clickTrigger = transitions.find(
-            (t) => t.trigger.type === 'component-click' && (t.trigger as { componentId: string }).componentId === component.id
+          // Whole-component click trigger (no itemValue) — use event bubbling, no overlay
+          const wholeClickTrigger = transitions.find(
+            (t) => t.trigger.type === 'component-click'
+              && (t.trigger as { componentId: string; itemValue?: string }).componentId === component.id
+              && !(t.trigger as { itemValue?: string }).itemValue
           );
 
           return (
@@ -144,15 +154,11 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
                 top: geo.y,
                 width: geo.width,
                 height: geo.height,
+                cursor: wholeClickTrigger ? 'pointer' : undefined,
               }}
+              onClick={wholeClickTrigger ? () => tryNavigate(component.id, 'component-click') : undefined}
             >
               {renderInstanceTreePrototype(component, liveArgs, handleComponentArgChange)}
-              {clickTrigger && (
-                <div
-                  style={{ position: 'absolute', inset: 0, zIndex: 10, cursor: 'pointer' }}
-                  onMouseDown={(e) => { e.stopPropagation(); tryNavigate(component.id, 'component-click'); }}
-                />
-              )}
             </div>
           );
         })}
