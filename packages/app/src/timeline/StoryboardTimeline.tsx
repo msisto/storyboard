@@ -58,12 +58,16 @@ interface TransitionInspectorPanelProps {
 
 function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, onAdd, onUpdate, onRemove, onClose }: TransitionInspectorPanelProps) {
   const trigger = transition?.trigger ?? { type: 'manual' as const };
-  const isTimer = trigger.type === 'timer';
-  const panelWidth = 264;
+  const triggerType = trigger.type === 'component-click' ? 'component-click'
+    : trigger.type === 'timer' ? 'timer'
+    : 'manual';
+  const selectedComponentId = trigger.type === 'component-click' ? trigger.componentId : '';
+  const timerSeconds = trigger.type === 'timer' ? trigger.seconds : 3;
+
+  const panelWidth = 280;
   const left = Math.round(anchorRect.left + anchorRect.width / 2 - panelWidth / 2);
   const bottom = window.innerHeight - anchorRect.top + 10;
 
-  // close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       const target = e.target as Element;
@@ -72,6 +76,10 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
     setTimeout(() => document.addEventListener('mousedown', handler), 0);
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
+
+  function applyTrigger(t: TransitionTrigger) {
+    if (transition) onUpdate(t);
+  }
 
   const sel: React.CSSProperties = {
     width: '100%', padding: '4px 8px', fontSize: 11,
@@ -96,13 +104,13 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
         overflow: 'hidden',
       }}
     >
-      {/* Header: frame A → crossfade → frame B */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 12px 8px', borderBottom: '1px solid var(--sb-border)' }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {fromFrame.label}
         </span>
         <CrossfadeIcon size={12} color="var(--sb-accent)" opacity={0.8} />
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80, textAlign: 'right' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--sb-text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>
           {toFrame.label}
         </span>
         <button onClick={onClose} style={{ marginLeft: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sb-text-4)', fontSize: 13, padding: 2, lineHeight: 1, flexShrink: 0 }}>✕</button>
@@ -110,50 +118,72 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
 
       {/* Trigger config */}
       <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+        {/* Trigger type */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0 }}>Trigger</span>
+          <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 44 }}>When</span>
           <select
-            value={isTimer ? 'timer' : 'manual'}
+            value={triggerType}
             style={{ ...sel, flex: 1 }}
             onChange={(e) => {
-              const t: TransitionTrigger = e.target.value === 'timer'
-                ? { type: 'timer', seconds: 3 }
+              const v = e.target.value;
+              const t: TransitionTrigger = v === 'timer' ? { type: 'timer', seconds: timerSeconds }
+                : v === 'component-click' ? { type: 'component-click', componentId: fromFrame.components[0]?.id ?? '' }
                 : { type: 'manual' };
-              if (transition) onUpdate(t);
-              else { onAdd(); onUpdate(t); }
+              applyTrigger(t);
             }}
           >
-            <option value="manual">Tap anywhere to advance</option>
-            <option value="timer">Auto-advance after…</option>
+            <option value="manual">tap anywhere</option>
+            <option value="component-click">a component is clicked</option>
+            <option value="timer">after N seconds</option>
           </select>
         </div>
 
-        {isTimer && (
+        {/* Component picker for component-click */}
+        {triggerType === 'component-click' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 40 }}>Seconds</span>
+            <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 44 }}>Which</span>
+            <select
+              value={selectedComponentId}
+              style={{ ...sel, flex: 1 }}
+              onChange={(e) => applyTrigger({ type: 'component-click', componentId: e.target.value })}
+            >
+              {fromFrame.components.length === 0 && (
+                <option value="">— no components on this frame —</option>
+              )}
+              {fromFrame.components.map((c) => (
+                <option key={c.id} value={c.id}>{c.label || c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Seconds for timer */}
+        {triggerType === 'timer' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 10, color: 'var(--sb-text-3)', flexShrink: 0, width: 44 }}>Seconds</span>
             <input
               type="number"
               min={0.5} step={0.5}
-              value={(trigger as { seconds: number }).seconds}
-              onChange={(e) => onUpdate({ type: 'timer', seconds: parseFloat(e.target.value) || 1 })}
-              style={{ ...sel, width: 64 }}
+              value={timerSeconds}
+              onChange={(e) => applyTrigger({ type: 'timer', seconds: parseFloat(e.target.value) || 1 })}
+              style={{ ...sel, width: 72 }}
             />
           </div>
         )}
 
-        {!transition && (
+        {/* Add / Remove */}
+        {!transition ? (
           <button
             onClick={onAdd}
             style={{ width: '100%', padding: '5px 0', fontSize: 11, borderRadius: 4, border: 'none', background: 'var(--sb-accent)', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Add transition
           </button>
-        )}
-
-        {transition && (
+        ) : (
           <button
             onClick={() => { onRemove(); onClose(); }}
-            style={{ width: '100%', padding: '5px 0', fontSize: 11, borderRadius: 4, border: '1px solid var(--sb-border)', background: 'transparent', color: 'var(--sb-text-3)', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ width: '100%', padding: '5px 0', fontSize: 11, borderRadius: 4, border: '1px solid var(--sb-border)', background: 'transparent', color: 'var(--sb-text-3)', cursor: 'pointer', fontFamily: 'inherit', marginTop: 2 }}
           >
             Remove transition
           </button>
