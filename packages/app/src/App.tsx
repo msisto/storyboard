@@ -16,7 +16,6 @@ import { useCommentSync } from './comments/useCommentSync';
 import { useAutoSave } from './store/useAutoSave';
 import { api } from './store/api';
 import { computeAutoLayout } from './canvas/autoLayout';
-import { StoryboardTimeline } from './timeline/StoryboardTimeline';
 import type { AutoLayoutSettings, Frame, StorybookStory } from './types';
 
 function inferAutoLayout(frame: Frame): AutoLayoutSettings {
@@ -696,6 +695,8 @@ export default function App() {
           connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange}
           hasTransitions={hasTransitions}
           onPlay={() => setProtoActive(true)}
+          onAddFrame={handleAddFrame}
+          unreadCommentCount={(file?.comments ?? []).filter((c) => !c.read && !c.resolved).length}
         />
       )}
 
@@ -815,35 +816,6 @@ export default function App() {
         )}
       </div>
 
-      {panelsVisible && (
-        <StoryboardTimeline
-          frames={file?.frames.filter((f) => f.inTimeline !== false) ?? []}
-          comments={file?.comments ?? []}
-          selectedFrameId={selectedFrameId}
-          selectedFrameIds={selectedFrameIds}
-          transitions={file?.transitions ?? []}
-          onSelectFrame={handleSelectFrame}
-          onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
-          onReorderFrame={reorderFrame}
-          onRemoveFromTimeline={(id) => {
-            const { updateFrame } = useDesignStore.getState();
-            updateFrame(id, { inTimeline: false });
-          }}
-          onAddFrame={handleAddFrame}
-          onAddTransition={(fromId, toId) => {
-            const { addTransition } = useDesignStore.getState();
-            addTransition(fromId, toId, { type: 'manual' });
-          }}
-          onUpdateTransition={(id, trigger) => {
-            const { updateTransition } = useDesignStore.getState();
-            updateTransition(id, { trigger });
-          }}
-          onRemoveTransition={(id) => {
-            const { removeTransition } = useDesignStore.getState();
-            removeTransition(id);
-          }}
-        />
-      )}
 
       {/* Comment placement modal */}
       {pendingComment && (

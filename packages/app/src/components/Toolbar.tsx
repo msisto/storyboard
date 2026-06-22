@@ -11,9 +11,12 @@ interface ToolbarProps {
   onAuthorChange: (name: string) => void;
   onPlay?: () => void;
   hasTransitions?: boolean;
+  onAddFrame?: () => void;
+  unreadCommentCount?: number;
+  onToggleComments?: () => void;
 }
 
-export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, hasTransitions }: ToolbarProps) {
+export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, hasTransitions, onAddFrame, unreadCommentCount = 0, onToggleComments }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
   const { file, newFile, loadFile, renameFile, selectComponent } = useDesignStore();
   const [showMenu, setShowMenu] = useState(false);
@@ -163,6 +166,28 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, 
           <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>I</span>
         </button>
 
+        {/* Add Frame */}
+        {onAddFrame && (
+          <button
+            onClick={onAddFrame}
+            title="Add frame"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 8px', borderRadius: 4, cursor: 'pointer',
+              border: '1px solid var(--sb-border)',
+              background: 'var(--sb-bg)',
+              color: 'var(--sb-text-3)',
+              fontSize: 11,
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <rect x="0.5" y="0.5" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M5.5 3V8M3 5.5H8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+            Frame
+          </button>
+        )}
+
         {/* Play / prototype button */}
         {hasTransitions && onPlay && (
           <button
@@ -182,6 +207,32 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, 
             </svg>
           </button>
         )}
+
+        {/* Comment history */}
+        <button
+          onClick={onToggleComments}
+          title="Comments"
+          style={{
+            position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 30, height: 30, borderRadius: 4, cursor: 'pointer',
+            border: '1px solid var(--sb-border)',
+            background: 'var(--sb-bg)',
+            color: 'var(--sb-text-4)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M8 2C4.686 2 2 4.462 2 7.5c0 1.48.607 2.82 1.593 3.8L3 14l2.857-1.143A6.14 6.14 0 0 0 8 13c3.314 0 6-2.462 6-5.5S11.314 2 8 2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+          </svg>
+          {unreadCommentCount > 0 && (
+            <div style={{
+              position: 'absolute', top: 2, right: 2,
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#F59E0B',
+              border: '1px solid var(--sb-bg)',
+            }} />
+          )}
+        </button>
 
         {/* Centered file title */}
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>
