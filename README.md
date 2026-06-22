@@ -2,8 +2,6 @@
 
 A design environment for Storybook component libraries.
 
-<img width="967" height="627" alt="Screenshot 2026-06-21 at 9 07 00 PM" src="https://github.com/user-attachments/assets/d448a108-87b6-4991-a29f-acd59cb85292" />
-
 <img width="3456" height="1868" alt="CleanShot 2026-06-21 at 20 11 52@2x" src="https://github.com/user-attachments/assets/a2702723-eb5d-4886-8d43-8ea870456e8b" />
 
 <img width="1728" height="933" alt="Screenshot 2026-06-21 at 8 56 21 PM" src="https://github.com/user-attachments/assets/53fe0362-2302-4e00-864a-9a2b3f267a2c" />
