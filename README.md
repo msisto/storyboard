@@ -229,7 +229,7 @@ Every structural mutation (add/move/delete, layout changes, text edits) pushes a
 
 ### Auto-layout
 
-Frames have an optional auto-layout mode (Shift+A, or the inspector toggle). When enabled, children flow horizontally or vertically with configurable gap, padding, and alignment — similar to Figma's auto-layout. The layout engine is a pure TypeScript function in `canvas/autoLayout.ts` that runs synchronously every render.
+Frames have an optional auto-layout mode (Shift+A, or the inspector toggle). When enabled, children flow horizontally or vertically with configurable gap, padding, and alignment. The layout engine is a pure TypeScript function in `canvas/autoLayout.ts` that runs synchronously every render.
 
 Child sizing modes:
 - **fixed** — explicit stored width/height
