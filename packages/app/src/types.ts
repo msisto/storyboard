@@ -200,6 +200,28 @@ export interface Comment {
   replies: CommentReply[];
 }
 
+export type TransitionTrigger =
+  | { type: 'component-click'; componentId: string }
+  | { type: 'component-submit'; componentId: string }
+  | { type: 'arg-change'; componentId: string; argName: string; condition: 'truthy' | 'equals'; value?: string }
+  | { type: 'timer'; seconds: number }
+  | { type: 'manual' };
+
+export type TransitionCondition =
+  | { type: 'arg-truthy'; componentId: string; argName: string }
+  | { type: 'arg-falsy'; componentId: string; argName: string }
+  | { type: 'arg-equals'; componentId: string; argName: string; value: string }
+  | { type: 'arg-not-equals'; componentId: string; argName: string; value: string };
+
+export interface FrameTransition {
+  id: string;
+  fromFrameId: string;
+  toFrameId: string;
+  trigger: TransitionTrigger;
+  conditions?: TransitionCondition[];
+  label: string;
+}
+
 export interface DesignFile {
   version: 1;
   id: string;
@@ -208,6 +230,7 @@ export interface DesignFile {
   updatedAt: number;
   frames: Frame[];
   comments: Comment[];
+  transitions?: FrameTransition[];
 }
 
 export interface FileListItem {

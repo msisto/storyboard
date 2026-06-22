@@ -9,9 +9,11 @@ interface ToolbarProps {
   peerCount: number;
   author: string;
   onAuthorChange: (name: string) => void;
+  onPlay?: () => void;
+  hasTransitions?: boolean;
 }
 
-export function Toolbar({ connected, peerCount, author, onAuthorChange }: ToolbarProps) {
+export function Toolbar({ connected, peerCount, author, onAuthorChange, onPlay, hasTransitions }: ToolbarProps) {
   const { activeTool, setTool, viewport, zoomTo, globalInteractMode, toggleGlobalInteractMode } = useCanvasStore();
   const { file, newFile, loadFile, renameFile, selectComponent } = useDesignStore();
   const [showMenu, setShowMenu] = useState(false);
@@ -160,6 +162,26 @@ export function Toolbar({ connected, peerCount, author, onAuthorChange }: Toolba
           <InteractIcon />
           <span style={{ fontSize: 10, color: globalInteractMode ? 'var(--sb-accent)' : 'var(--sb-text-4)' }}>I</span>
         </button>
+
+        {/* Play / prototype button */}
+        {hasTransitions && onPlay && (
+          <button
+            onClick={onPlay}
+            title="Play prototype"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 30, height: 30, borderRadius: 6, cursor: 'pointer',
+              border: '1px solid var(--sb-accent)',
+              background: 'var(--sb-accent-bg)',
+              color: 'var(--sb-accent)',
+              marginLeft: 4,
+            }}
+          >
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+              <path d="M1 1.5L11 7L1 12.5V1.5Z" />
+            </svg>
+          </button>
+        )}
 
         {/* Centered file title */}
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none' }}>

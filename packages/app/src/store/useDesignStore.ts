@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, TextLayer, TailwindFontSize, TailwindFontWeight } from '../types';
+import type { Comment, CommentReply, ComponentInstance, DesignFile, Frame, FrameTransition, TextLayer, TailwindFontSize, TailwindFontWeight, TransitionCondition, TransitionTrigger } from '../types';
 import { TAILWIND_FONT_SIZES } from '../types';
 import { computeAutoLayout } from '../canvas/autoLayout';
 
@@ -124,6 +124,9 @@ interface DesignStore {
   groupSelectedItems: () => void;
   addSlottedComponent: (frameId: string, parentId: string, slotName: string, data: Omit<ComponentInstance, 'id'>) => string;
   removeSlottedComponent: (frameId: string, parentId: string, slotName: string, childId: string) => void;
+  addTransition: (fromFrameId: string, toFrameId: string, trigger: TransitionTrigger, conditions?: TransitionCondition[], label?: string) => void;
+  updateTransition: (id: string, patch: Partial<Omit<FrameTransition, 'id'>>) => void;
+  removeTransition: (id: string) => void;
 }
 
 export const useDesignStore = create<DesignStore>((set, get) => ({
@@ -855,6 +858,56 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
         },
         selectedComponentId: state.selectedComponentId === childId ? null : state.selectedComponentId,
         selectedComponentIds: state.selectedComponentIds.filter((i) => i !== childId),
+      };
+    }),
+
+  addTransition: (fromFrameId, toFrameId, trigger, conditions, label) =>
+    set((state) => {
+      if (!state.file) return state;
+      const id = uid();
+      const autoLabel = label ?? (() => {
+        if (trigger.type === 'timer') return `After ${trigger.seconds}s`;
+        if (trigger.type === 'manual') return 'Tap anywhere';
+        const frame = findFrame(state.file!.frames, fromFrameId);
+        const comp = frame?.components.find((c) => c.id === (trigger as { componentId: string }).componentId);
+        const dest = state.file!.frames.find((f) => f.id === toFrameId);
+        const compLabel = comp?.label ?? comp?.name ?? 'component';
+        const destLabel = dest?.label ?? 'frame';
+        return `${compLabel} → ${destLabel}`;
+      })();
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          transitions: [...(state.file.transitions ?? []), { id, fromFrameId, toFrameId, trigger, conditions, label: autoLabel }],
+        },
+      };
+    }),
+
+  updateTransition: (id, patch) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          transitions: (state.file.transitions ?? []).map((t) => t.id === id ? { ...t, ...patch } : t),
+        },
+      };
+    }),
+
+  removeTransition: (id) =>
+    set((state) => {
+      if (!state.file) return state;
+      return {
+        history: [...state.history, state.file].slice(-MAX_HISTORY),
+        file: {
+          ...state.file,
+          updatedAt: Date.now(),
+          transitions: (state.file.transitions ?? []).filter((t) => t.id !== id),
+        },
       };
     }),
 

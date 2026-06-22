@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import type { Comment, Frame } from '../types';
+import type { Comment, Frame, FrameTransition } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 import { getStoryEntry } from '../registry/storyRegistry';
 
@@ -8,6 +8,7 @@ interface StoryboardTimelineProps {
   comments: Comment[];
   selectedFrameId: string | null;
   selectedFrameIds: string[];
+  transitions?: FrameTransition[];
   onSelectFrame: (frame: Frame) => void;
   onToggleFrame: (frame: Frame) => void;
   onReorderFrame: (fromId: string, beforeId: string | null) => void;
@@ -123,6 +124,7 @@ export function StoryboardTimeline({
   comments,
   selectedFrameId,
   selectedFrameIds,
+  transitions = [],
   onSelectFrame,
   onToggleFrame,
   onReorderFrame,
@@ -415,6 +417,31 @@ export function StoryboardTimeline({
                 >
                   {frame.label}
                 </div>
+
+                {/* Outgoing transition badge */}
+                {(() => {
+                  const outgoing = transitions.filter((t) => t.fromFrameId === frame.id);
+                  if (outgoing.length === 0) return null;
+                  return (
+                    <div
+                      title={outgoing.map((t) => t.label).join(', ')}
+                      style={{
+                        position: 'absolute',
+                        bottom: 22,
+                        right: 4,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        background: 'var(--sb-accent)',
+                        color: '#fff',
+                        borderRadius: 8,
+                        padding: '1px 4px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      →{outgoing.length}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Insertion line after last card */}

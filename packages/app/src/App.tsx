@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from './canvas/Canvas';
 import { Toolbar } from './components/Toolbar';
+import { PrototypePlayer } from './prototype/PrototypePlayer';
 import { LayersPanel } from './components/LayersPanel';
 import { ComponentPalette } from './components/ComponentPalette';
 import { TextPalette } from './components/TextPalette';
@@ -205,6 +206,9 @@ export default function App() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(280);
   const [rightPanelWidth, setRightPanelWidth] = useState(240);
   const [panelsVisible, setPanelsVisible] = useState(true);
+  const [protoActive, setProtoActive] = useState(false);
+  const timelineFrames = file?.frames.filter((f) => f.inTimeline !== false) ?? [];
+  const hasTransitions = (file?.transitions?.length ?? 0) > 0;
 
   const handleLeftPanelResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -688,7 +692,11 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {panelsVisible && (
-        <Toolbar connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange} />
+        <Toolbar
+          connected={connected} peerCount={peerCount} author={authorName} onAuthorChange={handleAuthorChange}
+          hasTransitions={hasTransitions}
+          onPlay={() => setProtoActive(true)}
+        />
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -813,6 +821,7 @@ export default function App() {
           comments={file?.comments ?? []}
           selectedFrameId={selectedFrameId}
           selectedFrameIds={selectedFrameIds}
+          transitions={file?.transitions ?? []}
           onSelectFrame={handleSelectFrame}
           onToggleFrame={(frame) => toggleFrameSelection(frame.id)}
           onReorderFrame={reorderFrame}
@@ -841,6 +850,14 @@ export default function App() {
           }}
           onCancel={() => setPendingComment(null)}
           initialAuthor={authorName}
+        />
+      )}
+
+      {protoActive && file && (
+        <PrototypePlayer
+          frames={timelineFrames}
+          transitions={file.transitions ?? []}
+          onClose={() => setProtoActive(false)}
         />
       )}
     </div>
