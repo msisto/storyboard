@@ -1,40 +1,40 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Button } from '../components/ui/button';
 
-const meta = {
+type ButtonArgs = {
+  label: string;
+  variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  size: 'default' | 'sm' | 'lg' | 'icon';
+  disabled: boolean;
+};
+
+const meta: Meta<ButtonArgs> = {
   title: 'UI/Button',
-  component: Button,
   parameters: { layout: 'centered' },
   argTypes: {
+    label: { control: 'text' },
     variant: {
       control: 'select',
       options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
-      description: 'Visual style variant',
     },
     size: {
       control: 'select',
       options: ['default', 'sm', 'lg', 'icon'],
-      description: 'Size of the button',
     },
-    children: {
-      control: 'text',
-      description: 'Button label text',
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Disables the button',
-    },
+    disabled: { control: 'boolean' },
   },
-} satisfies Meta<typeof Button>;
+};
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<ButtonArgs>;
 
-export const Default: Story = { args: { children: 'Button', variant: 'default', size: 'default' } };
-export const Destructive: Story = { args: { children: 'Delete', variant: 'destructive' } };
-export const Outline: Story = { args: { children: 'Outline', variant: 'outline' } };
-export const Secondary: Story = { args: { children: 'Secondary', variant: 'secondary' } };
-export const Ghost: Story = { args: { children: 'Ghost', variant: 'ghost' } };
-export const Small: Story = { args: { children: 'Small', size: 'sm' } };
-export const Large: Story = { args: { children: 'Large', size: 'lg' } };
-export const Disabled: Story = { args: { children: 'Disabled', disabled: true } };
+const render = ({ label, ...rest }: ButtonArgs) => <Button {...rest}>{label}</Button>;
+
+export const Default: Story = { args: { label: 'Button', variant: 'default', size: 'default', disabled: false }, render };
+export const Destructive: Story = { args: { label: 'Delete', variant: 'destructive', size: 'default', disabled: false }, render };
+export const Outline: Story = { args: { label: 'Outline', variant: 'outline', size: 'default', disabled: false }, render };
+export const Secondary: Story = { args: { label: 'Secondary', variant: 'secondary', size: 'default', disabled: false }, render };
+export const Ghost: Story = { args: { label: 'Ghost', variant: 'ghost', size: 'default', disabled: false }, render };
+export const Small: Story = { args: { label: 'Small', variant: 'default', size: 'sm', disabled: false }, render };
+export const Large: Story = { args: { label: 'Large', variant: 'default', size: 'lg', disabled: false }, render };
+export const Disabled: Story = { args: { label: 'Disabled', variant: 'default', size: 'default', disabled: true }, render };
