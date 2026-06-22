@@ -238,9 +238,9 @@ Every structural mutation (add/move/delete, layout changes, text edits) pushes a
 
 Frames have an optional auto-layout mode (Shift+A, or the inspector toggle). When enabled, children flow horizontally or vertically with configurable gap, padding, and alignment. The layout engine is a pure TypeScript function in `canvas/autoLayout.ts` that runs synchronously every render.
 
-Child sizing modes:
+Child sizing modes (shown in the inspector as Fixed / Grow / Hug):
 - **fixed** — explicit stored width/height
-- **fill** — expands to consume remaining space in the flow direction
+- **grow** (`fill` in the data model) — expands to consume remaining space in the flow direction
 - **hug** — sizes to natural content; for text layers, measured via `ResizeObserver`
 
 All spacing values (gap, padding) are constrained to the Tailwind default spacing scale and displayed as token + pixel value (e.g. `4  16px`).
@@ -384,7 +384,7 @@ Then pass `container={usePortalContainer()}` to your Radix `Portal` components. 
 
 ### Adding components to a frame
 
-Drag a story from the Components panel onto a frame. The component renders immediately and auto-sizes to its natural dimensions. Dropping onto empty canvas creates a frame automatically.
+Drag a story from the Components panel onto a frame. The component renders immediately and auto-sizes to its natural dimensions. Dropping onto empty canvas (with no frames present) creates a new frame automatically; if frames already exist, the drop targets the currently selected frame or the first frame.
 
 To fill a slot, drag a component from the palette and drop it onto an existing component that has slot argTypes defined. The dropped component is added as a child of the target's first available slot.
 
