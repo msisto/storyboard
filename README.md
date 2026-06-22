@@ -18,14 +18,10 @@ Because the design lives in the repo as readable story files and JSON, it's also
 
 Concretely:
 
-- Component props changed in the inspector update the live component instantly, one character at a time
-- Each instance on the canvas can have independent content (two Cards with different titles, same story)
-- A component with a hover state actually hovers when you mouse over it in interact mode
-- The layout you see is the layout your production code produces
-- Portals (dialogs, drawers, sheets) render inside the frame boundary, clipped to its edges
-
-- Each frame auto-saves as a `.tsx` story file in your Storybook package; files are git-committed and produce meaningful diffs
-- Design files are JSON checked into the repo alongside the components they reference
+- Interaction states are real — hover a component and it hovers, type in an input, open a dropdown
+- Portals (dialogs, drawers, sheets) render and clip inside the frame, like a real viewport boundary
+- Every instance can hold independent content, so the same story appears as different concrete screens
+- Each frame is a committed .tsx story — design changes show up as readable git diffs alongside the code
 
 ---
 
