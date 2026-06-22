@@ -3,8 +3,27 @@ import { createPortal } from 'react-dom';
 import { FramePortalContext } from '@/components/ui/portal-context';
 import { computeAutoLayout } from '../canvas/autoLayout';
 import { renderInstanceTreePrototype } from '../canvas/renderInstance';
-import type { Frame, FrameTransition, TransitionCondition } from '../types';
+import type { ComponentInstance, Frame, FrameTransition, TransitionCondition } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
+
+// Recursively collect all components with absolute positions (handles nested groups/frames)
+function flattenComponents(
+  frame: Frame,
+  offsetX = 0,
+  offsetY = 0
+): Array<{ component: ComponentInstance; x: number; y: number; width: number; height: number }> {
+  const layout = computeAutoLayout(frame);
+  const result: Array<{ component: ComponentInstance; x: number; y: number; width: number; height: number }> = [];
+  for (const c of frame.components) {
+    const geo = layout.components[c.id];
+    if (geo) result.push({ component: c, x: offsetX + geo.x, y: offsetY + geo.y, width: geo.width, height: geo.height });
+  }
+  for (const child of (frame.frames ?? [])) {
+    const childGeo = layout.components[child.id];
+    if (childGeo) result.push(...flattenComponents(child, offsetX + childGeo.x, offsetY + childGeo.y));
+  }
+  return result;
+}
 
 interface PrototypePlayerProps {
   frames: Frame[];
@@ -47,13 +66,15 @@ interface ProtoFrameViewProps {
 function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate, isManual }: ProtoFrameViewProps) {
   const { el: portalContainer, ref: portalRef } = usePortalContainer();
   const layout = useMemo(() => computeAutoLayout(frame), [frame]);
+  // Flatten all components (including those inside groups/child frames) with absolute positions
+  const flatComponents = useMemo(() => flattenComponents(frame), [frame]);
 
-  // Build a map of base args per component for condition evaluation
+  // Build a map of base args for condition evaluation — all components at any depth
   const baseArgs = useMemo(() => {
     const m = new Map<string, Record<string, unknown>>();
-    for (const c of frame.components) m.set(c.id, c.args ?? {});
+    for (const { component: c } of flatComponents) m.set(c.id, c.args ?? {});
     return m;
-  }, [frame]);
+  }, [flatComponents]);
 
   // Timer triggers
   useEffect(() => {
@@ -135,9 +156,7 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
           style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}
         />
 
-        {frame.components.map((component) => {
-          const geo = layout.components[component.id];
-          if (!geo) return null;
+        {flatComponents.map(({ component, x, y, width, height }) => {
           // Whole-component click trigger (no itemValue) — use event bubbling, no overlay
           const wholeClickTrigger = transitions.find(
             (t) => t.trigger.type === 'component-click'
@@ -150,10 +169,10 @@ function ProtoFrameView({ frame, transitions, liveArgs, onArgChange, onNavigate,
               key={component.id}
               style={{
                 position: 'absolute',
-                left: geo.x,
-                top: geo.y,
-                width: geo.width,
-                height: geo.height,
+                left: x,
+                top: y,
+                width,
+                height,
                 cursor: wholeClickTrigger ? 'pointer' : undefined,
               }}
               onClick={wholeClickTrigger ? () => tryNavigate(component.id, 'component-click') : undefined}

@@ -1,8 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Comment, Frame, FrameTransition, TransitionTrigger } from '../types';
+import type { Comment, ComponentInstance, Frame, FrameTransition, TransitionTrigger } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS } from '../types';
 import { getStoryEntry } from '../registry/storyRegistry';
+
+function collectAllComponents(frame: Frame): ComponentInstance[] {
+  return [
+    ...frame.components,
+    ...(frame.frames ?? []).flatMap(collectAllComponents),
+  ];
+}
 
 interface StoryboardTimelineProps {
   frames: Frame[];
@@ -65,8 +72,11 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
   const selectedItemValue = trigger.type === 'component-click' ? (trigger.itemValue ?? '') : '';
   const timerSeconds = trigger.type === 'timer' ? trigger.seconds : 3;
 
+  // All components at any nesting depth
+  const allComponents = collectAllComponents(fromFrame);
+
   // Detect array args on the selected component for item-level click targets
-  const selectedComp = fromFrame.components.find((c) => c.id === selectedComponentId);
+  const selectedComp = allComponents.find((c) => c.id === selectedComponentId);
   const arrayArgEntries = selectedComp
     ? Object.entries(selectedComp.args).filter(
         ([, v]) => Array.isArray(v) && (v as unknown[]).length > 0 && typeof (v as unknown[])[0] === 'object'
@@ -144,7 +154,7 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
             onChange={(e) => {
               const v = e.target.value;
               const t: TransitionTrigger = v === 'timer' ? { type: 'timer', seconds: timerSeconds }
-                : v === 'component-click' ? { type: 'component-click', componentId: fromFrame.components[0]?.id ?? '' }
+                : v === 'component-click' ? { type: 'component-click', componentId: allComponents[0]?.id ?? '' }
                 : { type: 'manual' };
               applyTrigger(t);
             }}
@@ -164,10 +174,10 @@ function TransitionInspectorPanel({ fromFrame, toFrame, transition, anchorRect, 
               style={{ ...sel, flex: 1 }}
               onChange={(e) => applyTrigger({ type: 'component-click', componentId: e.target.value })}
             >
-              {fromFrame.components.length === 0 && (
+              {allComponents.length === 0 && (
                 <option value="">— no components on this frame —</option>
               )}
-              {fromFrame.components.map((c) => (
+              {allComponents.map((c) => (
                 <option key={c.id} value={c.id}>{c.label || c.name}</option>
               ))}
             </select>
