@@ -14,12 +14,89 @@ interface StoryboardTimelineProps {
   onReorderFrame: (fromId: string, beforeId: string | null) => void;
   onRemoveFromTimeline: (frameId: string) => void;
   onAddFrame: () => void;
+  onAddTransition?: (fromFrameId: string, toFrameId: string) => void;
+  onRemoveTransition?: (transitionId: string) => void;
 }
 
 const CARD_WIDTH = 84;
 const THUMB_W = 52;
 const THUMB_H = 38;
 const DRAG_THRESHOLD = 6;
+
+function ConnectorSlot({
+  connected,
+  transitionId,
+  onAdd,
+  onRemove,
+}: {
+  connected: boolean;
+  transitionId?: string;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (connected && transitionId) onRemove(transitionId);
+        else onAdd();
+      }}
+      title={connected ? 'Remove transition' : 'Add transition'}
+      style={{
+        flexShrink: 0,
+        width: hovered ? 28 : 20,
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        position: 'relative',
+        transition: 'width 120ms ease',
+      }}
+    >
+      {connected ? (
+        /* Crossfade connector: overlapping rounded rectangles with an arrow */
+        <div style={{ position: 'relative', width: '100%', height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Left gradient fade */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, width: '50%', height: '100%',
+            background: 'linear-gradient(to right, transparent, var(--sb-accent))',
+            opacity: hovered ? 0.6 : 0.35,
+            borderRadius: '3px 0 0 3px',
+            transition: 'opacity 120ms',
+          }} />
+          {/* Right gradient fade */}
+          <div style={{
+            position: 'absolute', right: 0, top: 0, width: '50%', height: '100%',
+            background: 'linear-gradient(to left, transparent, var(--sb-accent))',
+            opacity: hovered ? 0.6 : 0.35,
+            borderRadius: '0 3px 3px 0',
+            transition: 'opacity 120ms',
+          }} />
+          {/* Arrow chevron */}
+          <svg
+            width="10" height="10" viewBox="0 0 10 10" fill="none"
+            style={{ position: 'relative', zIndex: 1, opacity: hovered ? 1 : 0.8, transition: 'opacity 120ms' }}
+          >
+            <path d="M2 2L7 5L2 8" stroke="var(--sb-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      ) : (
+        /* Empty slot: faint plus */
+        <svg
+          width="10" height="10" viewBox="0 0 10 10" fill="none"
+          style={{ opacity: hovered ? 0.6 : 0.2, transition: 'opacity 120ms' }}
+        >
+          <path d="M5 1V9M1 5H9" stroke="var(--sb-text)" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      )}
+    </div>
+  );
+}
 
 function ThumbnailFrame({ frame, x = 0, y = 0 }: { frame: Frame; x?: number; y?: number }) {
   return (
@@ -130,6 +207,8 @@ export function StoryboardTimeline({
   onReorderFrame,
   onRemoveFromTimeline,
   onAddFrame,
+  onAddTransition,
+  onRemoveTransition,
 }: StoryboardTimelineProps) {
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -418,31 +497,21 @@ export function StoryboardTimeline({
                   {frame.label}
                 </div>
 
-                {/* Outgoing transition badge */}
-                {(() => {
-                  const outgoing = transitions.filter((t) => t.fromFrameId === frame.id);
-                  if (outgoing.length === 0) return null;
-                  return (
-                    <div
-                      title={outgoing.map((t) => t.label).join(', ')}
-                      style={{
-                        position: 'absolute',
-                        bottom: 22,
-                        right: 4,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        background: 'var(--sb-accent)',
-                        color: '#fff',
-                        borderRadius: 8,
-                        padding: '1px 4px',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      →{outgoing.length}
-                    </div>
-                  );
-                })()}
               </div>
+
+              {/* Connector slot between this card and the next */}
+              {i < frames.length - 1 && (() => {
+                const next = frames[i + 1];
+                const t = transitions.find((tr) => tr.fromFrameId === frame.id && tr.toFrameId === next.id);
+                return (
+                  <ConnectorSlot
+                    connected={!!t}
+                    transitionId={t?.id}
+                    onAdd={() => onAddTransition?.(frame.id, next.id)}
+                    onRemove={(id) => onRemoveTransition?.(id)}
+                  />
+                );
+              })()}
 
               {/* Insertion line after last card */}
               {showInsertAfter && (

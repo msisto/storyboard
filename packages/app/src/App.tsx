@@ -830,6 +830,14 @@ export default function App() {
             updateFrame(id, { inTimeline: false });
           }}
           onAddFrame={handleAddFrame}
+          onAddTransition={(fromId, toId) => {
+            const { addTransition } = useDesignStore.getState();
+            addTransition(fromId, toId, { type: 'manual' });
+          }}
+          onRemoveTransition={(id) => {
+            const { removeTransition } = useDesignStore.getState();
+            removeTransition(id);
+          }}
         />
       )}
 
