@@ -15,30 +15,20 @@ import {
 } from '../canvas/alignmentUtils';
 import type { ArgDefinition, AutoLayoutSettings, ComponentInstance, Frame, SizingMode, StorybookStory } from '../types';
 import { TAILWIND_FONT_SIZES, TAILWIND_FONT_WEIGHTS, TAILWIND_SPACING } from '../types';
+import { detectColorTokens, tokenToCss, type ColorToken } from '../lib/detectTokens';
 
-// shadcn/ui semantic foreground / text tokens
-const SEMANTIC_FG_TOKENS = [
-  { token: 'foreground',             label: 'foreground',             desc: 'Default text' },
-  { token: 'muted-foreground',       label: 'muted-foreground',       desc: 'Subdued / secondary text' },
-  { token: 'card-foreground',        label: 'card-foreground',        desc: 'Text on card' },
-  { token: 'popover-foreground',     label: 'popover-foreground',     desc: 'Text on popover' },
-  { token: 'primary',                label: 'primary',                desc: 'Primary brand color' },
-  { token: 'primary-foreground',     label: 'primary-foreground',     desc: 'Text on primary' },
-  { token: 'secondary-foreground',   label: 'secondary-foreground',   desc: 'Text on secondary surface' },
-  { token: 'accent-foreground',      label: 'accent-foreground',      desc: 'Text on accent' },
-  { token: 'destructive',            label: 'destructive',            desc: 'Error / danger' },
-  { token: 'destructive-foreground', label: 'destructive-foreground', desc: 'Text on destructive' },
-] as const;
+// Detect design system tokens once at module load (DOM is ready by then)
+const _detectedTokens: ColorToken[] = detectColorTokens();
 
 function TextColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {SEMANTIC_FG_TOKENS.map(({ token, label, desc }) => {
-        const tv = `hsl(var(--${token}))`;
+      {_detectedTokens.map((token) => {
+        const tv = tokenToCss(token);
         const selected = value === tv;
         return (
           <div
-            key={token}
+            key={token.prop}
             onClick={() => onChange(tv)}
             style={{
               display: 'flex',
@@ -59,31 +49,17 @@ function TextColorPicker({ value, onChange }: { value: string; onChange: (v: str
               border: '1px solid var(--sb-border)',
               flexShrink: 0,
             }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{label}</div>
-              <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{token.label}</div>
           </div>
         );
       })}
+      {_detectedTokens.length === 0 && (
+        <div style={{ fontSize: 11, color: 'var(--sb-text-4)', padding: '4px 6px' }}>
+          No CSS color tokens detected
+        </div>
+      )}
     </div>
   );
-}
-
-// shadcn/ui semantic background tokens
-const SEMANTIC_BG_TOKENS = [
-  { token: 'background', label: 'background',   desc: 'Page / app background' },
-  { token: 'card',       label: 'card',          desc: 'Card surface' },
-  { token: 'popover',    label: 'popover',       desc: 'Popover / sheet' },
-  { token: 'secondary',  label: 'secondary',     desc: 'Secondary surface' },
-  { token: 'muted',      label: 'muted',         desc: 'Muted / subtle fill' },
-  { token: 'accent',     label: 'accent',        desc: 'Accent highlight' },
-  { token: 'primary',    label: 'primary',       desc: 'Primary / brand' },
-  { token: 'destructive',label: 'destructive',   desc: 'Error / danger' },
-] as const;
-
-function tokenValue(token: string) {
-  return `hsl(var(--${token}))`;
 }
 
 function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -99,7 +75,9 @@ function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  const selected = SEMANTIC_BG_TOKENS.find((t) => tokenValue(t.token) === value) ?? SEMANTIC_BG_TOKENS[0];
+  const selectedToken = _detectedTokens.find((t) => tokenToCss(t) === value);
+  const displayColor = selectedToken ? tokenToCss(selectedToken) : value;
+  const displayLabel = selectedToken ? selectedToken.label : value;
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -115,13 +93,12 @@ function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (
       >
         <div style={{
           width: 20, height: 20, borderRadius: 3,
-          background: tokenValue(selected.token),
+          background: displayColor,
           border: '1px solid var(--sb-border)',
           flexShrink: 0,
         }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)' }}>{selected.label}</div>
-          <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{selected.desc}</div>
+        <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--sb-text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {displayLabel}
         </div>
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, opacity: 0.4 }}>
           <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -135,13 +112,14 @@ function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (
           background: 'var(--sb-bg-secondary)', border: '1px solid var(--sb-border)',
           borderRadius: 6, padding: 4,
           boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+          maxHeight: 240, overflowY: 'auto',
         }}>
-          {SEMANTIC_BG_TOKENS.map(({ token, label, desc }) => {
-            const tv = tokenValue(token);
+          {_detectedTokens.length > 0 ? _detectedTokens.map((token) => {
+            const tv = tokenToCss(token);
             const isSelected = value === tv;
             return (
               <div
-                key={token}
+                key={token.prop}
                 onClick={() => { onChange(tv); setOpen(false); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
@@ -153,13 +131,16 @@ function BackgroundColorPicker({ value, onChange }: { value: string; onChange: (
                   width: 20, height: 20, borderRadius: 3,
                   background: tv, border: '1px solid var(--sb-border)', flexShrink: 0,
                 }} />
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: isSelected ? 500 : 400, color: 'var(--sb-text-2)' }}>{label}</div>
-                  <div style={{ fontSize: 10, color: 'var(--sb-text-3)' }}>{desc}</div>
+                <div style={{ fontSize: 12, fontWeight: isSelected ? 500 : 400, color: 'var(--sb-text-2)' }}>
+                  {token.label}
                 </div>
               </div>
             );
-          })}
+          }) : (
+            <div style={{ fontSize: 11, color: 'var(--sb-text-4)', padding: '8px 6px' }}>
+              No CSS color tokens detected
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1121,7 +1102,7 @@ export function PropsInspector() {
                 Color
               </label>
               <TextColorPicker
-                value={tl.color ?? 'hsl(var(--foreground))'}
+                value={tl.color ?? '#000000'}
                 onChange={(v) => { pushH(); patch({ color: v }); }}
               />
             </div>

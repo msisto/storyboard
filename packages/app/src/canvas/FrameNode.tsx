@@ -500,6 +500,23 @@ const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
 
   return (
     <FramePortalContext.Provider value={portalContainer}>
+    <>
+    {!isChildFrame && (
+      <div
+        style={{
+          position: 'absolute',
+          left: frame.x,
+          top: frame.y - 24,
+          fontSize: 12,
+          color: 'var(--sb-text-3)',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {frame.label}
+      </div>
+    )}
     <div
       {...(!isChildFrame && themePreview ? { 'data-theme-preview': themePreview } : {})}
       style={{
@@ -522,24 +539,6 @@ const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
       onClick={handleFrameClick}
       onMouseDown={handleFrameMouseDown}
     >
-      {/* Frame label — only for top-level frames */}
-      {!isChildFrame && (
-        <div
-          style={{
-            position: 'absolute',
-            top: -24,
-            left: 0,
-            fontSize: 12,
-            color: 'var(--sb-text-3)',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}
-        >
-          {frame.label}
-        </div>
-      )}
-
       {/* Components + comment click target */}
       <div
         ref={innerDivRef}
@@ -615,6 +614,7 @@ const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
         style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}
       />
     </div>
+    </>
     </FramePortalContext.Provider>
   );
 }

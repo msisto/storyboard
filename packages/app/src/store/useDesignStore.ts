@@ -200,7 +200,7 @@ export const useDesignStore = create<DesignStore>((set, get) => ({
               y,
               width,
               height,
-              backgroundColor: 'hsl(var(--background))',
+              backgroundColor: '#ffffff',
               components: [],
               autoLayout: {
                 direction: 'vertical',

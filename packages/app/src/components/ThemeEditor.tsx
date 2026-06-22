@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchTheme, saveTheme, type ThemeTokens } from '../store/themeApi';
 import { hslToHexSafe, hexToHslString } from '../utils/colorUtils';
 import { useCanvasStore } from '../store/useCanvasStore';
+import { detectColorTokens, isShadcnTokens, groupTokens, type ColorToken } from '../lib/detectTokens';
 
 // ── Token groups shown in the editor ─────────────────────────────────────────
 
@@ -183,6 +184,16 @@ export function ThemeEditor() {
   const activeTokens = tokens?.[mode] ?? {};
   const radiusVal = parseFloat(tokens?.light['--radius'] ?? '0.5');
 
+  const detectedTokens = useMemo(() => detectColorTokens(), []);
+  const shadcn = useMemo(() => isShadcnTokens(detectedTokens), [detectedTokens]);
+  const hasRadius = useMemo(() => detectedTokens.some((t) => t.prop === '--radius'), [detectedTokens]);
+
+  // For non-shadcn: group detected tokens by prefix
+  const genericGroups = useMemo(
+    () => (!shadcn ? groupTokens(detectedTokens) : []),
+    [shadcn, detectedTokens]
+  );
+
   if (!tokens) {
     return (
       <div style={{ padding: 16, fontSize: 12, color: 'var(--sb-text-4)', textAlign: 'center' }}>
@@ -216,65 +227,76 @@ export function ThemeEditor() {
 
       {/* Scrollable token list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-        {COLOR_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 4 }}>
-            <div style={{
-              padding: '4px 12px 2px',
-              fontSize: 10, fontWeight: 600,
-              color: 'var(--sb-text-4)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-            }}>
-              {group.label}
+        {shadcn ? (
+          // shadcn/ui: use the known grouped layout
+          COLOR_GROUPS.map((group) => (
+            <div key={group.label} style={{ marginBottom: 4 }}>
+              <GroupLabel>{group.label}</GroupLabel>
+              {group.tokens.map(({ key, label }) => {
+                const hslStr = activeTokens[key] ?? '0 0% 0%';
+                const hex = hslToHexSafe(hslStr);
+                return (
+                  <ColorRow
+                    key={key}
+                    label={label}
+                    hex={hex}
+                    onChange={(h) => handleColorChange(key, h)}
+                  />
+                );
+              })}
             </div>
-            {group.tokens.map(({ key, label }) => {
-              const hslStr = activeTokens[key] ?? '0 0% 0%';
-              const hex = hslToHexSafe(hslStr);
-              return (
-                <ColorRow
-                  key={key}
-                  label={label}
-                  hex={hex}
-                  onChange={(h) => handleColorChange(key, h)}
-                />
-              );
-            })}
+          ))
+        ) : genericGroups.length > 0 ? (
+          // Generic: introspected tokens grouped by prefix
+          genericGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: 4 }}>
+              <GroupLabel>{group.label}</GroupLabel>
+              {group.tokens.map((token) => {
+                const hex = hslToHexSafe(activeTokens[token.prop] ?? token.rawValue);
+                return (
+                  <ColorRow
+                    key={token.prop}
+                    label={token.label}
+                    hex={hex}
+                    onChange={(h) => handleColorChange(token.prop, h)}
+                  />
+                );
+              })}
+            </div>
+          ))
+        ) : (
+          <div style={{ padding: '16px 12px', fontSize: 11, color: 'var(--sb-text-4)' }}>
+            No CSS color tokens detected on :root. Add CSS custom properties to your global stylesheet to edit them here.
           </div>
-        ))}
+        )}
 
-        {/* Radius */}
-        <div style={{ marginBottom: 4 }}>
-          <div style={{
-            padding: '4px 12px 2px',
-            fontSize: 10, fontWeight: 600,
-            color: 'var(--sb-text-4)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-          }}>
-            Shape
-          </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '4px 12px',
-          }}>
-            <span style={{ fontSize: 11, color: 'var(--sb-text-2)', width: 80, flexShrink: 0 }}>
-              Radius
-            </span>
-            <input
-              type="range"
-              min={0} max={2} step={0.05}
-              value={radiusVal}
-              onChange={(e) => handleRadiusChange(parseFloat(e.target.value))}
-              style={{ flex: 1, accentColor: 'var(--sb-accent)' }}
-            />
-            <span style={{
-              fontSize: 11, color: 'var(--sb-text-3)',
-              width: 36, textAlign: 'right', flexShrink: 0,
+        {/* Radius — show only if --radius token exists or using shadcn */}
+        {(shadcn || hasRadius) && (
+          <div style={{ marginBottom: 4 }}>
+            <GroupLabel>Shape</GroupLabel>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '4px 12px',
             }}>
-              {radiusVal.toFixed(2)}
-            </span>
+              <span style={{ fontSize: 11, color: 'var(--sb-text-2)', width: 80, flexShrink: 0 }}>
+                Radius
+              </span>
+              <input
+                type="range"
+                min={0} max={2} step={0.05}
+                value={radiusVal}
+                onChange={(e) => handleRadiusChange(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: 'var(--sb-accent)' }}
+              />
+              <span style={{
+                fontSize: 11, color: 'var(--sb-text-3)',
+                width: 36, textAlign: 'right', flexShrink: 0,
+              }}>
+                {radiusVal.toFixed(2)}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Save status */}
@@ -289,6 +311,20 @@ export function ThemeEditor() {
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? '✓ Saved to CSS files' : '✗ Save failed'}
         </div>
       )}
+    </div>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      padding: '4px 12px 2px',
+      fontSize: 10, fontWeight: 600,
+      color: 'var(--sb-text-4)',
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+    }}>
+      {children}
     </div>
   );
 }
