@@ -399,6 +399,8 @@ The right panel is context-driven:
 - **Nothing selected** — the theme editor is shown. A **System theme / Local theme** dropdown at the top switches scope. **Light** and **Dark** toggle which palette you're editing. System edits save to `theme.css`; local edits save into the current file.
 - **Frame selected** — a **Properties | Code** tab bar appears. Properties shows layout, sizing, and background controls. Code shows live JSX for the frame — slot-aware, updated as you edit. A Copy button in the top-right copies the output to clipboard.
 
+<img width="800" height="800" alt="CleanShot 2026-08-29 at 14 35 23" src="https://github.com/user-attachments/assets/62beb98e-82e9-4cf7-a5bd-1ba9fbb4bb49" />
+
 ### Interacting with components
 
 **Press I** (or the toolbar button) to enter global interact mode — all components on the canvas become interactive at once. Press I again or Escape to exit.
