@@ -245,8 +245,6 @@ Child sizing modes (shown in the inspector as Fixed / Grow / Hug):
 
 All spacing values (gap, padding) are constrained to the Tailwind default spacing scale and displayed as token + pixel value (e.g. `4  16px`).
 
-<img width="800" height="599" alt="CleanShot 2026-08-29 at 14 55 55" src="https://github.com/user-attachments/assets/71e49daf-805c-4813-9aaa-1bce145a3dc2" />
-
 ### Nested frames
 
 Frames can contain child frames, enabling nested auto-layouts — for example, a horizontal row of cards inside a vertically-stacked screen. Draw the frame tool inside an existing frame to create a child frame. Child frames can have their own independent auto-layout and a "Clip Content" toggle. The data model is recursive: `Frame.frames?: Frame[]`. All store mutations use recursive helpers so they work at any nesting depth.
@@ -430,6 +428,8 @@ Select the frame tool (F) and draw inside an existing frame to create a child fr
 ### Auto-layout
 
 Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel to set direction, gap, padding, alignment, and sizing modes. All spacing values snap to the Tailwind scale. Drag children within the frame to reorder. Press Shift+A again to disable.
+
+<img width="800" height="599" alt="CleanShot 2026-08-29 at 14 55 55" src="https://github.com/user-attachments/assets/71e49daf-805c-4813-9aaa-1bce145a3dc2" />
 
 ### Alignment and distribution
 
