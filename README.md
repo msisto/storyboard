@@ -388,6 +388,8 @@ Drag a story from the Components panel onto a frame. The component renders immed
 
 To fill a slot, drag a component from the palette and drop it onto an existing component that has slot argTypes defined. The dropped component is added as a child of the target's first available slot.
 
+<img width="800" height="496" alt="CleanShot 2026-08-29 at 14 46 36" src="https://github.com/user-attachments/assets/70bd643b-bb6d-4369-870b-1003e8afc6b2" />
+
 ### Editing component content
 
 Select a component to see its props in the Inspect panel under **PROPS**. Each arg defined in the story appears as an input control. Changes take effect instantly — one character at a time. Different instances of the same story can have independent content.
