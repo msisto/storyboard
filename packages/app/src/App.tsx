@@ -200,7 +200,7 @@ function CommentModal({
 export default function App() {
   const { status, error, loadRegistry } = useRegistryStore();
   const { file, loadFile, addComponent, addSlottedComponent, addComment, addFrame, selectFrame, selectedFrameId, selectedFrameIds, selectedComponentId, toggleFrameSelection, reorderFrame, selectComponent } = useDesignStore();
-  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, toggleGlobalInteractMode, exitGlobalInteractMode, globalInteractMode } = useCanvasStore();
+  const { activeTool, setTool, exitInteractMode, exitTextEditMode, zoom, pan, toggleGlobalInteractMode, exitGlobalInteractMode, globalInteractMode, themeMode, setThemePreview } = useCanvasStore();
   const [authorName, setAuthorName] = useState(() => localStorage.getItem(AUTHOR_KEY) || '');
   const handleAuthorChange = useCallback((name: string) => {
     setAuthorName(name);
@@ -265,6 +265,11 @@ export default function App() {
 
   // Inject file-specific theme overrides into <head> whenever the file or its theme changes.
   // The global theme.css remains the base; file.theme is layered on top as overrides.
+  // Keep frame preview mode in sync with the user's in-app mode choice
+  useEffect(() => {
+    setThemePreview(themeMode);
+  }, [themeMode, setThemePreview]);
+
   useEffect(() => {
     const existing = document.getElementById('sb-file-theme');
     if (existing) existing.remove();

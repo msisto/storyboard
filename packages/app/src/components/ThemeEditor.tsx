@@ -85,15 +85,10 @@ const COLOR_TOKEN_KEYS = new Set(COLOR_GROUPS.flatMap((g) => g.tokens.map((t) =>
 
 export function ThemeEditor() {
   const { file, updateTheme } = useDesignStore();
-  const hasLocalTheme = !!file?.theme;
+  const { themeScope: scope, setThemeScope: setScope, themeMode: mode, setThemeMode: setMode, setThemePreview } = useCanvasStore();
   const [systemTokens, setSystemTokens] = useState<ThemeTokens | null>(null);
   const [localTokens, setLocalTokens] = useState<ThemeTokens | null>(file?.theme ?? null);
-  const [scope, setScope] = useState<'system' | 'local'>(hasLocalTheme ? 'local' : 'system');
-  const [mode, setMode] = useState<'light' | 'dark'>(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  );
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
-  const { setThemePreview } = useCanvasStore();
 
   const tokens = scope === 'local' ? localTokens : systemTokens;
 
@@ -111,10 +106,9 @@ export function ThemeEditor() {
     }).catch(console.error);
   }, [file?.id]);
 
-  // Sync theme preview mode with the selected tab; clear on unmount
+  // Sync theme preview when mode changes (App.tsx keeps it alive across unmounts)
   useEffect(() => {
     setThemePreview(mode);
-    return () => setThemePreview(null);
   }, [mode, setThemePreview]);
 
   // Inject a scoped style tag for the active mode so frames override
