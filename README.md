@@ -417,6 +417,8 @@ In interact mode, two-finger scroll over a scroll area scrolls the content; the 
 
 Open the Text tab to browse the Tailwind type scale. Click a row to add a text layer to the selected frame. Drag to position. Double-click any text layer on the canvas to edit it inline.
 
+<img width="800" height="493" alt="CleanShot 2026-08-29 at 14 50 16" src="https://github.com/user-attachments/assets/609fced0-a0b9-4dd2-acf7-06771098309d" />
+
 ### Nested frames
 
 Select the frame tool (F) and draw inside an existing frame to create a child frame. The child frame participates in its parent's auto-layout flow. Child frames can have their own auto-layout, a "Clip Content" toggle, and all the same inspector controls as top-level frames.
