@@ -1,6 +1,8 @@
 // @storyboard {"id":"ld7k5ukh","label":"Frame 9","x":4075,"y":1387,"width":1440,"height":900,"backgroundColor":"hsl(var(--background))","components":[{"storybookId":"ui-navigationmenu--default","title":"UI/NavigationMenu","name":"Default","x":280,"y":262,"width":421,"height":40,"args":{},"locked":false,"visible":true,"label":"NavigationMenu · Default","widthMode":"hug","heightMode":"hug","id":"knwor7ko"},{"storybookId":"ui-table--default","title":"UI/Table","name":"Default","x":314,"y":474,"width":1408,"height":402,"args":{},"locked":false,"visible":true,"label":"Table · Default","widthMode":"fill","heightMode":"hug","id":"4r1yz8gg","slots":{"children":[{"storybookId":"ui-carousel--default","title":"UI/Carousel","name":"Default","x":0,"y":0,"width":0,"height":0,"args":{},"locked":false,"visible":true,"label":"Carousel · Default","id":"fh8nek5d"},{"storybookId":"ui-separator--horizontal","title":"UI/Separator","name":"Horizontal","x":0,"y":0,"width":0,"height":0,"args":{"above":"Above the line","below":"Below the line"},"locked":false,"visible":true,"label":"Separator · Horizontal","id":"gef2fo8y"},{"storybookId":"ui-slider--range","title":"UI/Slider","name":"Range","x":0,"y":0,"width":0,"height":0,"args":{"defaultValue":[25,75]},"locked":false,"visible":true,"label":"Slider · Range","id":"1ctihl1b"},{"storybookId":"ui-switch--default","title":"UI/Switch","name":"Default","x":0,"y":0,"width":0,"height":0,"args":{"checked":false,"disabled":false},"locked":false,"visible":true,"label":"Switch · Default","id":"0whr5ada"}]}},{"storybookId":"ui-menubar--default","title":"UI/Menubar","name":"Default","x":175,"y":687,"width":171,"height":40,"args":{},"locked":false,"visible":true,"label":"Menubar · Default","widthMode":"hug","heightMode":"hug","id":"8gkfpl4n"},{"storybookId":"ui-switch--default","title":"UI/Switch","name":"Default","x":177,"y":649,"width":148,"height":24,"args":{"checked":true,"disabled":false},"locked":false,"visible":true,"label":"Switch · Default","widthMode":"hug","heightMode":"hug","id":"57dfisz7"}],"autoLayout":{"direction":"vertical","wrap":false,"gap":16,"paddingTop":16,"paddingRight":16,"paddingBottom":16,"paddingLeft":16,"primaryAlign":"start","counterAlign":"start","widthMode":"fixed","heightMode":"fixed"},"flowOrder":["knwor7ko","8gkfpl4n","57dfisz7","4r1yz8gg"],"textLayers":[],"frames":[],"inTimeline":false}
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { Carousel } from '../../components/ui/carousel';
+import { Menubar } from '../../components/ui/menubar';
 import { NavigationMenu } from '../../components/ui/navigation-menu';
 import { Separator } from '../../components/ui/separator';
 import { Slider } from '../../components/ui/slider';
@@ -25,6 +27,9 @@ const Frame9 = () => (
 const meta = {
   title: 'Local/Frame9',
   component: Frame9,
+  // Auto-generated per-frame scratch content — excluded from Chromatic visual regression,
+  // which covers the component library (UI/*) only.
+  parameters: { chromatic: { disable: true } },
 } satisfies Meta<typeof Frame9>;
 export default meta;
 

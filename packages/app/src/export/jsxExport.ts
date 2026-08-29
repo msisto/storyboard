@@ -226,9 +226,10 @@ export function buildLocalStoryFile(frame: Frame, name: string, stories: Storybo
   const byPath = new Map<string, Set<string>>();
   for (const id of allIds) {
     const s = stories.find((st) => st.id === id);
-    if (!s?.importPath || !s.componentName) continue;
+    if (!s?.importPath) continue;
+    const compName = s.componentName ?? s.title.split('/').pop()!;
     if (!byPath.has(s.importPath)) byPath.set(s.importPath, new Set());
-    byPath.get(s.importPath)!.add(s.componentName);
+    byPath.get(s.importPath)!.add(compName);
   }
 
   const importLines = Array.from(byPath.entries())
@@ -249,6 +250,9 @@ ${body}
 const meta = {
   title: 'Local/${pascal}',
   component: ${pascal},
+  // Auto-generated per-frame scratch content — excluded from Chromatic visual regression,
+  // which covers the component library (UI/*) only.
+  parameters: { chromatic: { disable: true } },
 } satisfies Meta<typeof ${pascal}>;
 export default meta;
 

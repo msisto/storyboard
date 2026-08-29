@@ -16,6 +16,9 @@ const Frame13 = () => (
 const meta = {
   title: 'Local/Frame13',
   component: Frame13,
+  // Auto-generated per-frame scratch content — excluded from Chromatic visual regression,
+  // which covers the component library (UI/*) only.
+  parameters: { chromatic: { disable: true } },
 } satisfies Meta<typeof Frame13>;
 export default meta;
 

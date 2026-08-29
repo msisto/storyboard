@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 
 const meta: Meta = {
   title: 'UI/Sonner',
+  component: Toaster,
 };
 export default meta;
 type Story = StoryObj;
