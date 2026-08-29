@@ -8,11 +8,15 @@ interface CanvasStore {
   editingTextLayerId: string | null;
   globalInteractMode: boolean;
   themePreview: 'dark' | 'light' | null;
+  themeScope: 'system' | 'local';
+  themeMode: 'light' | 'dark';
   clipboard: ComponentInstance | null;
   frameClipboard: Frame | null;
   setClipboard: (instance: ComponentInstance | null) => void;
   setFrameClipboard: (frame: Frame | null) => void;
   setThemePreview: (mode: 'dark' | 'light' | null) => void;
+  setThemeScope: (scope: 'system' | 'local') => void;
+  setThemeMode: (mode: 'light' | 'dark') => void;
   setTool: (tool: Tool) => void;
   pan: (dx: number, dy: number) => void;
   zoom: (delta: number, originX: number, originY: number) => void;
@@ -38,9 +42,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   editingTextLayerId: null,
   globalInteractMode: false,
   themePreview: null,
+  themeScope: 'system',
+  themeMode: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   clipboard: null,
   frameClipboard: null,
   setThemePreview: (mode) => set({ themePreview: mode }),
+  setThemeScope: (scope) => set({ themeScope: scope }),
+  setThemeMode: (mode) => set({ themeMode: mode }),
   setClipboard: (instance) => set({ clipboard: instance }),
   setFrameClipboard: (frame) => set({ frameClipboard: frame }),
 
