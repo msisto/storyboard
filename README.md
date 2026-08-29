@@ -405,6 +405,8 @@ The right panel is context-driven:
 
 In interact mode, two-finger scroll over a scroll area scrolls the content; the canvas does not pan.
 
+<img width="800" height="439" alt="CleanShot 2026-08-29 at 14 32 01" src="https://github.com/user-attachments/assets/8d4ef819-ccb4-42c5-b3b0-c9541ca3f05f" />
+
 ### Text layers
 
 Open the Text tab to browse the Tailwind type scale. Click a row to add a text layer to the selected frame. Drag to position. Double-click any text layer on the canvas to edit it inline.
