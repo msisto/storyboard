@@ -392,6 +392,8 @@ To fill a slot, drag a component from the palette and drop it onto an existing c
 
 Select a component to see its props in the Inspect panel under **PROPS**. Each arg defined in the story appears as an input control. Changes take effect instantly — one character at a time. Different instances of the same story can have independent content.
 
+<img width="800" height="518" alt="CleanShot 2026-08-29 at 14 41 50" src="https://github.com/user-attachments/assets/72ac75c6-55f6-435d-84ee-bbaf4bda3a74" />
+
 ### Right panel
 
 The right panel is context-driven:
