@@ -259,6 +259,20 @@ The canvas supports pinch-to-zoom centered on the cursor position. On load the v
 
 The server maintains a WebSocket room per file ID. When any connected client modifies the design, it broadcasts the full file state to the room. Cursor positions are broadcast at ~30fps. The connection reconnects automatically with exponential backoff. Peer cursors appear as colored dots on the canvas.
 
+### Prototyping
+
+Frames can be wired together into a clickable prototype. A `FrameTransition` connects two frames via a **trigger**:
+
+- `manual` — click anywhere on the frame
+- `component-click` — click a specific component (optionally gated to one value, e.g. a menu item)
+- `component-submit` — submit a form component
+- `arg-change` — a component's arg becomes truthy, or equals a specific value (e.g. a `Switch` flipping on)
+- `timer` — auto-advance after N seconds
+
+A transition can also carry **conditions** (`arg-truthy`, `arg-falsy`, `arg-equals`, `arg-not-equals`) that gate whether it fires, evaluated against the live args of any component on the frame. Transitions are stored on `DesignFile.transitions`, independent of the frames themselves, so rewiring navigation doesn't touch frame content.
+
+`PrototypePlayer` (`packages/app/src/prototype/PrototypePlayer.tsx`) renders the flow fullscreen: one frame at a time, fully interactive, with a 120ms crossfade on navigation. Component args edited during playback (typing in an input, toggling a switch) live in a separate `liveArgs` map that resets on every navigation, so playback never mutates the actual design.
+
 ---
 
 ## Installation
@@ -436,6 +450,12 @@ Press Shift+A with a frame selected to enable auto-layout. Use the Inspect panel
 ### Alignment and distribution
 
 Select two or more items to see alignment controls in the Inspect panel. Align edges or centers, distribute with equal spacing.
+
+### Prototyping (Play mode)
+
+Wire frames together into a clickable flow. Hover a frame to reveal a **+** handle on its right edge, then drag from it to another frame to create a transition — drawn on the canvas as an arrow. Click an arrow to open the transition inspector and set its trigger (click, submit, arg change, timer) and any conditions.
+
+Once a file has at least one transition, a **▶** button appears in the toolbar. Click it to enter Play mode: a fullscreen, fully interactive run-through of your prototype starting from the first frame. Click through the same way a user would — buttons, links, and form submits navigate exactly as configured. Use the back button or progress dots at the bottom to track where you are, and press **Esc** (or the on-screen button) to exit back to the canvas.
 
 ---
 
